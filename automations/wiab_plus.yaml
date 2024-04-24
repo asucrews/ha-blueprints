@@ -1,5 +1,5 @@
 blueprint:
-  name: WIAB+ (0.0.8)
+  name: WIAB+ (0.0.9)
   description: Wasp in the box plus more
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
@@ -147,7 +147,12 @@ action:
             - condition: template
               value_template: "{{ light_switch != 'light.none' }}"
             then:
-              - service: light.turn_on
+              - service: >
+                  {% if 'switch.' in light_switch %}
+                    switch.turn_on
+                  {% else %}
+                    light.turn_on
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -155,7 +160,12 @@ action:
             - condition: template
               value_template: "{{ fan_switch != 'fan.none' }}"
             then:
-              - service: light.turn_on
+              - service: >
+                  {% if 'fan.' in light_switch %}
+                    fan.turn_on
+                  {% else %}
+                    light.turn_on
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -188,7 +198,12 @@ action:
             - condition: template
               value_template: "{{ light_switch != 'light.none' }}"
             then:
-              - service: light.turn_off
+              - service:  >
+                  {% if 'switch.' in light_switch %}
+                    switch.turn_off
+                  {% else %}
+                    light.turn_off
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -196,7 +211,12 @@ action:
             - condition: template
               value_template: "{{ fan_switch != 'fan.none' }}"
             then:
-              - service: light.turn_off
+              - service: >
+                  {% if 'fan.' in light_switch %}
+                    fan.turn_off
+                  {% else %}
+                    light.turn_off
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -224,7 +244,12 @@ action:
             - condition: template
               value_template: "{{ light_switch != 'light.none' }}"
             then:
-              - service: light.turn_on
+              - service: >
+                  {% if 'switch.' in light_switch %}
+                    switch.turn_on
+                  {% else %}
+                    light.turn_on
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -232,7 +257,12 @@ action:
             - condition: template
               value_template: "{{ fan_switch != 'fan.none' }}"
             then:
-              - service: light.turn_on
+              - service: >
+                  {% if 'fan.' in light_switch %}
+                    fan.turn_on
+                  {% else %}
+                    light.turn_on
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -265,7 +295,12 @@ action:
             - condition: template
               value_template: "{{ light_switch != 'light.none' }}"
             then:
-              - service: light.turn_off
+              - service: >
+                  {% if 'switch.' in light_switch %}
+                    switch.turn_off
+                  {% else %}
+                    light.turn_off
+                  {% endif %}
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -276,5 +311,10 @@ action:
               - service: light.turn_off
                 data: {}
                 target:
-                  entity_id: !input fan_switch
+                  entity_id: >
+                    {% if 'fan.' in light_switch %}
+                      fan.turn_off
+                    {% else %}
+                      light.turn_off
+                    {% endif %}
 mode: single
