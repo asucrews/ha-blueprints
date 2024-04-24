@@ -411,4 +411,5 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+
 mode: single
