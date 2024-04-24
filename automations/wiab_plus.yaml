@@ -174,10 +174,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_bulbs != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_bulbs
                 state: "off"
-            then:
               - service: light.turn_on
                 data: {}
                 target:
@@ -187,10 +187,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_switch != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_switch
                 state: "off"
-            then:
               - service: >
                   {% if 'switch.' in light_switch %}
                     switch.turn_on
@@ -205,10 +205,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ fan_switch != 'fan.none' }}"
+            then:
               - condition: state
                 entity_id: fan_switch
                 state: "off"
-            then:
               - service: >
                   {% if 'fan.' in light_switch %}
                     fan.turn_on
@@ -240,10 +240,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_bulbs != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_bulbs
                 state: "on"
-            then:
               - service: light.turn_off
                 data: {}
                 target:
@@ -253,10 +253,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_switch != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_switch
                 state: "on"
-            then:
               - service:  >
                   {% if 'switch.' in light_switch %}
                     switch.turn_off
@@ -271,10 +271,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ fan_switch != 'fan.none' }}"
+            then:
               - condition: state
                 entity_id: fan_switch
                 state: "on"
-            then:
               - service: >
                   {% if 'fan.' in light_switch %}
                     fan.turn_off
@@ -301,10 +301,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_bulbs != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_bulbs
                 state: "off"
-            then:
               - service: light.turn_on
                 data: {}
                 target:
@@ -314,10 +314,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_bulbs != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_bulbs
                 state: "off"
-            then:
               - service: >
                   {% if 'switch.' in light_switch %}
                     switch.turn_on
@@ -332,10 +332,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ fan_switch != 'fan.none' }}"
+            then:
               - condition: state
                 entity_id: fan_switch
                 state: "off"
-            then:
               - service: >
                   {% if 'fan.' in light_switch %}
                     fan.turn_on
@@ -367,10 +367,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_bulbs != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_bulbs
                 state: "on"
-            then:
               - service: light.turn_off
                 data: {}
                 target:
@@ -380,10 +380,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ light_switch != 'light.none' }}"
+            then:
               - condition: state
                 entity_id: light_switch
                 state: "on"
-            then:
               - service: >
                   {% if 'switch.' in light_switch %}
                     switch.turn_off
@@ -398,10 +398,10 @@ action:
               conditions:
               - condition: template
                 value_template: "{{ fan_switch != 'fan.none' }}"
+            then:
               - condition: state
                 entity_id: fan_switch
                 state: "on"
-            then:
               - service: light.turn_off
                 data: {}
                 target:
