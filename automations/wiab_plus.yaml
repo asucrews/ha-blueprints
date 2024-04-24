@@ -1,0 +1,280 @@
+blueprint:
+  name: WIAB+ (0.0.7)
+  description: Wasp in the box plus more
+  domain: automation
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/wiab_plus.yaml
+  input:
+    door_sensor:
+      name: Door Sensor or Door Sensor Group
+      selector:
+        entity:
+          domain:
+          - binary_sensor
+          multiple: false
+    motion_sensor:
+      name: Motion Sensor or Motion Sensor Group
+      selector:
+        entity:
+          domain:
+          - binary_sensor
+          multiple: false
+    light_bulbs:
+      name: Smart Light Bulb, or Smart Light Bulb Group
+      default: 'light.none'
+      selector:
+        entity:
+          domain:
+          - light
+          multiple: false
+    light_switch:
+      name: Light, Light Group, Switch, or Switch Group
+      default: 'light.none'
+      selector:
+        entity:
+          domain:
+          - light
+          - switch
+          multiple: false
+    fan_switch:
+      name: Fan or Fan Group
+      default: 'fan.none'
+      selector:
+        entity:
+          domain:
+          - fan
+          - light
+          multiple: false
+    door_sensor_open_delay:
+      name: Door Sensor Open Delay
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 60.0
+          unit_of_measurement: seconds
+          step: 1.0
+    door_sensor_close_delay:
+      name: Door Sensor Close Delay
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 60.0
+          unit_of_measurement: seconds
+          step: 1.0
+    motion_sensor_delay:
+      name: Motion off delay
+      default: 30
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 3600.0
+          unit_of_measurement: seconds
+          step: 1.0
+    occupancy_helper:
+      name: Occupancy Helper
+      default: 'input_boolean.none'
+      selector:
+        entity:
+          domain:
+          - input_boolean
+          multiple: false
+  
+variables:
+  door_sensor: !input door_sensor
+  motion_sensor: !input motion_sensor
+  light_bulbs: !input light_bulbs
+  light_switch: !input light_switch
+  fan_switch: !input fan_switch
+  door_sensor_open_delay: !input door_sensor_open_delay
+  door_sensor_close_delay: !input door_sensor_close_delay
+  motion_sensor_delay: !input motion_sensor_delay
+  occupancy_helper: !input occupancy_helper
+  # lux_sensor: !input lux_sensor
+  # bypass_sensor: !input bypass_sensor
+  
+trigger:
+  - platform: state
+    entity_id: !input door_sensor
+    from: "off"
+    to: "on"
+    id: Door Opened
+    for: !input door_sensor_open_delay
+  - platform: state
+    entity_id: !input door_sensor
+    from: "on"
+    to: "off"
+    id: Door Closed
+    for: !input door_sensor_close_delay
+  - platform: state
+    entity_id: !input motion_sensor
+    from: "off"
+    to: "on"
+    id: Motion On
+  - platform: state
+    entity_id: !input motion_sensor
+    from: "on"
+    to: "off"
+    id: Motion Off
+    for: !input motion_sensor_delay
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: Door Closed
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - service: input_boolean.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: light.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
+          - if:
+            - condition: template
+              value_template: "{{ states(light_switch)|length != 0 }}"
+            then:
+              - service: light.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          - if:
+            - condition: template
+              value_template: "{{ states(fan_switch)|length != 0 }}"
+            then:
+              - service: light.turn_on
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Opened
+              - condition: state
+                state: "off"
+                entity_id: !input motion_sensor
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: input_boolean.turn_off
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
+          - if:
+            - condition: template
+              value_template: "{{ states(light_switch)|length != 0 }}"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          - if:
+            - condition: template
+              value_template: "{{ states(fan_switch)|length != 0 }}"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+      - conditions:
+          - condition: trigger
+            id: Motion On
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: input_boolean.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: light.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
+          - if:
+            - condition: template
+              value_template: "{{ states(light_switch)|length != 0 }}"
+            then:
+              - service: light.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          - if:
+            - condition: template
+              value_template: "{{ states(fan_switch)|length != 0 }}"
+            then:
+              - service: light.turn_on
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Motion Off
+              - condition: state
+                state: 'on'
+                entity_id: !input door_sensor
+        sequence:            
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: input_boolean.turn_off
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          - if:
+            - condition: template
+              value_template: "{{ states(light_bulbs)|length != 0 }}"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
+          - if:
+            - condition: template
+              value_template: "{{ states(light_switch)|length != 0 }}"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          - if:
+            - condition: template
+              value_template: "{{ states(fan_switch)|length != 0 }}"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+mode: single
