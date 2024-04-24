@@ -82,7 +82,31 @@ blueprint:
           domain:
           - input_boolean
           multiple: false
-  
+    bypass_mode:
+      name: Bypass Mode (Optional)
+      default: no_bypass
+      selector:
+        select:
+          mode: dropdown
+          options:
+          - label: No Bypass
+            value: no_bypass
+          - label: Bypass No Auto OFF
+            value: bypass_no_auto_off
+          - label: Bypass Auto OFF
+            value: bypass_auto_off
+          custom_value: false
+          multiple: false
+          sort: false
+    bypass_timer:
+      name: Bypass Auto Off Timer
+      default: 'timer.none'
+      selector:
+        entity:
+          domain:
+          - timer
+          multiple: false
+
 variables:
   door_sensor: !input door_sensor
   motion_sensor: !input motion_sensor
@@ -94,7 +118,8 @@ variables:
   motion_sensor_delay: !input motion_sensor_delay
   occupancy_helper: !input occupancy_helper
   # lux_sensor: !input lux_sensor
-  # bypass_sensor: !input bypass_sensor
+  bypass_mode: !input bypass_mode
+  bypass_timer: !input bypass_timer
   
 trigger:
   - platform: state
