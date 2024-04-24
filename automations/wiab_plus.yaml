@@ -1,5 +1,5 @@
 blueprint:
-  name: WIAB+ (0.0.7)
+  name: WIAB+ (0.0.8)
   description: Wasp in the box plus more
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
@@ -137,7 +137,7 @@ action:
                   entity_id: !input occupancy_helper
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ ight_bulbs != 'light.none' }}"
             then:
               - service: light.turn_on
                 data: {}
@@ -145,7 +145,7 @@ action:
                   entity_id: !input light_bulbs
           - if:
             - condition: template
-              value_template: "{{ states(light_switch)|length != 0 }}"
+              value_template: "{{ light_switch != 'light.none' }}"
             then:
               - service: light.turn_on
                 data: {}
@@ -153,7 +153,7 @@ action:
                   entity_id: !input light_switch
           - if:
             - condition: template
-              value_template: "{{ states(fan_switch)|length != 0 }}"
+              value_template: "{{ fan_switch != 'fan.none' }}"
             then:
               - service: light.turn_on
                 data: {}
@@ -170,7 +170,7 @@ action:
         sequence:
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: input_boolean.turn_off
                 data: {}
@@ -178,7 +178,7 @@ action:
                   entity_id: !input occupancy_helper
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ ight_bulbs != 'light.none' }}"
             then:
               - service: light.turn_off
                 data: {}
@@ -186,7 +186,7 @@ action:
                   entity_id: !input light_bulbs
           - if:
             - condition: template
-              value_template: "{{ states(light_switch)|length != 0 }}"
+              value_template: "{{ light_switch != 'light.none' }}"
             then:
               - service: light.turn_off
                 data: {}
@@ -194,7 +194,7 @@ action:
                   entity_id: !input light_switch
           - if:
             - condition: template
-              value_template: "{{ states(fan_switch)|length != 0 }}"
+              value_template: "{{ fan_switch != 'fan.none' }}"
             then:
               - service: light.turn_off
                 data: {}
@@ -206,7 +206,7 @@ action:
         sequence:
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: input_boolean.turn_on
                 data: {}
@@ -214,7 +214,7 @@ action:
                   entity_id: !input occupancy_helper
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ ight_bulbs != 'light.none' }}"
             then:
               - service: light.turn_on
                 data: {}
@@ -222,7 +222,7 @@ action:
                   entity_id: !input light_bulbs
           - if:
             - condition: template
-              value_template: "{{ states(light_switch)|length != 0 }}"
+              value_template: "{{ light_switch != 'light.none' }}"
             then:
               - service: light.turn_on
                 data: {}
@@ -230,7 +230,7 @@ action:
                   entity_id: !input light_switch
           - if:
             - condition: template
-              value_template: "{{ states(fan_switch)|length != 0 }}"
+              value_template: "{{ fan_switch != 'fan.none' }}"
             then:
               - service: light.turn_on
                 data: {}
@@ -247,7 +247,7 @@ action:
         sequence:            
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: input_boolean.turn_off
                 data: {}
@@ -255,7 +255,7 @@ action:
                   entity_id: !input occupancy_helper
           - if:
             - condition: template
-              value_template: "{{ states(light_bulbs)|length != 0 }}"
+              value_template: "{{ ight_bulbs != 'light.none' }}"
             then:
               - service: light.turn_off
                 data: {}
@@ -263,7 +263,7 @@ action:
                   entity_id: !input light_bulbs
           - if:
             - condition: template
-              value_template: "{{ states(light_switch)|length != 0 }}"
+              value_template: "{{ light_switch != 'light.none' }}"
             then:
               - service: light.turn_off
                 data: {}
@@ -271,7 +271,7 @@ action:
                   entity_id: !input light_switch
           - if:
             - condition: template
-              value_template: "{{ states(fan_switch)|length != 0 }}"
+              value_template: "{{ fan_switch != 'fan.none' }}"
             then:
               - service: light.turn_off
                 data: {}
