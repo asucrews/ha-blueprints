@@ -7,6 +7,7 @@
 - changes to bypass process
 ### Fixes
 - Idle Timer Logic
+- Auto off logic
 
 ## [0.2.3] - 2024-04-25
 ### Added
