@@ -163,8 +163,10 @@ trigger:
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            id: Door Closed
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Closed
         sequence:
           - if:
             - condition: template
@@ -224,6 +226,9 @@ action:
                 target:
                   entity_id: !input fan_switch
       - conditions:
+          - contition: state
+            state: "false"
+            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -290,8 +295,10 @@ action:
                 target:
                   entity_id: !input fan_switch
       - conditions:
-          - condition: trigger
-            id: Motion On
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Motion On
         sequence:
           - if:
             - condition: template
@@ -351,6 +358,9 @@ action:
                 target:
                   entity_id: !input fan_switch
       - conditions:
+          - contition: state
+            state: "false"
+            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
