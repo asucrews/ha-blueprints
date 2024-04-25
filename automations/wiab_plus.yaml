@@ -1,11 +1,17 @@
 blueprint:
-  name: WIAB+ (0.1.9)
+  name: WIAB+ (0.1.10)
   description: >
     WIAB+ (Wasp in a Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in a Box" concept.<br/> 
     The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").<br/>
     If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly.<br/>
     The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
-    <br/>
+    <br/>Assumptions:<br/>
+    - Motion sensors are typically positioned to detect movement when someone walks into the room, triggering occupancy detection.<br/>
+    - It is assumed that as long as the door to the designated area ("box") is closed, the room is considered occupied, influencing the automation's behavior.<br/>
+    - Users are expected to configure motion and door sensors accurately to detect occupancy within the designated area.<br/>
+    - The blueprint provides options to control smart light bulbs, light switches, and fans within the area based on occupancy detection.<br/>
+    - Users are expected to create input_boolean entities for occupancy tracking and bypass control if they choose to utilize these features.<br/>
+    - For bypass functionality, users need to manually integrate call service actions into their automations or methods to control devices when bypassing occupancy detection is required.<br/>
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
   input:
