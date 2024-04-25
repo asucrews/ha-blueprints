@@ -432,7 +432,7 @@ action:
               - condition: trigger
                 id: Bypass Timer Finished
               - condition: template
-                value_template: "{{ fbypass_mode == 'bypass_auto_off' }}"
+                value_template: "{{ bypass_mode == 'bypass_auto_off' }}"
         sequence:
           - service: input_boolean.turn_off
             metadata: {}
