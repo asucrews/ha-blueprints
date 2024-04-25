@@ -11,10 +11,8 @@ blueprint:
     door_sensor:
       name: Door Sensor or Door Sensor Group
       description: >
-        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected. 
-        In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.
-        Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.
-        This field and this input is required. 
+        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected.  In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.<br/>
+        Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
       selector:
         entity:
           domain:
@@ -23,10 +21,8 @@ blueprint:
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group
       description: >
-        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box"). 
-        In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space. 
-        Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.
-        This field and this input is required. 
+        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
+        Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
       selector:
         entity:
           domain:
@@ -35,10 +31,8 @@ blueprint:
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
       description: >
-        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box"). 
-        These lights illuminate the space based on occupancy detected by the motion sensor. 
-        Please note: Only entities within the light domain are selectable, and only one selection is allowed.
-        Default value: 'light.none'. Only change if you intend to use this field and this input is optional. 
+        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+        Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: 'light.none'
       selector:
         entity:
@@ -48,10 +42,8 @@ blueprint:
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
       description: >
-        Choose a light, light group, switch, or switch group to control within the designated area ("box"). 
-        These devices provide illumination based on occupancy detected by the motion sensor.
-        Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.
-        Default value: 'light.none'. Only change if you intend to use this field and this input is optional. 
+        Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+        Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: 'light.none'
       selector:
         entity:
@@ -62,10 +54,8 @@ blueprint:
     fan_switch:
       name: Fan or Fan Group (Optional)
       description: >
-        Select a fan or group of fans to control within the designated area ("box"). 
-        These fans regulate air circulation based on occupancy detected by the motion sensor.
-        Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.
-        Default value: 'fan.none'. Only change if you intend to use this field and this input is optional. 
+        Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+        Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: 'fan.none'
       selector:
         entity:
@@ -76,9 +66,8 @@ blueprint:
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
       description: >
-        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.
-        This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.
-        Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.
+        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
       default: 0
       selector:
         number:
@@ -90,9 +79,8 @@ blueprint:
     door_sensor_close_delay:
       name: Door Sensor Close Delay (Optional)
       description: >
-        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement. 
-        This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.
-        Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.
+        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
       default: 0
       selector:
         number:
@@ -104,10 +92,8 @@ blueprint:
     motion_sensor_delay:
       name: Motion off delay (Optional)
       description: >
-        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement. 
-        Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.
-        This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.
-        Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.
+        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
       default: 30
       selector:
         number:
@@ -119,11 +105,9 @@ blueprint:
     occupancy_helper:
       name: Occupancy Helper (Optional)
       description: >
-        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").
-        To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.
-        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection. 
-        Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.
-        Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.
+        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection.  Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
+        Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: 'input_boolean.none'
       selector:
         entity:
@@ -133,10 +117,8 @@ blueprint:
     bypass_mode:
       name: Bypass Mode (Optional)
       description: >
-        Select the bypass mode to control how the automation handles bypass events.<br/>
-        This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
-        Bypass mode determines whether the automation should ignore occupancy detection temporarily.<br/>
-        Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
+        Select the bypass mode to control how the automation handles bypass events.  This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
+        Bypass mode determines whether the automation should ignore occupancy detection temporarily.  Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
         Options:<br/>
           - No Bypass: Automation operates normally without bypassing occupancy detection.<br/>
           - Bypass No Auto OFF: Automation temporarily ignores occupancy detection until manually turned off. To use this option, create an input_boolean helper entity for bypass control.<br/>
