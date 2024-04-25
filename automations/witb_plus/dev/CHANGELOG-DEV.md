@@ -2,6 +2,7 @@
 ## [0.2.4] - 2024-04-25
 ### Changes
 - moved the bypass check to better location
+- changes to bypass process
 
 ### Fixes
 - Idle Timer Logic
