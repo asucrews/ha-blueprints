@@ -154,6 +154,11 @@ trigger:
     to: "off"
     id: Motion Off
     for: !input motion_sensor_delay
+  - platform: state
+    entity_id: !input bypass_timer
+    from: active
+    to: idle
+    id: Bypass Timer Finished
 
 action:
   - choose:
@@ -411,5 +416,15 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
-
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Timer Finished
+        sequence:
+          - service: input_boolean.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input bypass_helper
 mode: single
