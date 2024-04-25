@@ -112,8 +112,8 @@ WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for oc
 ## Source Code
 
 The source code for WITB+ Blueprint can be found on GitHub:
-[View Source Code - Stable](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/witb_plus.yaml)
-[View Source Code - Dev](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/witb_plus_dev.yaml)
+[View Source Code - Stable](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/witb_plus.yaml)  
+[View Source Code - Dev](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/witb_plus_dev.yaml)  
 
 ## Future Enhancements
 - **Additional Lighting Controls:** We plan to expand the capabilities of the blueprint by incorporating more advanced lighting controls. This could include adjusting brightness, changing colors, or even integrating scene selection functionality.
