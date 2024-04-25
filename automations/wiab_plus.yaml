@@ -1,14 +1,20 @@
 blueprint:
-  name: WIAB+ (0.1.6)
+  name: WIAB+ (0.1.7)
   description: >
-        WIAB+ (Wasp in a Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in a Box" concept. The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box"). If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.
+    WIAB+ (Wasp in a Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in a Box" concept. 
+    The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").
+    If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. 
+    The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
   input:
     door_sensor:
       name: Door Sensor or Door Sensor Group
       description: >
-        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected. In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.
+        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected. 
+        In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.
+        Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.
+        This field and this input is required. 
       selector:
         entity:
           domain:
@@ -16,7 +22,11 @@ blueprint:
           multiple: false
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group
-      description: Represents the motion sensor or a group of motion sensors.
+      description: >
+        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box"). 
+        In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space. 
+        Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.
+        This field and this input is required. 
       selector:
         entity:
           domain:
@@ -24,7 +34,11 @@ blueprint:
           multiple: false
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
-      description: Represents a smart light bulb or a group of smart light bulbs (optional).
+      description: >
+        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box"). 
+        These lights illuminate the space based on occupancy detected by the motion sensor. 
+        Please note: Only entities within the light domain are selectable, and only one selection is allowed.
+        Default value: 'light.none'. Only change if you intend to use this field and this input is optional. 
       default: 'light.none'
       selector:
         entity:
@@ -33,7 +47,11 @@ blueprint:
           multiple: false
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
-      description: Represents a light, a light group, a switch, or a switch group (optional).
+      description: >
+        Choose a light, light group, switch, or switch group to control within the designated area ("box"). 
+        These devices provide illumination based on occupancy detected by the motion sensor.
+        Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.
+        Default value: 'light.none'. Only change if you intend to use this field and this input is optional. 
       default: 'light.none'
       selector:
         entity:
@@ -43,7 +61,11 @@ blueprint:
           multiple: false
     fan_switch:
       name: Fan or Fan Group (Optional)
-      description: Represents a fan or a group of fans (optional).
+      description: >
+        Select a fan or group of fans to control within the designated area ("box"). 
+        These fans regulate air circulation based on occupancy detected by the motion sensor.
+        Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.
+        Default value: 'fan.none'. Only change if you intend to use this field and this input is optional. 
       default: 'fan.none'
       selector:
         entity:
