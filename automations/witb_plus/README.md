@@ -115,7 +115,7 @@ The source code for WITB+ Blueprint 0.2.0 can be found on GitHub:
 [View Source Code](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/witb_plus.yaml)
 
 
-### Future Enhancements
+## Future Enhancements
 - **Additional Lighting Controls:** We plan to expand the capabilities of the blueprint by incorporating more advanced lighting controls. This could include adjusting brightness, changing colors, or even integrating scene selection functionality.
 - **Customization Options:** We aim to provide users with more customization options to tailor the blueprint to their specific needs and preferences. This might involve configurable parameters for sensitivity, timing, or integration with other devices.
 - **Integration with Environmental Sensors:** In future iterations, we envision integrating the blueprint with environmental sensors to enhance automation based on factors like ambient light, temperature, or humidity.
