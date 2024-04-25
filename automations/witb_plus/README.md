@@ -20,88 +20,94 @@ WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for oc
 
 ### Door Sensor
 
-- **Description**: Select the door sensor or group of door sensors representing the entrance to the "box."
-- **Type**: binary_sensor
+- **Description**: Select the door sensor representing the entrance to the designated area.
+- **Type**: Binary Sensor
 - **Selector**: Allows only a single selection.
 
 ### Motion Sensor
 
-- **Description**: Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").
-- **Type**: binary_sensor
+- **Description**: Choose the motion sensor responsible for detecting movement within the designated area.
+- **Type**: Binary Sensor
 - **Selector**: Allows only a single selection.
 
-### Light Bulbs (Optional)
+### Smart Light Bulb
 
-- **Description**: Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").
-- **Type**: light
-- **Selector**: Allows only a single selection. (Default value: 'light.none')
+- **Description**: Select a smart light bulb to control within the designated area.
+- **Type**: Light
+- **Selector**: Allows only a single selection. Default: 'light.none'.
 
-### Light Switch (Optional)
+### Light Switch
 
-- **Description**: Choose a light, light group, switch, or switch group to control within the designated area ("box").
-- **Type**: light or switch
-- **Selector**: Allows only a single selection. (Default value: 'light.none')
+- **Description**: Choose a light switch to control within the designated area.
+- **Type**: Light or Switch
+- **Selector**: Allows only a single selection. Default: 'light.none'.
 
-### Fan Switch (Optional)
+### Fan Switch
 
-- **Description**: Select a fan or group of fans to control within the designated area ("box").
-- **Type**: fan or light
-- **Selector**: Allows only a single selection. (Default value: 'fan.none')
+- **Description**: Select a fan to control within the designated area.
+- **Type**: Fan or Light
+- **Selector**: Allows only a single selection. Default: 'fan.none'.
 
-### Door Sensor Open Delay (Optional)
+### Door Sensor Open Delay
 
 - **Description**: Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.
-- **Type**: number
+- **Type**: Number
 - **Selector**: Allows selection within a range (Default: 0 seconds).
+- **Min Value**: 0 seconds
+- **Max Value**: 60 seconds
 
-### Door Sensor Close Delay (Optional)
+### Door Sensor Close Delay
 
 - **Description**: Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.
-- **Type**: number
+- **Type**: Number
 - **Selector**: Allows selection within a range (Default: 0 seconds).
+- **Min Value**: 0 seconds
+- **Max Value**: 60 seconds
 
-### Motion off Delay (Optional)
+### Motion off Delay
 
 - **Description**: Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.
-- **Type**: number
+- **Type**: Number
 - **Selector**: Allows selection within a range (Default: 30 seconds).
+- **Min Value**: 0 seconds
+- **Max Value**: 3600 seconds
 
-### Occupancy Helper (Optional)
+### Occupancy Helper
 
-- **Description**: Select an input boolean entity to serve as an occupancy helper within the designated area ("box").
-- **Type**: input_boolean
-- **Selector**: Allows only a single selection. (Default value: 'input_boolean.none')
+- **Description**: Select an input boolean entity to serve as an occupancy helper within the designated area.
+- **Type**: Input Boolean
+- **Selector**: Allows only a single selection. Default: 'input_boolean.none'.
 
-### Bypass Mode (Optional)
+### Bypass Mode
 
 - **Description**: Select the bypass mode to control how the automation handles bypass events.
-- **Type**: dropdown
-- **Options**: 
+- **Type**: Dropdown
+- **Selector**: Allows selection from predefined options. Default: No Bypass.
+- **Options**:
   - No Bypass
   - Bypass No Auto OFF
   - Bypass Auto OFF
-- **Selector**: Allows selection from dropdown options. (Default value: No Bypass)
 
-### Bypass Helper (Optional)
+### Bypass Helper
 
-- **Description**: Select an input boolean entity to serve as a bypass helper within the designated area ("box").
-- **Type**: input_boolean
-- **Selector**: Allows only a single selection. (Default value: 'input_boolean.none')
+- **Description**: Select an input boolean entity to serve as a bypass helper within the designated area.
+- **Type**: Input Boolean
+- **Selector**: Allows only a single selection. Default: 'input_boolean.none'.
 
-### Bypass Auto Off Timer (Optional)
+### Bypass Auto Off Timer
 
 - **Description**: Set the duration, in seconds, for the automatic cancellation of a bypass event.
-- **Type**: timer
-- **Selector**: Allows only a single selection. (Default value: 'timer.none')
+- **Type**: Timer
+- **Selector**: Allows only a single selection. Default: 'timer.none'.
 
-### Bypass Action After Timer Finished (Optional)
+### Bypass Action After Timer Finished
 
 - **Description**: Specify the action to be taken after the bypass auto-off timer finishes counting down.
-- **Type**: dropdown
+- **Type**: Dropdown
+- **Selector**: Allows selection from predefined options. Default: Turn Off.
 - **Options**:
   - Turn Off
   - Do Nothing
-- **Selector**: Allows selection from dropdown options. (Default value: Turn Off)
 
 ## Source Code
 
