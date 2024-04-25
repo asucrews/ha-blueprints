@@ -187,6 +187,22 @@ blueprint:
           custom_value: false
           multiple: false
           sort: false
+    idle_timer:
+      name: Idle Timer (Optional)
+      description: >
+          Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+          To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
+          Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 3600.0
+          unit_of_measurement: seconds
+          step: 1.0
+        
+
 variables:
   door_sensor: !input door_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
@@ -201,6 +217,7 @@ variables:
   bypass_helper: !input bypass_helper
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
+  auto_off: !input auto_off
   # lux_sensor: !input lux_sensor
 
 trigger:
@@ -232,6 +249,7 @@ trigger:
     from: active
     to: idle
     id: Bypass Timer Finished
+
 
 action:
   - choose:
