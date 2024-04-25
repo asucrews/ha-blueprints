@@ -1,10 +1,12 @@
 # Changelog
+## [0.2.4] - 2024-04-25
+### Changes
+- moved the bypass check to better location
 
-## [0.2.4] - 2024-04.25
-### Added
-- dealing with
+### Fixes
+- Idle Timer Logic
 
-## [0.2.3] - 2024-04.25
+## [0.2.3] - 2024-04-25
 ### Added
 - Idle timer logic
 - Documentation
@@ -14,7 +16,7 @@
 - Idle timer https://github.com/asucrews/ha-blueprints/issues/4
 
 ## [0.2.1] - 2024-04-25
-### Change
+### Changes
 - Switch to using homeassistant.turn_on/off
 ### Added
 - Idle timer input can variable

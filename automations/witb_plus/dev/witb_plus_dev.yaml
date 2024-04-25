@@ -325,9 +325,6 @@ action:
                   entity_id: !input fan_switch
       # Checks if bypass is off, if door has been opened, and if motion is cleared.
       - conditions:
-          - condition: state
-            state: "off"
-            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -336,6 +333,13 @@ action:
                 state: "off"
                 entity_id: !input motion_sensor
         sequence:
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state 
+                state: "off"
+                entity_id: !input bypass_helper
           - if:
             - condition: template
               value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -439,9 +443,6 @@ action:
                   entity_id: !input fan_switch
       # Checks if bypass is off, if door has been opened, and if motion is cleared.
       - conditions:
-          - condition: state
-            state: "off"
-            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -449,7 +450,14 @@ action:
               - condition: state
                 state: 'on'
                 entity_id: !input door_sensor
-        sequence:            
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state 
+                state: "off"
+                entity_id: !input bypass_helper
           - if:
             - condition: template
               value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -570,9 +578,6 @@ action:
                       entity_id: !input fan_switch
       # Checks if bypass is off, idle timer has finished, and idel timer is not timer.none.
       - conditions:
-          - condition: state 
-            state: "off"
-            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -580,6 +585,13 @@ action:
               - condition: template
                 value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
+          - if:
+            - condition: template
+              value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state 
+                state: "off"
+                entity_id: !input bypass_helper
           - if:
             - condition: and
               conditions:
@@ -621,8 +633,8 @@ action:
               then:
                 - condition: state
                   entity_id: !input light_switch
-                  state: "off"
-                - service: homeassistant.turn_on
+                  state: "on"
+                - service: homeassistant.turn_off
                   data: {}
                   target:
                     entity_id: !input light_switch
@@ -641,9 +653,6 @@ action:
                     entity_id: !input fan_switch
       # Checks if bypass is off, and door has been closed for 2 minutes
       - conditions:
-          - condition: state 
-            state: "off"
-            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -651,6 +660,13 @@ action:
               - condition: template
                 value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
+        - if:
+            - condition: template
+              value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+          then:
+            - condition: state 
+              state: "off"
+              entity_id: !input bypass_helper
         - if:
             - condition: state
               entity_id: timer.witb_idle_timer
@@ -675,4 +691,5 @@ action:
               data: {}
               target:
                 entity_id: timer.witb_idle_timer
-mode: single
+mode: queued
+max: 5
