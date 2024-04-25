@@ -1,10 +1,7 @@
 blueprint:
-  name: WIAB+ (0.1.10)
+  name: WITB+ (0.2.0)
   description: >
-    WIAB+ (Wasp in a Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in a Box" concept.<br/> 
-    The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").<br/>
-    If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly.<br/>
-    The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
+    WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
     - Motion sensors are typically positioned to detect movement when someone walks into the room, triggering occupancy detection.<br/>
     - It is assumed that as long as the door to the designated area ("box") is closed, the room is considered occupied, influencing the automation's behavior.<br/>
@@ -13,7 +10,7 @@ blueprint:
     - Users are expected to create input_boolean entities for occupancy tracking and bypass control if they choose to utilize these features.<br/>
     - For bypass functionality, users need to manually integrate call service actions into their automations or methods to control devices when bypassing occupancy detection is required.<br/>
   domain: automation
-  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus.yaml
   input:
     door_sensor:
       name: Door Sensor or Door Sensor Group
