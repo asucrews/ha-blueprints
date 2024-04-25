@@ -1,4 +1,4 @@
-# Stable WITB+ (Wasp in the Box Plus) Blueprint
+# Dev WITB+ (Wasp in the Box Plus) Blueprint
 
 ## Overview
 
@@ -108,6 +108,14 @@ WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for oc
 - **Options**:
   - Turn Off
   - Do Nothing
+
+### Idle Timer
+
+- **Description**: Set the duration, in seconds, for the automatic cancellation of a bypass event.
+- **Type**: Number
+- **Selector**: Allows selection within a range (Default value: 0 and means disabled).
+- **Min Value**: 0 seconds
+- **Max Value**: 3600 seconds
 
 ## Source Code
 

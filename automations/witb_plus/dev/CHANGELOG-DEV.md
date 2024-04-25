@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.2.3] - 2024-04.25
+### Added
+- Idle timer logic
+- Documentation
+
 ## [0.2.2] - 2024-04-25
 ### Fixes
 - Idle timer https://github.com/asucrews/ha-blueprints/issues/4
