@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.4] - 2024-04.25
+### Added
+- dealing with
+
 ## [0.2.3] - 2024-04.25
 ### Added
 - Idle timer logic
