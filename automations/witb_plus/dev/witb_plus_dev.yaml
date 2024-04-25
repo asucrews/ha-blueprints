@@ -639,4 +639,40 @@ action:
                   data: {}
                   target:
                     entity_id: !input fan_switch
+      # Checks if bypass is off, and door has been closed for 2 minutes
+      - conditions:
+          - condition: state 
+            state: "off"
+            entity_id: !input bypass_helper
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Closed For 2 Minutes
+              - condition: template
+                value_template: "{{ idle_timer != 'timer.none' }}"
+        sequence:
+        - if:
+            - condition: state
+              entity_id: timer.witb_idle_timer
+              state: active
+          then:
+            - variables:
+                idel_timer_restarted: true
+            - service: timer.cancel
+              target:
+                entity_id: timer.witb_idle_timer
+              data: {}
+            - service: timer.start
+              metadata: {}
+              data: {}
+              target:
+                entity_id: timer.witb_idle_timer
+            - variables:
+                idel_timer_restarted: false
+          else:
+            - service: timer.start
+              metadata: {}
+              data: {}
+              target:
+                entity_id: timer.witb_idle_timer
 mode: single
