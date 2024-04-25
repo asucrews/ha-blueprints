@@ -1,5 +1,5 @@
 blueprint:
-  name: WIAB+ (0.1.7)
+  name: WIAB+ (0.1.8)
   description: >
     WIAB+ (Wasp in a Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in a Box" concept. 
     The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").
@@ -75,7 +75,10 @@ blueprint:
           multiple: false
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
-      description: Sets the delay time for the door sensor to register an open event (optional).
+      description: >
+        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.
+        This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.
+        Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.
       default: 0
       selector:
         number:
@@ -86,7 +89,10 @@ blueprint:
           step: 1.0
     door_sensor_close_delay:
       name: Door Sensor Close Delay (Optional)
-      description: Sets the delay time for the door sensor to register a close event (optional).
+      description: >
+        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement. 
+        This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.
+        Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.
       default: 0
       selector:
         number:
@@ -97,7 +103,11 @@ blueprint:
           step: 1.0
     motion_sensor_delay:
       name: Motion off delay (Optional)
-      description: Sets the delay time for the motion sensor to turn off (optional).
+      description: >
+        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement. 
+        Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.
+        This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.
+        Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.
       default: 30
       selector:
         number:
@@ -108,7 +118,12 @@ blueprint:
           step: 1.0
     occupancy_helper:
       name: Occupancy Helper (Optional)
-      description: Represents an occupancy helper, which is an input boolean (optional).
+      description: >
+        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").
+        To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.
+        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection. 
+        Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.
+        Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.
       default: 'input_boolean.none'
       selector:
         entity:
@@ -117,7 +132,15 @@ blueprint:
           multiple: false
     bypass_mode:
       name: Bypass Mode (Optional)
-      description: Determines the bypass mode, which can be set to different options (optional).
+      description: >
+        Select the bypass mode to control how the automation handles bypass events.<br/>
+        This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
+        Bypass mode determines whether the automation should ignore occupancy detection temporarily.<br/>
+        Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
+        Options:<br/>
+          - No Bypass: Automation operates normally without bypassing occupancy detection.<br/>
+          - Bypass No Auto OFF: Automation temporarily ignores occupancy detection until manually turned off. To use this option, create an input_boolean helper entity for bypass control.<br/>
+          - Bypass Auto OFF: Automation temporarily ignores occupancy detection and automatically reverts to normal operation after a specified time. To use this option, create input_boolean and timer helper entities for bypass control and automatic timer management.<br/>
       default: no_bypass
       selector:
         select:
