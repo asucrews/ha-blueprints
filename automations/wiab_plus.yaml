@@ -227,7 +227,7 @@ action:
                   entity_id: !input fan_switch
       - conditions:
           - contition: state
-            state: "false"
+            state: "off"
             entity_id: !input bypass_helper
           - condition: and
             conditions:
@@ -359,7 +359,7 @@ action:
                   entity_id: !input fan_switch
       - conditions:
           - contition: state
-            state: "false"
+            state: "off"
             entity_id: !input bypass_helper
           - condition: and
             conditions:
@@ -431,6 +431,8 @@ action:
             conditions:
               - condition: trigger
                 id: Bypass Timer Finished
+              - condition: template
+                value_template: "{{ fbypass_mode == 'bypass_auto_off' }}"
         sequence:
           - service: input_boolean.turn_off
             metadata: {}
