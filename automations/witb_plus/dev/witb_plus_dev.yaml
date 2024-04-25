@@ -338,8 +338,9 @@ action:
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
             then:
               - condition: state 
-                state: "off"
+                state: "on"
                 entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           - if:
             - condition: template
               value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -456,8 +457,9 @@ action:
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
             then:
               - condition: state 
-                state: "off"
+                state: "on"
                 entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           - if:
             - condition: template
               value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -590,8 +592,9 @@ action:
               value_template: "{{ bypass_helper != 'input_boolean.none' }}"
             then:
               - condition: state 
-                state: "off"
+                state: "on"
                 entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           - if:
             - condition: and
               conditions:
@@ -665,8 +668,9 @@ action:
               value_template: "{{ bypass_helper != 'input_boolean.none' }}"
           then:
             - condition: state 
-              state: "off"
+              state: "on"
               entity_id: !input bypass_helper
+            - stop: Bypass Enabled
         - if:
             - condition: state
               entity_id: timer.witb_idle_timer
