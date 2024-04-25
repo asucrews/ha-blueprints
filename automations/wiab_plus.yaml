@@ -7,7 +7,8 @@ blueprint:
   input:
     door_sensor:
       name: Door Sensor or Door Sensor Group
-      description: Represents the door sensor or a group of door sensors.
+      description: >
+        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected. In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.
       selector:
         entity:
           domain:
