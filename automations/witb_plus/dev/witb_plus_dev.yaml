@@ -587,7 +587,7 @@ action:
                 state: "off"
                 entity_id: !input motion_sensor
               - condition: state
-                state: "on"
+                state: "off"
                 entity_id: !input door_sensor
               - condition: template
                 value_template: "{{ idel_timer_restarted == 'false' }}"
