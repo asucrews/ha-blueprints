@@ -192,15 +192,13 @@ blueprint:
       description: >
           Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
           To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
-          Default value: 0 and means disabled. Only change if you intend to use this field and this input is optional.<br/>
-      default: 0
+          <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: 'timer.none'
       selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 3600.0
-          unit_of_measurement: seconds
-          step: 1.0
+        entity:
+          domain:
+          - timer
+          multiple: false
         
 
 variables:
@@ -523,7 +521,7 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
-      # Checks if bypass is off, idle timer has finished, and idel timer is greater then 0.
+      # Checks if bypass is off, idle timer has finished, and idel timer is not timer.none.
       - conditions:
           - condition: state 
             state: "off"
@@ -533,7 +531,7 @@ action:
               - condition: trigger
                 id: Idle Timer Finished
               - condition: template
-                value_template: "{{ idle_timer < 0 }}"
+                value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
           - if:
             - condition: and
