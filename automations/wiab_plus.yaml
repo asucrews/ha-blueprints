@@ -1,11 +1,13 @@
 blueprint:
-  name: WIAB+ (0.1.5)
-  description: Wasp in the box plus more
+  name: WIAB+ (0.1.6)
+  description: >
+        WIAB+ (Wasp in a Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in a Box" concept. The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box"). If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
   input:
     door_sensor:
       name: Door Sensor or Door Sensor Group
+      description: Represents the door sensor or a group of door sensors.
       selector:
         entity:
           domain:
@@ -13,6 +15,7 @@ blueprint:
           multiple: false
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group
+      description: Represents the motion sensor or a group of motion sensors.
       selector:
         entity:
           domain:
@@ -20,6 +23,7 @@ blueprint:
           multiple: false
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
+      description: Represents a smart light bulb or a group of smart light bulbs (optional).
       default: 'light.none'
       selector:
         entity:
@@ -28,6 +32,7 @@ blueprint:
           multiple: false
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
+      description: Represents a light, a light group, a switch, or a switch group (optional).
       default: 'light.none'
       selector:
         entity:
@@ -37,6 +42,7 @@ blueprint:
           multiple: false
     fan_switch:
       name: Fan or Fan Group (Optional)
+      description: Represents a fan or a group of fans (optional).
       default: 'fan.none'
       selector:
         entity:
@@ -46,6 +52,7 @@ blueprint:
           multiple: false
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
+      description: Sets the delay time for the door sensor to register an open event (optional).
       default: 0
       selector:
         number:
@@ -56,6 +63,7 @@ blueprint:
           step: 1.0
     door_sensor_close_delay:
       name: Door Sensor Close Delay (Optional)
+      description: Sets the delay time for the door sensor to register a close event (optional).
       default: 0
       selector:
         number:
@@ -66,6 +74,7 @@ blueprint:
           step: 1.0
     motion_sensor_delay:
       name: Motion off delay (Optional)
+      description: Sets the delay time for the motion sensor to turn off (optional).
       default: 30
       selector:
         number:
@@ -76,6 +85,7 @@ blueprint:
           step: 1.0
     occupancy_helper:
       name: Occupancy Helper (Optional)
+      description: Represents an occupancy helper, which is an input boolean (optional).
       default: 'input_boolean.none'
       selector:
         entity:
@@ -84,6 +94,7 @@ blueprint:
           multiple: false
     bypass_mode:
       name: Bypass Mode (Optional)
+      description: Determines the bypass mode, which can be set to different options (optional).
       default: no_bypass
       selector:
         select:
@@ -100,6 +111,7 @@ blueprint:
           sort: false
     bypass_helper:
       name: Bypass Helper (Optional)
+      description: Represents a bypass helper, which is an input boolean (optional).
       default: 'input_boolean.none'
       selector:
         entity:
@@ -108,6 +120,7 @@ blueprint:
           multiple: false
     bypass_timer:
       name: Bypass Auto Off Timer (Optional)
+      description: Represents a bypass auto-off timer (optional).
       default: 'timer.none'
       selector:
         entity:
@@ -116,6 +129,7 @@ blueprint:
           multiple: false
     bypass_finished_action:
       name: Bypass Action After Timer Finished (Optional)
+      description: Determines the action to take after the bypass timer finishes (optional).
       default: turn_off
       selector:
         select:
@@ -128,7 +142,6 @@ blueprint:
           custom_value: false
           multiple: false
           sort: false
-
 variables:
   door_sensor: !input door_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
@@ -482,5 +495,4 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
-
 mode: single
