@@ -1,4 +1,5 @@
 # Changelog
+
 ## [0.2.4] - 2024-04-25
 ### Added
 - adding detection of bypass enable or disabled

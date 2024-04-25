@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ (0.2.2)
+  name: WITB+ Dev (0.2.4)
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -192,15 +192,13 @@ blueprint:
       description: >
           Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
           To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
-          Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
-      default: 0
+          <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: 'timer.none'
       selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 3600.0
-          unit_of_measurement: seconds
-          step: 1.0
+        entity:
+          domain:
+          - timer
+          multiple: false
         
 
 variables:
@@ -218,41 +216,73 @@ variables:
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
+  idel_timer_restarted: false
   # lux_sensor: !input lux_sensor
 
 trigger:
+  # If door is opened
   - platform: state
     entity_id: !input door_sensor
     from: "off"
     to: "on"
     id: Door Opened
     for: !input door_sensor_open_delay
+  # If door is closed
   - platform: state
     entity_id: !input door_sensor
     from: "on"
     to: "off"
     id: Door Closed
     for: !input door_sensor_close_delay
+  # If door is closed for 62 seconds
+  - platform: state
+    entity_id: !input door_sensor
+    from: "on"
+    to: "off"
+    id: Door Closed For Seconds
+    for: 62
+  # If motion is detected
   - platform: state
     entity_id: !input motion_sensor
     from: "off"
     to: "on"
     id: Motion On
+  # If motion is cleared
   - platform: state
     entity_id: !input motion_sensor
     from: "on"
     to: "off"
     id: Motion Off
     for: !input motion_sensor_delay
+  # If bypass is enabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "off"
+    to: "on"
+    id: Bypass Turn on
+  # If bypass is disabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "on"
+    to: "off"
+    id: Bypass Turn off
+  # If bypass auto off timer ends
   - platform: state
     entity_id: !input bypass_timer
     from: active
     to: idle
     id: Bypass Timer Finished
+  # If idel timer ends
+  - platform: state
+    entity_id: !input idle_timer
+    from: active
+    to: idle
+    id: Idle Timer Finished
 
 
 action:
   - choose:
+      # Checks if door has been closed
       - conditions:
           - condition: and
             conditions:
@@ -306,10 +336,8 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+      # Checks if bypass is off, if door has been opened, and if motion is cleared.
       - conditions:
-          - condition: state
-            state: "off"
-            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -318,6 +346,14 @@ action:
                 state: "off"
                 entity_id: !input motion_sensor
         sequence:
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state 
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           - if:
             - condition: template
               value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -365,6 +401,7 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+      # Checks if motion is cleared.
       - conditions:
           - condition: and
             conditions:
@@ -418,10 +455,8 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+      # Checks if bypass is off, if door has been opened, and if motion is cleared.
       - conditions:
-          - condition: state
-            state: "off"
-            entity_id: !input bypass_helper
           - condition: and
             conditions:
               - condition: trigger
@@ -429,7 +464,15 @@ action:
               - condition: state
                 state: 'on'
                 entity_id: !input door_sensor
-        sequence:            
+        sequence:
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state 
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           - if:
             - condition: template
               value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -477,6 +520,47 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+      # Checks if bypass is enabled
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Turn on
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ bypass_timer != 'timer.none' }}"
+            then:
+              - service: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_timer
+      # Checks if bypass is disabled
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Turn off
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+              - condition: not
+                conditions:
+                  - condition: trigger
+                    id: Bypass Timer Finished
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ bypass_timer != 'timer.none' }}"
+            then:
+              - service: timer.finish
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_timer
+      # Checks if bypass timer has ended and bypass mode is set to auto off.
       - conditions:
           - condition: and
             conditions:
@@ -485,27 +569,184 @@ action:
               - condition: template
                 value_template: "{{ bypass_mode == 'bypass_auto_off' }}"
         sequence:
-          - service: homeassistant.turn_off
-            metadata: {}
-            data: {}
-            target:
-              entity_id: !input bypass_helper
+          - if:
+            - condition: template
+              value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - service: homeassistant.turn_off
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_helper
           - if:
             - condition: and
               conditions:
               - condition: template
                 value_template: "{{ bypass_finished_action == 'turn_off' }}"
             then:
-              - service: homeassistant.turn_off
-                data: {}
-                target:
+              - if:
+                - condition: template
+                  value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+                then:
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input occupancy_helper
+              - if:
+                - condition: and
+                  conditions:
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "on"
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
+              - if:
+                - condition: and
+                  conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
+              - if:
+                - condition: and
+                  conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input fan_switch
+      # Checks if bypass is off, idle timer has finished, and idel timer is not timer.none.
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Idle Timer Finished
+              - condition: template
+                value_template: "{{ idle_timer != 'timer.none' }}"
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state 
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          - if:
+            - condition: and
+              conditions:
+              - condition: state
+                state: "off"
+                entity_id: !input motion_sensor
+              - condition: state
+                state: "off"
+                entity_id: !input door_sensor
+              - condition: template
+                value_template: "{{ idel_timer_restarted == false }}"
+            then:
+            - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+              then:
+                - service: homeassistant.turn_off
+                  data: {}
+                  target:
+                    entity_id: !input occupancy_helper
+            - if:
+              - condition: and
+                conditions:
+                - condition: template
+                  value_template: "{{ light_bulbs != 'light.none' }}"
+              then:
+                - condition: state
                   entity_id: !input light_bulbs
-              - service: homeassistant.turn_off
-                data: {}
-                target:
+                  state: "on"
+                - service: homeassistant.turn_off
+                  data: {}
+                  target:
+                    entity_id: !input light_bulbs
+            - if:
+              - condition: and
+                conditions:
+                - condition: template
+                  value_template: "{{ light_switch != 'light.none' }}"
+              then:
+                - condition: state
                   entity_id: !input light_switch
-              - service: homeassistant.turn_off
-                data: {}
-                target:
+                  state: "on"
+                - service: homeassistant.turn_off
+                  data: {}
+                  target:
+                    entity_id: !input light_switch
+            - if:
+              - condition: and
+                conditions:
+                - condition: template
+                  value_template: "{{ fan_switch != 'fan.none' }}"
+              then:
+                - condition: state
                   entity_id: !input fan_switch
-mode: single
+                  state: "on"
+                - service: homeassistant.turn_off
+                  data: {}
+                  target:
+                    entity_id: !input fan_switch
+      # Checks if bypass is off, and door has been closed for 62 seconds
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Closed For Seconds
+              - condition: template
+                value_template: "{{ idle_timer != 'timer.none' }}"
+        sequence:
+        - if:
+            - condition: template
+              value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+          then:
+            - condition: state 
+              state: "on"
+              entity_id: !input bypass_helper
+            - stop: Bypass Enabled
+        - if:
+            - condition: state
+              entity_id: timer.witb_idle_timer
+              state: active
+          then:
+            - variables:
+                idel_timer_restarted: true
+            - service: timer.cancel
+              target:
+                entity_id: timer.witb_idle_timer
+              data: {}
+            - service: timer.start
+              metadata: {}
+              data: {}
+              target:
+                entity_id: timer.witb_idle_timer
+            - variables:
+                idel_timer_restarted: false
+          else:
+            - service: timer.start
+              metadata: {}
+              data: {}
+              target:
+                entity_id: timer.witb_idle_timer
+mode: queued
+max: 5
