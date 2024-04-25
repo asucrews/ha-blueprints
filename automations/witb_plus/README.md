@@ -4,6 +4,9 @@
 
 WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for occupancy detection using multiple sensors. This blueprint is inspired by the concept of "Wasp in a Box" and employs motion and door sensors to monitor occupants within a defined space (the "box"). When motion is detected, indicating the presence of a "wasp" (occupant), the box's state is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.
 
+
+[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fasucrews%2Fha-blueprints%2Fblob%2Fmain%2Fautomations%2Fwitb_plus%2Fwitb_plus.yaml)
+
 ## Assumptions
 
 - Motion sensors are typically positioned to detect movement when someone walks into the room, triggering occupancy detection.
