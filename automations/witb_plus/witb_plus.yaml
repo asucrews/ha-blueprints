@@ -217,7 +217,7 @@ variables:
   bypass_helper: !input bypass_helper
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
-  auto_off: !input auto_off
+  idle_timer: !input idle_timer
   # lux_sensor: !input lux_sensor
 
 trigger:
