@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.2.4d)
+  name: WITB+ Dev (0.2.4rc2)
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -234,13 +234,13 @@ trigger:
     to: "off"
     id: Door Closed
     for: !input door_sensor_close_delay
-  # If door is closed for 2 minutes
+  # If door is closed for 62 seconds
   - platform: state
     entity_id: !input door_sensor
     from: "on"
     to: "off"
     id: Door Closed For 2 Minutes
-    for: 120
+    for: 62
   # If motion is detected
   - platform: state
     entity_id: !input motion_sensor
@@ -254,6 +254,18 @@ trigger:
     to: "off"
     id: Motion Off
     for: !input motion_sensor_delay
+  # If bypass is enabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "off"
+    to: "on"
+    id: Bypass Turn on
+  # If bypass is disabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "on"
+    to: "off"
+    id: Bypass Turn off
   # If bypass auto off timer ends
   - platform: state
     entity_id: !input bypass_timer
@@ -266,6 +278,7 @@ trigger:
     from: active
     to: idle
     id: Idle Timer Finished
+
 
 action:
   - choose:
@@ -507,6 +520,99 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+      # Checks if bypass is enabled
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Turn on
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ bypass_timer != 'timer.none' }}"
+            then:
+              - service: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_timer
+      # Checks if bypass is disabled
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Turn off
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+              - condition: not
+                conditions:
+                  - condition: trigger
+                    id: Bypass Timer Finished
+        sequence:
+          - if:
+            - condition: template
+              value_template: "{{ bypass_timer != 'timer.none' }}"
+            then:
+              - service: timer.finish
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_timer
+          - if:
+            - condition: and
+              conditions:
+              - condition: template
+                value_template: "{{ bypass_finished_action == 'turn_off' }}"
+            then:
+              - if:
+                - condition: template
+                  value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+                then:
+                  - service: homeassistant.turn_on
+                    data: {}
+                    target:
+                      entity_id: !input occupancy_helper
+              - if:
+                - condition: and
+                  conditions:
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "off"
+                  - service: homeassistant.turn_on
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
+              - if:
+                - condition: and
+                  conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "off"
+                  - service: homeassistant.turn_on
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
+              - if:
+                - condition: and
+                  conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
+                  - service: homeassistant.turn_on
+                    data: {}
+                    target:
+                      entity_id: !input fan_switch
       # Checks if bypass timer has ended and bypass mode is set to auto off.
       - conditions:
           - condition: and
@@ -654,12 +760,12 @@ action:
                   data: {}
                   target:
                     entity_id: !input fan_switch
-      # Checks if bypass is off, and door has been closed for 2 minutes
+      # Checks if bypass is off, and door has been closed for 62 seconds
       - conditions:
           - condition: and
             conditions:
               - condition: trigger
-                id: Door Closed For 2 Minutes
+                id: Door Closed For 62 seconds
               - condition: template
                 value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
