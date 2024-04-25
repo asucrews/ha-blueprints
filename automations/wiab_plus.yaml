@@ -1,5 +1,5 @@
 blueprint:
-  name: WIAB+ (0.1.1)
+  name: WIAB+ (0.1.2)
   description: Wasp in the box plus more
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/wiab_plus.yaml
@@ -313,7 +313,7 @@ action:
             - condition: and
               conditions:
               - condition: template
-                value_template: "{{ light_bulbs != 'light.none' }}"
+                value_template: "{{ light_switch != 'light.none' }}"
             then:
               - condition: state
                 entity_id: !input light_switch
