@@ -226,7 +226,7 @@ action:
                 target:
                   entity_id: !input fan_switch
       - conditions:
-          - contition: state
+          - condition: state
             state: "off"
             entity_id: !input bypass_helper
           - condition: and
@@ -358,7 +358,7 @@ action:
                 target:
                   entity_id: !input fan_switch
       - conditions:
-          - contition: state
+          - condition: state
             state: "off"
             entity_id: !input bypass_helper
           - condition: and
