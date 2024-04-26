@@ -8,7 +8,7 @@ blueprint:
     Note that the x2, x3, x4, x5 variants DO NOT work if you have put your switch in 'Instant On' mode.<br/>
     <br/>
   domain: automation
-  source_url: 
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml
   input:
     inovelli_switch:
       name: Inovelli On/Off Switch
