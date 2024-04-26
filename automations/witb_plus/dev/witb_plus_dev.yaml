@@ -210,17 +210,17 @@ blueprint:
           max: 10.0
           unit_of_measurement: seconds
           step: 1.0
-    # light_brightness_pct:
-    #   name: Light brightness Percentage (Optional)
-    #    description: test
-    #   default: 100
-    #   selector:
-    #     number:
-    #       mode: box
-    #       min: 0.0
-    #       max: 100.0
-    #       unit_of_measurement: percentage
-    #       step: 1.0
+    light_brightness_pct:
+      name: Light brightness Percentage (Optional)
+       description: test
+      default: 100
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 100.0
+          unit_of_measurement: percentage
+          step: 1.0
 
 variables:
   door_sensor: !input door_sensor
@@ -239,7 +239,7 @@ variables:
   idle_timer: !input idle_timer
   idel_timer_restarted: false
   light_transition: !input light_transition
-  # light_brightness_pct: !input light_brightness_pct
+  light_brightness_pct: !input light_brightness_pct
   # lux_sensor: !input lux_sensor
 
 trigger:
