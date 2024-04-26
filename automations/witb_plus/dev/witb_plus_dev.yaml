@@ -201,7 +201,6 @@ blueprint:
           multiple: false
     light_transition:
       name: Light Transition (Optional)
-      description:
       default: 0
       selector:
         number:
@@ -212,7 +211,6 @@ blueprint:
           step: 1.0
     light_brightness_pct:
       name: Light brightness Percentage (Optional)
-      description: 
       default: 100
       selector:
         number:
