@@ -212,13 +212,13 @@ blueprint:
     light_brightness_pct:
       name: Light brightness Percentage (Optional)
       default: 100
-        selector:
-          number:
-            mode: box
-            min: 0.0
-            max: 100.0
-            unit_of_measurement: percentage
-            step: 1.0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 100.0
+          unit_of_measurement: percentage
+          step: 1.0
 
 variables:
   door_sensor: !input door_sensor
