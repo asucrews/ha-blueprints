@@ -199,26 +199,7 @@ blueprint:
           domain:
           - timer
           multiple: false
-    light_transition:
-      name: Light Transition (Optional)
-      default: 0
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 10.0
-          unit_of_measurement: seconds
-          step: 1.0
-    light_brightness_pct:
-      name: Light brightness Percentage (Optional)
-      default: 100
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 100.0
-          unit_of_measurement: percentage
-          step: 1.0
+
 variables:
   door_sensor: !input door_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
