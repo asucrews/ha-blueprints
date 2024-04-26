@@ -199,18 +199,20 @@ blueprint:
           domain:
           - timer
           multiple: false
-    # light_transition:
-    #   name: Light Transition (Optional)
-    #   default: 0
-    #   selector:
-    #     number:
-    #       mode: box
-    #       min: 0.0
-    #       max: 10.0
-    #       unit_of_measurement: seconds
-    #       step: 1.0
+    light_transition:
+      name: Light Transition (Optional)
+      description: test
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 10.0
+          unit_of_measurement: seconds
+          step: 1.0
     # light_brightness_pct:
     #   name: Light brightness Percentage (Optional)
+    #    description: test
     #   default: 100
     #   selector:
     #     number:
@@ -236,7 +238,7 @@ variables:
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
   idel_timer_restarted: false
-  # light_transition: !input light_transition
+  light_transition: !input light_transition
   # light_brightness_pct: !input light_brightness_pct
   # lux_sensor: !input lux_sensor
 
