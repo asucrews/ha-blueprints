@@ -199,6 +199,10 @@ blueprint:
           domain:
           - timer
           multiple: false
+    light_transition:
+      name: Light Transition (Optional)
+    light_brightness_pct:
+      name: Light brightness Percentage (Optional)
 
 variables:
   door_sensor: !input door_sensor
