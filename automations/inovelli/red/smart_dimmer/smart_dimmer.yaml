@@ -1,7 +1,7 @@
-# Oringally by mitchcapper (https://gist.github.com/mitchcapper/ce031de253c0300a7141f43a6e1a405c)
+# Base on https://gist.github.com/mitchcapper/ce031de253c0300a7141f43a6e1a405c and https://github.com/rohankapoorcom/homeassistant-config/blob/master/blueprints/automation/rohankapoorcom/inovelli-vzw31-sn-red-series-switch.yaml
 # Modify by asucrews
 blueprint:
-  name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN (ZWave-JS)
+  name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS (0.1.0)
   description: >
     Perform actions on various scenes supported by the Inovelli Inovelli Smart Dimmer FKA 2-1 Switch<br/>
     <br/>
@@ -15,12 +15,9 @@ blueprint:
       description: The Inovelli On/Off or Dimmer Switch to do actions on
       selector:
         device:
-          multiple: true
           integration: zwave_js
           manufacturer: Inovelli
           model: VZW31-SN
-
-
     up_action:
       name: Press Up Once Action
       description: Action to perform when pressing up once
@@ -39,46 +36,6 @@ blueprint:
       default: []
       selector:
         action:
-
-    up_hold_action:
-      name: Hold Up Action
-      description: Action to perform when holding the up button
-      default: []
-      selector:
-        action:
-    up_release_action:
-      name: Release Up Action
-      description: Action to perform when releasing the up button
-      default: []
-      selector:
-        action:
-
-    down_hold_action:
-      name: Hold Down Action
-      description: Action to perform when holding the down button
-      default: []
-      selector:
-        action:
-    down_release_action:
-      name: Release Down Action
-      description: Action to perform when releasing the down button
-      default: []
-      selector:
-        action:
-
-    config_hold_action:
-      name: Hold Config Action
-      description: Action to perform when holding the Config button
-      default: []
-      selector:
-        action:
-    config_release_action:
-      name: Release Config Action
-      description: Action to perform when releasing the Config button
-      default: []
-      selector:
-        action:
-
     up_x2_action:
       name: Press Up Twice Action
       description: Action to perform when pressing up twice
@@ -97,7 +54,6 @@ blueprint:
       default: []
       selector:
         action:
-
     up_x3_action:
       name: Press Up 3 Times Action
       description: Action to perform on when pressing up 3 times
@@ -116,7 +72,6 @@ blueprint:
       default: []
       selector:
         action:
-
     up_x4_action:
       name: Press Up 4 Times Action
       description: Action to perform when pressing up 4 times
@@ -135,7 +90,6 @@ blueprint:
       default: []
       selector:
         action:
-
     up_x5_action:
       name: Press Up 5 Times Action
       description: Action to perform when pressing up 5 times
@@ -154,88 +108,393 @@ blueprint:
       default: []
       selector:
         action:
-
-mode: parallel
-max_exceeded: silent
+    up_hold_action:
+      name: Hold Up Action
+      description: Action to perform when holding the up button
+      default: []
+      selector:
+        action:
+    up_release_action:
+      name: Release Up Action
+      description: Action to perform when releasing the up button
+      default: []
+      selector:
+        action:
+    down_hold_action:
+      name: Hold Down Action
+      description: Action to perform when holding the down button
+      default: []
+      selector:
+        action:
+    down_release_action:
+      name: Release Down Action
+      description: Action to perform when releasing the down button
+      default: []
+      selector:
+        action:
+    config_hold_action:
+      name: Hold Config Action
+      description: Action to perform when holding the Config button
+      default: []
+      selector:
+        action:
+    config_release_action:
+      name: Release Config Action
+      description: Action to perform when releasing the Config button
+      default: []
+      selector:
+        action:
+    aux_up_action:
+      name: Press Up Once Action on Aux Switch
+      description: Action to perform when pressing up once
+      default: []
+      selector:
+        action:
+    aux_down_action:
+      name: Press Down Once Action on Aux Switch
+      description: Action to perform when pressing down once
+      default: []
+      selector:
+        action:
+    aux_config_action:
+      name: Config Button Action on Aux Switch
+      description: The action to perform when the config button is pressed once
+      default: []
+      selector:
+        action:
+    aux_up_x2_action:
+      name: Press Up Twice Action on Aux Switch
+      description: Action to perform when pressing up twice
+      default: []
+      selector:
+        action:
+    aux_down_x2_action:
+      name: Press Down Twice Action on Aux Switch
+      description: Action to perform when pressing down twice
+      default: []
+      selector:
+        action:
+    aux_config_x2_action:
+      name: Press Config Twice Times Action on Aux Switch
+      description: Action to perform when pressing config twice
+      default: []
+      selector:
+        action:
+    aux_up_x3_action:
+      name: Press Up 3 Times Action on Aux Switch
+      description: Action to perform on when pressing up 3 times
+      default: []
+      selector:
+        action:
+    aux_down_x3_action:
+      name: Press Down 3 Times Action on Aux Switch
+      description: Action to perform when pressing down 3 times
+      default: []
+      selector:
+        action:
+    aux_config_x3_action:
+      name: Press config 3 Times Action on Aux Switch
+      description: Action to perform when pressing config 3 times
+      default: []
+      selector:
+        action:
+    aux_up_x4_action:
+      name: Press Up 4 Times Action on Aux Switch
+      description: Action to perform when pressing up 4 times
+      default: []
+      selector:
+        action:
+    aux_down_x4_action:
+      name: Press Down 4 Times Action on Aux Switch
+      description: Action to perform when pressing down 4 times
+      default: []
+      selector:
+        action:
+    aux_config_x4_action:
+      name: Press config 4 Times Action on Aux Switch
+      description: Action to perform when pressing config 4 times
+      default: []
+      selector:
+        action:
+    aux_up_x5_action:
+      name: Press Up 5 Times Action on Aux Switch
+      description: Action to perform when pressing up 5 times
+      default: []
+      selector:
+        action:
+    aux_down_x5_action:
+      name: Press Down 5 Times Action on Aux Switch
+      description: Action to perform when pressing down 5 times
+      default: []
+      selector:
+        action:
+    aux_config_x5_action:
+      name: Press config 5 Times Action on Aux Switch
+      description: Action to perform when pressing config 5 times
+      default: []
+      selector:
+        action:
+    aux_up_hold_action:
+      name: Hold Up Action on Aux Switch
+      description: Action to perform when holding the up button
+      default: []
+      selector:
+        action:
+    aux_up_release_action:
+      name: Release Up Action on Aux Switch
+      description: Action to perform when releasing the up button
+      default: []
+      selector:
+        action:
+    aux_down_hold_action:
+      name: Hold Down Action on Aux Switch
+      description: Action to perform when holding the down button
+      default: []
+      selector:
+        action:
+    aux_down_release_action:
+      name: Release Down Action on Aux Switch
+      description: Action to perform when releasing the down button
+      default: []
+      selector:
+        action:
+    aux_config_hold_action:
+      name: Hold Config Action on Aux Switch
+      description: Action to perform when holding the Config button
+      default: []
+      selector:
+        action:
+    aux_config_release_action:
+      name: Release Config Action on Aux Switch
+      description: Action to perform when releasing the Config button
+      default: []
+      selector:
+        action:
 
 variables:
-  # Mappings from https://support.inovelli.com/portal/en/kb/articles/how-to-setting-up-scenes-in-home-assistant
-  
-  # Buttons (scene_id)
   down_button: "001"
   up_button: "002"
   config_button: "003"
-
-  # Action types (scene_value_id)
-  press_x1: "KeyPressed"
-  press_x2: "KeyPressed2x"
-  press_x3: "KeyPressed3x"
-  press_x4: "KeyPressed4x"
-  press_x5: "KeyPressed5x"
-  hold: "KeyHeldDown"
-  release: "KeyReleased"
-
-  # Shorthand to access the trigger data
+  aux_down_button: "004"
+  aux_up_button: "005"
+  aux_config_button: "006"
+  press_x1: KeyPressed
+  press_x2: KeyPressed2x
+  press_x3: KeyPressed3x
+  press_x4: KeyPressed4x
+  press_x5: KeyPressed5x
+  hold: KeyHeldDown
+  release: KeyReleased
   button: "{{ trigger.event.data.property_key_name }}"
   action_type: "{{ trigger.event.data.value }}"
 
 trigger:
-- platform: event
-  event_type: zwave_js_value_notification
-  event_data:
-    command_class: 91
-    device_id: !input inovelli_switch
+  - platform: event
+    event_type: zwave_js_value_notification
+    id: Z-Wave Event
+    event_data:
+      device_id: !input inovelli_switch
 
 action:
-  choose:
-    - conditions: "{{ button == up_button }}"
-      sequence:
-        - choose:
-            - conditions: "{{ action_type == press_x1 }}"
-              sequence: !input up_action
-            - conditions: "{{ action_type == press_x2 }}"
-              sequence: !input up_x2_action
-            - conditions: "{{ action_type == press_x3 }}"
-              sequence: !input up_x3_action
-            - conditions: "{{ action_type == press_x4 }}"
-              sequence: !input up_x4_action
-            - conditions: "{{ action_type == press_x5 }}"
-              sequence: !input up_x5_action
-            - conditions: "{{ action_type == hold }}"
-              sequence: !input up_hold_action
-            - conditions: "{{ action_type == release }}"
-              sequence: !input up_release_action
-    - conditions: "{{ button == down_button }}"
-      sequence:
-        - choose:
-            - conditions: "{{ action_type == press_x1 }}"
-              sequence: !input down_action
-            - conditions: "{{ action_type == press_x2 }}"
-              sequence: !input down_x2_action
-            - conditions: "{{ action_type == press_x3 }}"
-              sequence: !input down_x3_action
-            - conditions: "{{ action_type == press_x4 }}"
-              sequence: !input down_x4_action
-            - conditions: "{{ action_type == press_x5 }}"
-              sequence: !input down_x5_action
-            - conditions: "{{ action_type == hold }}"
-              sequence: !input down_hold_action
-            - conditions: "{{ action_type == release }}"
-              sequence: !input down_release_action
-    - conditions: "{{ button == config_action }}"
-      sequence:
-        - choose:
-            - conditions: "{{ action_type == press_x1 }}"
-              sequence: !input config_action
-            - conditions: "{{ action_type == press_x2 }}"
-              sequence: !input config_x2_action
-            - conditions: "{{ action_type == press_x3 }}"
-              sequence: !input config_x3_action
-            - conditions: "{{ action_type == press_x4 }}"
-              sequence: !input config_x4_action
-            - conditions: "{{ action_type == press_x5 }}"
-              sequence: !input config_x5_action
-            - conditions: "{{ action_type == hold }}"
-              sequence: !input config_hold_action
-            - conditions: "{{ action_type == release }}"
-              sequence: !input config_release_action
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ button == up_button }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x1 }}"
+                sequence: !input up_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x2 }}"
+                sequence: !input up_x2_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x3 }}"
+                sequence: !input up_x3_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x4 }}"
+                sequence: !input up_x4_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x5 }}"
+                sequence: !input up_x5_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == hold }}"
+                sequence: !input up_hold_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == release }}"
+                sequence: !input up_release_action
+      - conditions:
+          - condition: template
+            value_template: "{{ button == down_button }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x1 }}"
+                sequence: !input down_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x2 }}"
+                sequence: !input down_x2_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x3 }}"
+                sequence: !input down_x3_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x4 }}"
+                sequence: !input down_x4_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x5 }}"
+                sequence: !input down_x5_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == hold }}"
+                sequence: !input down_hold_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == release }}"
+                sequence: !input down_release_action
+      - conditions:
+          - condition: template
+            value_template: "{{ button == config_button }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x1 }}"
+                sequence: !input config_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x2 }}"
+                sequence: !input config_x2_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x3 }}"
+                sequence: !input config_x3_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x4 }}"
+                sequence: !input config_x4_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x5 }}"
+                sequence: !input config_x5_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == hold }}"
+                sequence: !input config_hold_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == release }}"
+                sequence: !input config_release_action
+      - conditions:
+          - condition: template
+            value_template: "{{ button == aux_up_button }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x1 }}"
+                sequence: !input aux_up_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x2 }}"
+                sequence: !input aux_up_x2_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x3 }}"
+                sequence: !input aux_up_x3_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x4 }}"
+                sequence: !input aux_up_x4_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x5 }}"
+                sequence: !input aux_up_x5_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == hold }}"
+                sequence: !input aux_up_hold_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == release }}"
+                sequence: !input aux_up_release_action
+      - conditions:
+          - condition: template
+            value_template: "{{ button == aux_down_button }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x1 }}"
+                sequence: !input aux_down_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x2 }}"
+                sequence: !input aux_down_x2_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x3 }}"
+                sequence: !input aux_down_x3_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x4 }}"
+                sequence: !input aux_down_x4_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x5 }}"
+                sequence: !input aux_down_x5_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == hold }}"
+                sequence: !input aux_down_hold_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == release }}"
+                sequence: !input aux_down_release_action
+      - conditions:
+          - condition: template
+            value_template: "{{ button == aux_config_button }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x1 }}"
+                sequence: !input aux_config_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x2 }}"
+                sequence: !input aux_config_x2_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x3 }}"
+                sequence: !input aux_config_x3_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x4 }}"
+                sequence: !input aux_config_x4_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == press_x5 }}"
+                sequence: !input aux_config_x5_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == hold }}"
+                sequence: !input aux_config_hold_action
+              - conditions:
+                  - condition: template
+                    value_template: "{{ action_type == release }}"
+                sequence: !input aux_config_release_action
+
+mode: single
+max_exceeded: silent
