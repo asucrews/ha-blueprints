@@ -90,49 +90,28 @@ blueprint:
           multiple: false
  
 variables:
-  door_sensor: !input door_sensor
+  room_occupancy_sensor: !input room_occupancy_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
   door_sensor_close_delay: !input door_sensor_close_delay
   flair_activity_status: !input flair_activity_status
   flair_clear_hold: !input flair_clear_hold
   hvac_smart_sensor_occupancy: !input ecobee_smart_sensor_occupancy
-  room_occupancy_helper: !input room_occupancy_helper
 
 trigger:
   # If door is opened
   - platform: state
-    entity_id: >
-      {% if detection_mode == 'door_sensor' %}
-        !input door_sensor
-      {% elif detection_mode == 'room_occupancy' %}
-        !input room_occupancy_helper
-      {% endif %}
+    entity_id: !input room_occupancy_sensor
     from: "off"
     to: "on"
     id: Room Occupied
-    for: >
-      {% if detection_mode == 'door_sensor' %}
-        !input door_sensor_open_delay
-      {% elif detection_mode == 'room_occupancy' %}
-        0
-      {% endif %}
+    for: !input door_sensor_open_delay
   # If door is closed
   - platform: state
-    entity_id: >
-      {% if detection_mode == 'door_sensor' %}
-        !input door_sensor
-      {% elif detection_mode == 'room_occupancy' %}
-        !input room_occupancy_helper
-      {% endif %}
+    entity_id: !input room_occupancy_sensor
     from: "on"
     to: "off"
     id: Room Unoccupied
-    for: >
-      {% if detection_mode == 'door_sensor' %}
-        !input door_sensor_close_delay
-      {% elif detection_mode == 'room_occupancy' %}
-        0
-      {% endif %}
+    for: !input door_sensor_close_delay
   # HVAC Remote Occupancy Sensor is detected 
   - platform: state
     entity_id: !input ecobee_smart_sensor_occupancy
