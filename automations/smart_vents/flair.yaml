@@ -1,31 +1,11 @@
 blueprint:
-  name: Smart Vents - Flair (0.1.0rc3)
+  name: Smart Vents - Flair (0.1.0rc4)
   description: >
     <br/>
     <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml
   input:
-    # detection_mode:
-    #   name: Detection Mode
-    #   description: >
-    #     Does the room or area have only a door sensor or an occupancy helper? An occupancy helper is an input boolean used to track if a room is occupied. In most cases, multiple automations or scripts will track room occupancy. A helper makes it easier because you only need one place, versus many, to track this.<br/>
-    #     <br/>Options:<br/>
-    #       - Room Occupancy: Automation utilizes an occupancy helper to track if the room is occupied. This option simplifies tracking room occupancy by consolidating it into one place.<br/>
-    #       - Door Sensor: Automation relies solely on a door sensor to determine occupancy. This option does not utilize an occupancy helper, requiring individual automations or scripts to track room occupancy.<br/>
-    #     <br/>Default value: Door Sensor Only.<br/>
-    #   default: door_sensor
-    #   selector:
-    #     select:
-    #       mode: dropdown
-    #       options:
-    #       - label: Room Occupancy
-    #         value: room_occupancy
-    #       - label: Door Sensor
-    #         value: door_sensor
-    #       custom_value: false
-    #       multiple: false
-    #       sort: false
     room_occupancy_sensor:
       name: Door Sensor, Door Sensor Group, or Occupancy Helper
       description: >
@@ -70,7 +50,7 @@ blueprint:
       selector:
         entity:
           domain:
-          - input_select
+          - select
           multiple: false        
     flair_clear_hold:
       name: Flair Clear Hold Button
