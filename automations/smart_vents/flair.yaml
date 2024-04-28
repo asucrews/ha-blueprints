@@ -1,12 +1,10 @@
 blueprint:
-  name: Smaert Vents - Flair (0.1.0)
+  name: Smart Vents - Flair (0.1.0rc1)
   description: >
-    Perform actions on various scenes supported by the Inovelli Inovelli Smart Dimmer FKA 2-1 Switch<br/>
     <br/>
-    Note that the x2, x3, x4, x5 variants DO NOT work if you have put your switch in 'Instant On' mode.<br/>
     <br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml
   input:
     detection_mode:
       name: Detection Mode
@@ -28,15 +26,16 @@ blueprint:
           custom_value: false
           multiple: false
           sort: false
-    door_sensor:
-      name: Door Sensor or Door Sensor Group
+    room_occupancy_sensor:
+      name: Door Sensor, Door Sensor Group, or Occupancy Helper
       description: >
-        Select the door sensor or group of door sensors.<br/>
-        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+        Select the door sensor, group of door sensors, or Occupancy Helper<br/>
+        <br/>Please note: This input is restricted to entities within the binary_sensor domain or input_boolean and allows only a single selection.  This field and this input is required.<br/>
       selector:
         entity:
           domain:
           - binary_sensor
+          - input_boolean
           multiple: false
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
@@ -89,19 +88,7 @@ blueprint:
           domain:
           - binary_sensor
           multiple: false
-    room_occupancy_helper:
-      name: Room Occupancy Helper (Optional)
-      description: >
-        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
-        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection.  Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
-        <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
-      default: 'input_boolean.none'
-      selector:
-        entity:
-          domain:
-          - input_boolean
-          multiple: false
-
+ 
 variables:
   door_sensor: !input door_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
