@@ -1,5 +1,5 @@
 blueprint:
-  name: Smart Vents - Flair (0.1.0rc1)
+  name: Smart Vents - Flair (0.1.0rc2)
   description: >
     <br/>
     <br/>
@@ -166,7 +166,7 @@ action:
                 id:
                   - HVAC Occupied
               - condition: state
-                entity_id: !input door_sensor
+                entity_id: !input room_occupancy_sensor
                 state: Window/door is open
         sequence:
           - service: select.select_option
@@ -185,7 +185,7 @@ action:
                 id:
                   - HVAC Unoccupied
               - condition: state
-                entity_id: !input door_sensor
+                entity_id: !input room_occupancy_sensor
                 state: Window/door is open
         sequence:
           - service: select.select_option
