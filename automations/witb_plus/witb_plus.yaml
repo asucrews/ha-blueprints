@@ -200,7 +200,6 @@ blueprint:
           - timer
           multiple: false
         
-
 variables:
   door_sensor: !input door_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
@@ -278,7 +277,6 @@ trigger:
     from: active
     to: idle
     id: Idle Timer Finished
-
 
 action:
   - choose:
