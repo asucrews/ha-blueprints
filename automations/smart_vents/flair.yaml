@@ -1,5 +1,5 @@
 blueprint:
-  name: Smart Vents - Flair (0.1.0rc4)
+  name: Smart Vents - Flair (0.1.0rc5)
   description: >
     <br/>
     <br/>
@@ -60,9 +60,9 @@ blueprint:
           domain:
           - button
           multiple: false  
-    ecobee_smart_sensor_occupancy:
-      name: Ecobee Smaer Sensor Occupancy
-      description: Ecobee Smaer Sensor Occupancy
+    hvac_smart_sensor_occupancy:
+      name: HVAC Smart Sensor Occupancy
+      description: HVAC Smart Sensor Occupancy
       default: 'binary_sensor.none'
       selector:
         entity:
@@ -76,7 +76,7 @@ variables:
   door_sensor_close_delay: !input door_sensor_close_delay
   flair_activity_status: !input flair_activity_status
   flair_clear_hold: !input flair_clear_hold
-  hvac_smart_sensor_occupancy: !input ecobee_smart_sensor_occupancy
+  hvac_smart_sensor_occupancy: !input hvac_smart_sensor_occupancy
 
 trigger:
   # If door is opened
@@ -95,13 +95,13 @@ trigger:
     for: !input door_sensor_close_delay
   # HVAC Remote Occupancy Sensor is detected 
   - platform: state
-    entity_id: !input ecobee_smart_sensor_occupancy
+    entity_id: !input hvac_smart_sensor_occupancy
     from: "off"
     to: "on"
     id: HVAC Occupied
   # HVAC Remote Occupancy Sensor is clear  
   - platform: state
-    entity_id: !input ecobee_smart_sensor_occupancy
+    entity_id: !input hvac_smart_sensor_occupancy
     from: "on"
     to: "off"
     id: HVAC Unoccupied
