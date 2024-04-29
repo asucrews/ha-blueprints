@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Dev (0.2.0.rc3)
+  name: Lock Management Dev (0.2.0.rc4)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
@@ -79,13 +79,13 @@ action:
                             data: {}
                             target:
                               entity_id: !input auto_lock_timer
-                  - if:
-                      - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
-                    then:
-                      - repeat:
-                          sequence: []
-                          for_each: {}
+                  # - if:
+                  #     - condition: template
+                  #       value_template: "{{ notify_device | length > 0 }}"
+                  #   then:
+                  #     - repeat:
+                  #         sequence: []
+                  #         for_each: {}
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
@@ -115,13 +115,13 @@ action:
                             data: {}
                             target:
                               entity_id: !input auto_lock_timer
-                  - if:
-                      - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
-                    then:
-                      - repeat:
-                          sequence: []
-                          for_each: {}
+                  # - if:
+                  #     - condition: template
+                  #       value_template: "{{ notify_device | length > 0 }}"
+                  #   then:
+                  #     - repeat:
+                  #         sequence: []
+                  #         for_each: {}
       - conditions:
           - condition: and
             conditions:
