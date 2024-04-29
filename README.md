@@ -4,6 +4,12 @@ Blueprints for Home Assistant
 
 ## Ready For Use (Stable)
 
+### Lock Management
+
+- **Blueprint Stable Home**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management)
+- **Blueprint Stable YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
+- **Blueprint Stable Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/CHANGELOG.md)
+ 
 ### WITB+
 
 - **Blueprint Stable Home**: [GitHub](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus)
@@ -16,18 +22,27 @@ Blueprints for Home Assistant
 ## Work In Progress (Development)
 
 ### Inovelli Smart Dimmer
+
+- **Blueprint Dev Home**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/dev)
 - **Blueprint Dev YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml)
+- **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/dev/CHANGELOG_DEV.md)
 
 ### Lock Management
-- **Blueprint Dev YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
+
+- **Blueprint Dev Home**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev)
+- **Blueprint Dev YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev/lock_management_dev.yaml)
+- **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev/CHANGELOG_DEV.md)
 
 ### Smart Vent
+
+- **Blueprint Dev Home**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/dev)
 - **Blueprint Dev YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml)
+- **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/dev/CHANGELOG_DEV.md)
 
 ### WITB+ Dev
 - **Blueprint Dev Home**: [GitHub](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/dev)
 - **Blueprint Dev YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_dev.yaml)
-- **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/CHANGELOG.md)
+- **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/CHANGELOG_DEV.md)
 
 # Feedback
 
