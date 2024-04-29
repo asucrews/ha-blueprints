@@ -73,7 +73,7 @@ action:
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
-                sequence: []
+                sequence:
                   - if:
                       - condition: template
                         value_template: "{{ lock_auto_timer < '0' }}"
