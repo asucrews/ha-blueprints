@@ -2,8 +2,6 @@
 
 Blueprints for Home Assistant
 
-
-
 ## WITB+
 
 - Blueprint Stable Home: https://https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus
