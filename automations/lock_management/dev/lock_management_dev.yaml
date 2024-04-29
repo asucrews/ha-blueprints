@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Dev (0.1.1.rc0)
+  name: Lock Management Dev (0.2.0.rc2)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
@@ -24,7 +24,7 @@ blueprint:
     notifications:
       name: Notifications
       description: Who to send notifications too
-      default: notify.none
+      default: []
       selector:
         device:
           filter:
@@ -81,10 +81,10 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                     - condition: template
-                      value_template: "{{ notifications != 'notify.none' }}"
+                      value_template: "{{ notifications | length > 0 }}"
                     then:
                       - repeat:
-                        foreach: notifications
+                        for_each: notifications
                         sequence:
                           - service: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
                             data:
@@ -128,10 +128,10 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                     - condition: template
-                      value_template: "{{ notifications != 'notify.none' }}"
+                      value_template: "{{ notifications | length > 0 }}"
                     then:
                       - repeat:
-                        foreach: notifications
+                        for_each: notifications
                         sequence:
                           - service: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
                             data:
