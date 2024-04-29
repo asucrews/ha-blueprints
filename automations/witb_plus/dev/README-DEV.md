@@ -1,3 +1,5 @@
+**Warning**: AI was used to write and format this readme
+
 # Dev WITB+ (Wasp in the Box Plus) Blueprint
 
 ## Overview

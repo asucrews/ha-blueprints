@@ -1,3 +1,5 @@
+**Warning**: AI was used to write and format this readme
+
 # Lock Management Dev (0.1.0)
 
 ## Overview

@@ -1,3 +1,5 @@
+**Warning**: AI was used to write and format this readme
+
 # Stable WITB+ (Wasp in the Box Plus) Blueprint
 
 ## Overview
@@ -108,6 +110,102 @@ WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for oc
 - **Options**:
   - Turn Off
   - Do Nothing
+
+## Variables
+
+- **door_sensor**: Input variable representing the selected door sensor or group of door sensors.
+- **door_sensor_open_delay**: Input variable representing the delay time for the door sensor to register an open event after detecting movement.
+- **door_sensor_close_delay**: Input variable representing the delay time for the door sensor to register a close event after detecting no movement.
+- **motion_sensor**: Input variable representing the selected motion sensor or group of motion sensors.
+- **motion_sensor_delay**: Input variable representing the delay time for the motion sensor to turn off after detecting no movement.
+- **light_bulbs**: Input variable representing the selected smart light bulb or group of smart light bulbs.
+- **light_switch**: Input variable representing the selected light, light group, switch, or switch group.
+- **fan_switch**: Input variable representing the selected fan or group of fans.
+- **occupancy_helper**: Input variable representing the selected input boolean entity to serve as an occupancy helper.
+- **bypass_mode**: Input variable representing the selected bypass mode to control how the automation handles bypass events.
+- **bypass_helper**: Input variable representing the selected input boolean entity to serve as a bypass helper.
+- **bypass_timer**: Input variable representing the selected timer entity for the automatic cancellation of a bypass event.
+- **bypass_finished_action**: Input variable representing the selected action to be taken after the bypass auto-off timer finishes counting down.
+- **idle_timer**: Input variable representing the selected timer entity for the automatic cancellation of a bypass event due to idleness.
+- **idel_timer_restarted**: Boolean variable indicating whether the idle timer has been restarted.
+
+
+## Trigger
+
+## Triggers
+
+- **Door Opened:**
+  - Triggered when the door sensor changes from off to on, indicating that the door has been opened, and waits for the specified door open delay.
+- **Door Closed:**
+  - Triggered when the door sensor changes from on to off, indicating that the door has been closed, and waits for the specified door close delay.
+- **Door Closed For Seconds:**
+  - Triggered when the door sensor remains closed for 62 seconds.
+- **Motion On:**
+  - Triggered when the motion sensor changes from off to on, indicating motion detection.
+- **Motion Off:**
+  - Triggered when the motion sensor changes from on to off, indicating no motion detected, and waits for the specified motion sensor delay.
+- **Bypass Turn on:**
+  - Triggered when the bypass helper entity changes from off to on, indicating that bypass mode has been enabled.
+- **Bypass Turn off:**
+  - Triggered when the bypass helper entity changes from on to off, indicating that bypass mode has been disabled.
+- **Bypass Timer Finished:**
+  - Triggered when the bypass auto-off timer ends.
+- **Idle Timer Finished:**
+  - Triggered when the idle timer for automatic bypass cancellation ends.
+
+
+## Action
+
+## Action
+
+The action section defines sequences of actions to be executed based on the triggers and conditions:
+
+- **Door Opened:**
+  - If the door has been opened:
+    - If an occupancy helper entity is set, turn it on.
+    - If smart light bulbs are specified and currently off, turn them on.
+    - If light switches are specified and currently off, turn them on.
+    - If fans are specified and currently off, turn them on.
+
+- **Door Closed:**
+  - If the door has been closed:
+    - If an occupancy helper entity is set, turn it off.
+    - If smart light bulbs are specified and currently on, turn them off.
+    - If light switches are specified and currently on, turn them off.
+    - If fans are specified and currently on, turn them off.
+
+- **Motion On:**
+  - If motion is detected:
+    - If an occupancy helper entity is set, turn it on.
+    - If smart light bulbs are specified and currently off, turn them on.
+    - If light switches are specified and currently off, turn them on.
+    - If fans are specified and currently off, turn them on.
+
+- **Motion Off:**
+  - If motion is no longer detected:
+    - If an occupancy helper entity is set, turn it off.
+    - If smart light bulbs are specified and currently on, turn them off.
+    - If light switches are specified and currently on, turn them off.
+    - If fans are specified and currently on, turn them off.
+
+- **Bypass Turn on:**
+  - If bypass mode is enabled:
+    - If a bypass timer is specified and not in a timer.none state, start the timer.
+
+- **Bypass Turn off:**
+  - If bypass mode is disabled:
+    - If a bypass timer is specified and not in a timer.none state, finish the timer.
+
+- **Bypass Timer Finished:**
+  - If the bypass auto-off timer ends and bypass mode is set to auto-off:
+    - Turn off the bypass helper entity.
+    - If specified, perform actions based on the bypass finished action (e.g., turn off lights).
+
+- **Idle Timer Finished:**
+  - If the idle timer for automatic bypass cancellation ends and the idle timer is not in a timer.none state:
+    - If the bypass helper entity is set, turn it on to enable bypass mode.
+    - If specified conditions are met, turn off occupancy helper, lights, switches, and fans.
+
 
 ## Source Code
 
