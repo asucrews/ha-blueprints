@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Code Manager (0.1.0rc2)
+  name: Lock Code Manager (0.1.0rc3)
   description: >
     <br/>
     <br/>
@@ -8,7 +8,7 @@ blueprint:
   input:
     lock_entity:
       name: Lock Entity
-      description: 
+      description: Lock Entity
       selector:
         entity:
           domain:
@@ -16,7 +16,7 @@ blueprint:
           multiple: false
     lock_auto_timer:
       name: Lock Auto Timer
-      description:
+      description: Lock Auto Timer
       default: 0
       selector:
         number:
