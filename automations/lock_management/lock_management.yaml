@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management (0.1.0rc14)
+  name: Lock Management Dev (0.1.0rc15)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
@@ -30,7 +30,7 @@ trigger:
   - platform: event
     event_type: lock_code_manager_lock_state_changed
     event_data:
-      device_id: !input lock
+       entity_id: !input lock
     id: LCM Event
   - platform: state
     entity_id: !input auto_lock_timer
