@@ -1,47 +1,115 @@
 blueprint:
-  name: Lock Management (0.1.0rc10)
+  name: Lock Management (0.1.0rc11)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
   input:
-    witch_lock_name:
-      name: Lock name
-      description: Lock Entity
+    lock:
+      name: Lock
+      description: Lock
       selector:
         entity:
           domain:
             - lock
           multiple: false
-    lock_auto_timer_helper:
+    auto_lock_timer:
       name: Lock Auto Timer
       description: Lock Auto Timer
-      default: 0.0
+      default: timer.none
       selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 300.0
-          unit_of_measurement: seconds
-          step: 1.0
+        entity:
+          domain:
+            - timer
+          multiple: false
 
 variables:
-  witch_lock_name: !input witch_lock_name
-  lock_auto_timer_helper: !input lock_auto_timer_helper
+  witch_lock_name: !input lock
+  auto_lock_timer: !input auto_lock_timer
 
 trigger:
   - platform: event
     event_type: lock_code_manager_lock_state_changed
     id: LCM Event
   - platform: state
-    entity_id: !input lock_auto_timer
+    entity_id: !input auto_lock_timer
     from: active
     to: idle
     id: Timer Finished
 
 action:
-  choose:
-    - conditions: []
-      sequence: []
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - Lock Code Manager Event
+        sequence:
+          - variables:
+              lock_state: "{{ trigger.event.data.state }}"
+              code_slot: "{{ trigger.event.data.code_slot }}"
+              code_slot_name: "{{ trigger.event.data.code_slot_name }}"
+              action_text: "{{ trigger.event.data.action_text }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lock_state == 'locked' }}"
+                sequence:
+                  - if:
+                    - condition: template
+                      value_template: "{{ auto_lock_timer != 'timer.none' }}"
+                    then:
+                      - if:
+                          - condition: state
+                            entity_id: !input auto_lock_timer
+                            state: active
+                        then:
+                          - service: timer.cancel
+                            metadata: {}
+                            data: {}
+                            target:
+                              entity_id: !input auto_lock_timer
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lock_state == 'unlocked' }}"
+                sequence:
+                  - if:
+                      - condition: template
+                        value_template: "{{ auto_lock_timer != 'timer.none' }}"
+                    then:
+                      - if:
+                          - condition: state
+                            entity_id: !input auto_lock_timer
+                            state: active
+                        then:
+                          - service: timer.cancel
+                            metadata: {}
+                            data: {}
+                            target:
+                              entity_id: !input auto_lock_timer
+                          - service: timer.start
+                            metadata: {}
+                            data: {}
+                            target:
+                              entity_id: !input auto_lock_timer
+                        else:
+                          - service: timer.start
+                            metadata: {}
+                            data: {}
+                            target:
+                              entity_id: !input auto_lock_timer
+      - conditions:
+          - condition: and
+            conditions:
+            - condition: template
+              value_template: "{{ auto_lock_timer != 'timer.none' }}"
+            - condition: trigger
+              id:
+                - Timer Finished
+        sequence:
+          - service: lock.lock
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input lock
 
 mode: queued
 max: 5
