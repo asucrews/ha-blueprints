@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Code Manager (0.1.0rc6)
+  name: Lock Code Manager (0.1.0rc7)
   description: >
     <br/>
     <br/>
@@ -74,7 +74,7 @@ action:
                 sequence:
                   - if:
                       - condition: template
-                        value_template: "{{ float(lock_auto_timer) < 0 }}"
+                        value_template: "{{ lock_auto_timer < '0' }}"
                     then:
                       - if:
                           - condition: state
@@ -101,7 +101,7 @@ action:
           - condition: and
             conditions:
             - condition: template
-              value_template: "{{ float(lock_auto_timer) < 0 }}"
+              value_template: "{{ lock_auto_timer < '0' }}"
             - condition: trigger
               id:
                 - Timer Finished
