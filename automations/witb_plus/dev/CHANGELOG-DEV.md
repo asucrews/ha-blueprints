@@ -1,9 +1,8 @@
 # Changelog
 
-## [0.3.0] - 2024-04-25
-### Added
-- Light Transition
-- Light brightness Percentage
+## [0.2.6] - 2024-04-25
+### Fixes
+- Typos
 
 ## [0.2.5] - 2024-04-25
 ### Fixes 

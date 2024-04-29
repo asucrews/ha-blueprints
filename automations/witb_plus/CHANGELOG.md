@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.2.6] - 2024-04-25
+### Fixes
+- Typos
+
 ## [0.2.5] - 2024-04-25
 ### Fixes 
 - Version

@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Stable (0.2.5)
+  name: WITB+ Stable (0.2.6)
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -10,7 +10,7 @@ blueprint:
     - Users are expected to create input_boolean entities for occupancy tracking and bypass control if they choose to utilize these features.<br/>
     - For bypass functionality, users need to manually integrate call service actions into their automations or methods to control devices when bypassing occupancy detection is required.<br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus.yaml
   input:
     door_sensor:
       name: Door Sensor or Door Sensor Group
@@ -199,7 +199,29 @@ blueprint:
           domain:
           - timer
           multiple: false
-        
+    light_transition:
+      name: Light Transition (Optional)
+      description: test
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 10.0
+          unit_of_measurement: seconds
+          step: 1.0
+    light_brightness_pct:
+      name: Light brightness Percentage (Optional)
+      description: test
+      default: 100
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 100.0
+          unit_of_measurement: percentage
+          step: 1.0
+
 variables:
   door_sensor: !input door_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
@@ -215,8 +237,9 @@ variables:
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
-  idel_timer_restarted: false
-  # lux_sensor: !input lux_sensor
+  idle_timer_restarted: false
+  light_transition: !input light_transition
+  light_brightness_pct: !input light_brightness_pct
 
 trigger:
   # If door is opened
@@ -271,7 +294,7 @@ trigger:
     from: active
     to: idle
     id: Bypass Timer Finished
-  # If idel timer ends
+  # If idle timer ends
   - platform: state
     entity_id: !input idle_timer
     from: active
@@ -399,21 +422,13 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
-      # Checks if motion is cleared.
+      # Checks if motion is detected.
       - conditions:
           - condition: and
             conditions:
               - condition: trigger
                 id: Motion On
         sequence:
-          - if:
-            - condition: template
-              value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
-            then:
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input occupancy_helper
           - if:
             - condition: and
               conditions:
@@ -453,6 +468,36 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+          - if:
+            - condition: template
+              value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          - if:
+            - condition: and
+              conditions:
+              - condition: template
+                value_template: "{{ idle_timer != 'timer.none' }}"
+              - condition: state
+                entity_id: !input idle_timer
+                state: active
+            then:
+              - variables:
+                  idle_timer_restarted: true
+              - service: timer.cancel
+                target:
+                  entity_id: !input idle_timer
+                data: {}
+              - service: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input idle_timer
+              - variables:
+                  idle_timer_restarted: false              
       # Checks if bypass is off, if door has been opened, and if motion is cleared.
       - conditions:
           - condition: and
@@ -629,7 +674,7 @@ action:
                     data: {}
                     target:
                       entity_id: !input fan_switch
-      # Checks if bypass is off, idle timer has finished, and idel timer is not timer.none.
+      # Checks if bypass is off, idle timer has finished, and idle timer is not timer.none.
       - conditions:
           - condition: and
             conditions:
@@ -656,7 +701,7 @@ action:
                 state: "off"
                 entity_id: !input door_sensor
               - condition: template
-                value_template: "{{ idel_timer_restarted == false }}"
+                value_template: "{{ idle_timer_restarted == false }}"
             then:
             - if:
               - condition: template
@@ -724,27 +769,27 @@ action:
             - stop: Bypass Enabled
         - if:
             - condition: state
-              entity_id: timer.witb_idle_timer
+              entity_id: !input idle_timer
               state: active
           then:
             - variables:
-                idel_timer_restarted: true
+                idle_timer_restarted: true
             - service: timer.cancel
               target:
-                entity_id: timer.witb_idle_timer
+                entity_id: !input idle_timer
               data: {}
             - service: timer.start
               metadata: {}
               data: {}
               target:
-                entity_id: timer.witb_idle_timer
+                entity_id: !input idle_timer
             - variables:
-                idel_timer_restarted: false
+                idle_timer_restarted: false
           else:
             - service: timer.start
               metadata: {}
               data: {}
               target:
-                entity_id: timer.witb_idle_timer
+                entity_id: !input idle_timer
 mode: queued
 max: 5

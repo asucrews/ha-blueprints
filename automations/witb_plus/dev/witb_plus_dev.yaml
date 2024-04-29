@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.2.6rc1)
+  name: WITB+ Dev (0.2.6rc2)
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -240,7 +240,6 @@ variables:
   idle_timer_restarted: false
   light_transition: !input light_transition
   light_brightness_pct: !input light_brightness_pct
-  # lux_sensor: !input lux_sensor
 
 trigger:
   # If door is opened
@@ -301,7 +300,6 @@ trigger:
     from: active
     to: idle
     id: Idle Timer Finished
-
 
 action:
   - choose:

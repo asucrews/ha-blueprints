@@ -56,7 +56,8 @@ This blueprint offers a flexible and customizable solution for managing door loc
 
 ## Source Code
 
-The source code for WITB+ Blueprint can be found on GitHub:  
+The source code for Log Management Blueprint can be found on GitHub:
+
 - [View Source Code - Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)  
 - [View Source Code - Dev](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev/lock_management_dev.yaml)
 
