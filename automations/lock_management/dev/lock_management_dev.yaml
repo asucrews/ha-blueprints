@@ -21,10 +21,20 @@ blueprint:
           domain:
             - timer
           multiple: false
+    notifications:
+      name: Notifications
+      description: Who to send notifications too
+      default: notify.none
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: true
 
 variables:
   lock: !input lock
   auto_lock_timer: !input auto_lock_timer
+  notifications: !input notifications
 
 trigger:
   - platform: event
@@ -69,6 +79,24 @@ action:
                             data: {}
                             target:
                               entity_id: !input auto_lock_timer
+                  - if:
+                    - condition: template
+                      value_template: "{{ notifications != 'notify.none' }}"
+                    then:
+                      - repeat:
+                        foreach: notifications
+                        sequence:
+                          - service: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                            data:
+                              title: "{{ lock }}"
+                              message: >
+                                {% if code_slot > 0 %}
+                                  "{{ lock }} has been locked by {{ code_slot_name }}"
+                                {% else %}
+                                  "{{ lock }} has been locked"
+                                {% endif %}
+                              data:
+                                sticky: "true"
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
@@ -98,6 +126,24 @@ action:
                             data: {}
                             target:
                               entity_id: !input auto_lock_timer
+                  - if:
+                    - condition: template
+                      value_template: "{{ notifications != 'notify.none' }}"
+                    then:
+                      - repeat:
+                        foreach: notifications
+                        sequence:
+                          - service: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
+                            data:
+                              title: "{{ lock }}"
+                              message: >
+                                {% if code_slot > 0 %}
+                                  "{{ lock }} has been unlocked by {{ code_slot_name }}"
+                                {% else %}
+                                  "{{ lock }} has been unlocked"
+                                {% endif %}
+                              data:
+                                sticky: "true"
       - conditions:
           - condition: and
             conditions:
