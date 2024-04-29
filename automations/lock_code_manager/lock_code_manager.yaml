@@ -1,13 +1,13 @@
 blueprint:
-  name: Lock Code Manager (0.1.0rc1)
+  name: Lock Code Manager (0.1.0rc2)
   description: >
     <br/>
     <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_code_manager/lock_code_manager.yaml
   input:
-    lock:
-      name: Lock
+    lock_entity:
+      name: Lock Entity
       description: 
       selector:
         entity:
@@ -27,7 +27,7 @@ blueprint:
           step: 1.0
 
 variables:
-  lock: !input lock
+  lock_entity: !input lock_entity
   lock_auto_timer: !input lock_auto_timer
 
 trigger:
@@ -110,4 +110,4 @@ action:
             metadata: {}
             data: {}
             target:
-              entity_id: !input lock
+              entity_id: !input lock_entity
