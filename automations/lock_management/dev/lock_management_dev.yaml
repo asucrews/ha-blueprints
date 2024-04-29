@@ -21,9 +21,9 @@ blueprint:
           domain:
             - timer
           multiple: false
-    notifications:
-      name: Notifications
-      description: Who to send notifications too
+    notify_device:
+      name: Easy Notify - Devices Notified (Optional)
+      description: If you've enabled device notifications above, please select the devices to receive the notifications.
       default: []
       selector:
         device:
@@ -34,7 +34,7 @@ blueprint:
 variables:
   lock: !input lock
   auto_lock_timer: !input auto_lock_timer
-  notifications: !input notifications
+  notify_device: !input notify_device
 
 trigger:
   - platform: event
@@ -81,10 +81,10 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                     - condition: template
-                      value_template: "{{ notifications | length > 0 }}"
+                      value_template: "{{ notify_device | length > 0 }}"
                     then:
                       - repeat:
-                        for_each: notifications
+                        for_each: notify_device
                         sequence:
                           - service: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
                             data:
@@ -128,10 +128,10 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                     - condition: template
-                      value_template: "{{ notifications | length > 0 }}"
+                      value_template: "{{ notify_device | length > 0 }}"
                     then:
                       - repeat:
-                        for_each: notifications
+                        for_each: notify_device
                         sequence:
                           - service: "notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}"
                             data:
