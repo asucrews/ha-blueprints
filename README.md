@@ -9,13 +9,14 @@ Blueprints for Home Assistant
 - **Blueprint Stable Home**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management)
 - **Blueprint Stable YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
 - **Blueprint Stable Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/CHANGELOG.md)
+- **Discussion**: [Home Assistant Commuity](https://community.home-assistant.io/t/introducing-lock-management-blueprint/723413)
  
 ### WITB+
 
 - **Blueprint Stable Home**: [GitHub](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus)
 - **Blueprint Stable YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus.yaml)
 - **Blueprint Stable Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/CHANGELOG.md)
-- **WITB+ Discussion**: [Home Assistant Community](https://community.home-assistant.io/t/witb-wasp-in-the-box-plus-blueprint/721520)
+- **Discussion**: [Home Assistant Community](https://community.home-assistant.io/t/witb-wasp-in-the-box-plus-blueprint/721520)
 
 [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fasucrews%2Fha-blueprints%2Fblob%2Fmain%2Fautomations%2Fwitb_plus%2Fwitb_plus.yaml)
 
