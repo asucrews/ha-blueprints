@@ -153,9 +153,6 @@ WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for oc
 - **Idle Timer Finished:**
   - Triggered when the idle timer for automatic bypass cancellation ends.
 
-
-## Action
-
 ## Action
 
 The action section defines sequences of actions to be executed based on the triggers and conditions:
@@ -210,8 +207,8 @@ The action section defines sequences of actions to be executed based on the trig
 ## Source Code
 
 The source code for WITB+ Blueprint can be found on GitHub:  
-- [View Source Code - Stable](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/witb_plus.yaml)  
-- [View Source Code - Dev](https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/witb_plus/dev/witb_plus_dev.yaml)  
+- [View Source Code - Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus.yaml)  
+- [View Source Code - Dev](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_dev.yaml)  
 
 ## Future Enhancements
 - **Additional Lighting Controls:** We plan to expand the capabilities of the blueprint by incorporating more advanced lighting controls. This could include adjusting brightness, changing colors, or even integrating scene selection functionality.
@@ -220,7 +217,7 @@ The source code for WITB+ Blueprint can be found on GitHub:
 - **Improved Bypass Functionality:** We're exploring ways to enhance the bypass functionality to make it more intuitive and user-friendly. This could involve simplifying the setup process or adding additional bypass modes for greater flexibility.
 - **Time of Day Events:** We're considering adding time-based events to the blueprint, allowing users to configure different behaviors based on the time of day. This could include features like nightlight settings, where the lighting adjusts automatically based on the time, creating a more comfortable environment during nighttime hours.
 
-## Feedback
+# Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the WITB+ Blueprint. Whether you have ideas for improvements, encountered issues during implementation, or simply want to share your experience using the blueprint, your feedback is invaluable to us.
 

@@ -53,3 +53,17 @@ If the auto-lock timer finishes (transitions from active to idle), it triggers t
 - **Queued:** Ensures that no more than 5 instances of this automation can run simultaneously.
 
 This blueprint offers a flexible and customizable solution for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
+
+## Source Code
+
+The source code for WITB+ Blueprint can be found on GitHub:  
+- [View Source Code - Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)  
+- [View Source Code - Dev](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev/lock_management_dev.yaml)
+
+## Future Enhancements
+
+# Feedback
+
+We value your input and welcome any feedback or suggestions you may have regarding the WITB+ Blueprint. Whether you have ideas for improvements, encountered issues during implementation, or simply want to share your experience using the blueprint, your feedback is invaluable to us.
+
+Please feel free to leave your comments below or reach out to us on the Home Assistant forum. Your feedback helps us continually improve and refine our offerings for the community. Thank you for your support!
