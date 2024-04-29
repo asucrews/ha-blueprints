@@ -42,8 +42,6 @@ trigger:
     id: Timer Finished
 
 action:
-
-
   - choose:
       - conditions:
           - condition: trigger
