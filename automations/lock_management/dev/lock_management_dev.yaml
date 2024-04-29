@@ -24,7 +24,7 @@ blueprint:
     notify_device:
       name: Easy Notify - Devices Notified (Optional)
       description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: {}
+      default: []
       selector:
         device:
           filter:
