@@ -71,37 +71,37 @@ action:
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
-                sequence:
-                  - if:
-                      - condition: template
-                        value_template: "{{ lock_auto_timer < '0' }}"
-                    then:
-                      - if:
-                          - condition: state
-                            entity_id: !input lock_auto_timer
-                            state: active
-                        then:
-                          - service: timer.cancel
-                            metadata: {}
-                            data: {}
-                            target:
-                              entity_id: !input lock_auto_timer
-                          - service: timer.start
-                            metadata: {}
-                            data: {}
-                            target:
-                              entity_id: !input lock_auto_timer
-                        else:
-                          - service: timer.start
-                            metadata: {}
-                            data: {}
-                            target:
-                              entity_id: !input lock_auto_timer
+                sequence: []
+                  # - if:
+                  #     - condition: template
+                  #       value_template: "{{ lock_auto_timer < '0' }}"
+                  #   then:
+                  #     - if:
+                  #         - condition: state
+                  #           entity_id: !input lock_auto_timer
+                  #           state: active
+                  #       then:
+                  #         - service: timer.cancel
+                  #           metadata: {}
+                  #           data: {}
+                  #           target:
+                  #             entity_id: !input lock_auto_timer
+                  #         - service: timer.start
+                  #           metadata: {}
+                  #           data: {}
+                  #           target:
+                  #             entity_id: !input lock_auto_timer
+                  #       else:
+                  #         - service: timer.start
+                  #           metadata: {}
+                  #           data: {}
+                  #           target:
+                  #             entity_id: !input lock_auto_timer
       - conditions:
           - condition: and
             conditions:
-            - condition: template
-              value_template: "{{ lock_auto_timer < '0' }}"
+            # - condition: template
+            #   value_template: "{{ lock_auto_timer < '0' }}"
             - condition: trigger
               id:
                 - Timer Finished
