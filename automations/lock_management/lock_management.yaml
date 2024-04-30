@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Stable (0.1.0)
+  name: Lock Management Stable (0.2.0)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
@@ -21,10 +21,20 @@ blueprint:
           domain:
             - timer
           multiple: false
+    notify_device:
+      name: Easy Notify - Devices Notified (Optional)
+      description: If you've enabled device notifications above, please select the devices to receive the notifications.
+      default: []
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+          multiple: true
 
 variables:
   lock: !input lock
   auto_lock_timer: !input auto_lock_timer
+  notify_device: !input notify_device
 
 trigger:
   - platform: event
@@ -69,6 +79,22 @@ action:
                             data: {}
                             target:
                               entity_id: !input auto_lock_timer
+                  - if:
+                      - condition: template
+                        value_template: "{{ notify_device | length > 0 }}"
+                    then:
+                      - repeat:
+                          for_each: !input notify_device
+                          sequence:
+                            - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
+                              data:
+                                message: >
+                                  {% if code_slot > 0 %}
+                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
+                                  {% else %}
+                                    "{{ device_attr(lock, 'name') }} was unlocked"
+                                  {% endif %}
+                                title: "{{ device_attr(lock, 'name') }}"
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
@@ -98,6 +124,22 @@ action:
                             data: {}
                             target:
                               entity_id: !input auto_lock_timer
+                  - if:
+                      - condition: template
+                        value_template: "{{ notify_device | length > 0 }}"
+                    then:
+                      - repeat:
+                          for_each: !input notify_device
+                          sequence:
+                            - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
+                              data:
+                                message: >
+                                  {% if code_slot > 0 %}
+                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
+                                  {% else %}
+                                    "{{ device_attr(lock, 'name') }} was unlocked"
+                                  {% endif %}
+                                title: "{{ device_attr(lock, 'name') }}"
       - conditions:
           - condition: and
             conditions:
