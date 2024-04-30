@@ -89,7 +89,7 @@ action:
                             - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
                               data:
                                 message: >
-                                  {% if code_slot > 0 }
+                                  {% if code_slot > 0 }}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked by {{ code_slot_name }}"
                                   {% else %}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked"
@@ -134,7 +134,7 @@ action:
                             - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
                               data:
                                 message: >
-                                  {% if code_slot > 0 }
+                                  {% if code_slot > 0 }}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked by {{ code_slot_name }}"
                                   {% else %}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked"
