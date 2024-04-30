@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Dev (0.2.0.r11)
+  name: Lock Management Dev (0.2.0.r12)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
@@ -89,7 +89,7 @@ action:
                             - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
                               data:
                                 message: >
-                                  {% if code_slot > 0 }}
+                                  {% if code_slot > 0 %}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked by {{ code_slot_name }}"
                                   {% else %}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked"
@@ -134,7 +134,7 @@ action:
                             - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
                               data:
                                 message: >
-                                  {% if code_slot > 0 }}
+                                  {% if code_slot > 0 %}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked by {{ code_slot_name }}"
                                   {% else %}
                                     "{{ device_attr(repeat.item, 'name') }} was unlocked"
