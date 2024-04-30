@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Dev (0.2.0.r10)
+  name: Lock Management Dev (0.2.0.r11)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
