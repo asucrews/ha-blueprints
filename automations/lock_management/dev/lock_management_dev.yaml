@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Dev (0.2.0.r12)
+  name: Lock Management Dev (0.2.0.r13)
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
@@ -90,11 +90,11 @@ action:
                               data:
                                 message: >
                                   {% if code_slot > 0 %}
-                                    "{{ device_attr(repeat.item, 'name') }} was unlocked by {{ code_slot_name }}"
+                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
                                   {% else %}
-                                    "{{ device_attr(repeat.item, 'name') }} was unlocked"
+                                    "{{ device_attr(lock, 'name') }} was unlocked"
                                   {% endif %}
-                                title: "{{ lock }}"
+                                title: "{{ device_attr(lock, 'name') }}"
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
@@ -135,11 +135,11 @@ action:
                               data:
                                 message: >
                                   {% if code_slot > 0 %}
-                                    "{{ device_attr(repeat.item, 'name') }} was unlocked by {{ code_slot_name }}"
+                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
                                   {% else %}
-                                    "{{ device_attr(repeat.item, 'name') }} was unlocked"
+                                    "{{ device_attr(lock, 'name') }} was unlocked"
                                   {% endif %}
-                                title: "{{ device_attr(repeat.item, 'name') }}"
+                                title: "{{ device_attr(lock, 'name') }}"
       - conditions:
           - condition: and
             conditions:
