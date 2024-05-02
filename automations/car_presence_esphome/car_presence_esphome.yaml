@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Presence ESPHome (0.1.0rc2)
+  name: Car Presence ESPHome (0.1.0rc3)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -9,8 +9,8 @@ blueprint:
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/car_presence_esphome/car_presence_esphome.yaml
   input:
     esphome_device:
-      name: Lock
-      description: Lock
+      name: ESPHome Device
+      description: ESPHome Device binary sensor that show devie is connected.
       selector:
         entity:
           integration: esphome
