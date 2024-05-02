@@ -1,0 +1,23 @@
+blueprint:
+  name: Car Presence ESPHome
+  description: >
+    <br/>
+    <br/>
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/car_presence_esphome/car_presence_esphome.yaml
+  input:
+    esphome_device:
+      name: Lock
+      description: Lock
+      selector:
+        integration: esphome
+        entity:
+          domain:
+            - binary_sensor
+          multiple: false
+
+variables:
+
+trigger:
+
+action:
