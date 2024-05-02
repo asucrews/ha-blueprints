@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Presence ESPHome
+  name: Car Presence ESPHome (0.1.0rc1)
   description: >
     <br/>
     <br/>
@@ -17,7 +17,8 @@ blueprint:
           multiple: false
 
 variables:
+  esphome_device: !input esphome_device
 
-trigger:
+trigger: []
 
-action:
+action: []
