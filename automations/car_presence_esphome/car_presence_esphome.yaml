@@ -1,5 +1,7 @@
 blueprint:
   name: Car Presence ESPHome (0.1.0rc1)
+  homeassistant:
+    min_version: 2024.4.0
   description: >
     <br/>
     <br/>

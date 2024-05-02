@@ -1,5 +1,7 @@
 blueprint:
   name: Lock Management Dev (0.3.0.r0)
+  homeassistant:
+    min_version: 2024.4.0
   description: lock Management 
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
