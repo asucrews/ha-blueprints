@@ -1,4 +1,4 @@
-# Check if light_bulbs are configured and the light is on
+# Turns off light_bulbs if configured and the light is on
 - if:
     # Check if both conditions are met
     - condition: and
