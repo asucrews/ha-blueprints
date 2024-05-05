@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.0rc9)
+  name: WITB+ Dev (0.3.0rc10)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -220,6 +220,20 @@ blueprint:
           custom_value: false
           multiple: false
           sort: false
+    light_control_features:
+      name: Light Control Features?
+      description: <br/>
+      default: []
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Use brightness
+              value: "use_brightness"
+            - label: Use colour temperature
+              value: "use_colour_temperature"
+            - label: Use transition
+              value: "use_transition"
     light_transition:
       name: Light Transition (Optional)
       description: test
@@ -260,10 +274,10 @@ variables:
   idle_timer: !input idle_timer
   idle_timer_restarted: false
   light_contorl: !input light_contorl
+  light_control_features: !input light_control_features
+  light_control_features_lenght: "{{ light_control_features | length }}"
   light_transition: !input light_transition
-  light_transition_value: "{{ light_transition }}"
   light_brightness_pct: !input light_brightness_pct
-  light_brightness_pct_value: "{{ light_brightness_pct }}"
 
 trigger:
   # If door is opened
