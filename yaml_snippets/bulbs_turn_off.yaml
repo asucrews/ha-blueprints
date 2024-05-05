@@ -1,92 +1,43 @@
+# Check if light_bulbs are configured and the light is on
 - if:
+    # Check if both conditions are met
     - condition: and
       conditions:
+        # Check if light_bulbs is not equal to 'light.none'
         - condition: template
           value_template: "{{ light_bulbs != 'light.none' }}"
+        # Check if the state of the light is "on"
         - condition: state
           entity_id: !input light_bulbs
-          state: "off"
+          state: "on"
   then:
+    # If light_control is set to "bulb" and transition feature is selected, turn off the light with transition
     - choose:
         - conditions:
+            # Check if light_control is set to "bulb"
             - condition: template
-              value_template: "{{ len(light_control_features) == 1 }}"
+              value_template: "{{ light_control == 'bulb' }}"
           sequence:
+            # Turn off the light with transition if transition feature is selected
             - choose:
                 - conditions:
+                    # Check if transition feature is selected
                     - condition: template
-                      value_template: "{{ ('use_transition' in light_control_features) }}"
+                      value_template: "{{ 'use_transition' in light_control_features }}"
                   sequence:
+                    # Turn off the light with specific settings
                     - service: light.turn_off
-                      metadata: {}
                       data:
-                        transition: 0
+                        transition: !input light_transition
                       target:
                         entity_id: !input light_bulbs
-        - conditions:
-            - condition: template
-              value_template: "{{ len(light_control_features) == 2 }}"
-          sequence:
-            - choose:
-                - conditions:
-                    - condition: template
-                      value_template: >-
-                        {{ 'use_brightness' in light_control_features and
-                        'use_colour_temperature' in light_control_features and
-                        not 'use_transition' in light_control_features }}
-                  sequence:
-                    - service: light.turn_on
-                      metadata: {}
-                      data:
-                        kelvin: 6500
-                        brightness_pct: 100
+                - default:
+                    # If conditions are not met, turn off the light without considering light_control or selected features
+                    - service: light.turn_off
                       target:
                         entity_id: !input light_bulbs
-                - conditions:
-                    - condition: template
-                      value_template: >-
-                        {{ 'use_brightness' in light_control_features and not
-                        'use_colour_temperature' in light_control_features and
-                        'use_transition' in light_control_features }}
-                  sequence:
-                    - service: light.turn_on
-                      metadata: {}
-                      data:
-                        transition: 0
-                        brightness_pct: 100
-                      target:
-                        entity_id: !input light_bulbs
-                - conditions:
-                    - condition: template
-                      value_template: >-
-                        {{ not 'use_brightness' in light_control_features and
-                        'use_colour_temperature' in light_control_features and
-                        'use_transition' in light_control_features }}
-                  sequence:
-                    - service: light.turn_on
-                      metadata: {}
-                      data:
-                        transition: 0
-                        kelvin: 6500
-                      target:
-                        entity_id: !input light_bulbs
-        - conditions:
-            - condition: template
-              value_template: "{{ len(light_control_features) == 3 }}"
-          sequence:
-            - service: light.turn_on
-              metadata: {}
-              data:
-                transition: 0
-                kelvin: 6500
-                brightness_pct: 100
+        - default:
+            # If conditions are not met, turn off the light without considering light_control or selected features
+            - service: light.turn_off
               target:
                 entity_id: !input light_bulbs
-  else:
-    - condition: state
-      entity_id: !input light_bulbs
-      state: "off"
-    - service: homeassistant.turn_on
-      data: {}
-      target:
-        entity_id: !input light_bulbs
