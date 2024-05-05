@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.2.6rc2)
+  name: WITB+ Dev (0.3.0rc1)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -200,26 +200,45 @@ blueprint:
         entity:
           domain:
           - timer
+          multiple: false  
+    light_contorl:
+      name: Light Control
+      description: >
+        What is controls lighting effects? Is it a swith or bulb?<br/>
+        <br/>
+      default: none
+      selector:
+        select:
+          mode: dropdown
+          options:
+          - label: None
+            value: none
+          - label: Bulb
+            value: bulb
+          - label: Switch
+            value: switch
+          custom_value: false
           multiple: false
+          sort: false      
     light_transition:
       name: Light Transition (Optional)
       description: test
-      default: 0
+      default: -1
       selector:
         number:
           mode: box
-          min: 0.0
+          min: -1.0
           max: 10.0
           unit_of_measurement: seconds
           step: 1.0
     light_brightness_pct:
       name: Light brightness Percentage (Optional)
       description: test
-      default: 100
+      default: -1
       selector:
         number:
           mode: box
-          min: 0.0
+          min: -1.0
           max: 100.0
           unit_of_measurement: percentage
           step: 1.0
@@ -240,6 +259,7 @@ variables:
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
   idle_timer_restarted: false
+  light_contorl: !input light_contorl
   light_transition: !input light_transition
   light_brightness_pct: !input light_brightness_pct
 
@@ -329,8 +349,23 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "off"
-              - service: homeassistant.turn_on
-                data: {}
+              - service: >
+                  {% if light_contorl == 'bulb' %}
+                    light.turn_on
+                  {% else %}
+                    homeassistant.turn_on
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'bulb' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                    {% if light_brightness_pct != '-1' %}
+                      brightness_pct: !input light_brightness_pct
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
                 target:
                   entity_id: !input light_bulbs
           - if:
@@ -342,8 +377,27 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: homeassistant.turn_on
-                data: {}
+              - service: >
+                  {% if light_contorl == 'switch'}
+                    {% if 'light.' in light_switch %}
+                      light.turn_on
+                    {% else %}
+                      switch.turn_on
+                    {% endif %}
+                  {% else %}
+                    homeassistant.turn_on
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'switch' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                    {% if light_brightness_pct != '-1' %}
+                      brightness_pct: !input light_brightness_pct
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
                 target:
                   entity_id: !input light_switch
           - if:
@@ -394,10 +448,21 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "on"
-              - service: homeassistant.turn_off
-                data: {}
-                target:
-                  entity_id: !input light_bulbs
+              - service: >
+                  {% if light_contorl == 'bulb' %}
+                    light.turn_off
+                  {% else %}
+                    homeassistant.turn_off
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'bulb' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
+                target: !input light_bulbs
           - if:
             - condition: and
               conditions:
@@ -407,8 +472,27 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - service: homeassistant.turn_off
-                data: {}
+              - service: >
+                  {% if light_contorl == 'switch'}
+                    {% if 'light.' in light_switch %}
+                      light.turn_off
+                    {% else %}
+                      switch.turn_off
+                    {% endif %}
+                  {% else %}
+                    homeassistant.turn_off
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'switch' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                    {% if light_brightness_pct != '-1' %}
+                      brightness_pct: !input light_brightness_pct
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
                 target:
                   entity_id: !input light_switch
           - if:
@@ -440,8 +524,23 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "off"
-              - service: homeassistant.turn_on
-                data: {}
+              - service: >
+                  {% if light_contorl == 'bulb' %}
+                    light.turn_on
+                  {% else %}
+                    homeassistant.turn_on
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'bulb' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                    {% if light_brightness_pct != '-1' %}
+                      brightness_pct: !input light_brightness_pct
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
                 target:
                   entity_id: !input light_bulbs
           - if:
@@ -453,8 +552,27 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: homeassistant.turn_on
-                data: {}
+              - service: >
+                  {% if light_contorl == 'switch'}
+                    {% if 'light.' in light_switch %}
+                      light.turn_on
+                    {% else %}
+                      switch.turn_on
+                    {% endif %}
+                  {% else %}
+                    homeassistant.turn_on
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'switch' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                    {% if light_brightness_pct != '-1' %}
+                      brightness_pct: !input light_brightness_pct
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
                 target:
                   entity_id: !input light_switch
           - if:
@@ -535,10 +653,21 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "on"
-              - service: homeassistant.turn_off
-                data: {}
-                target:
-                  entity_id: !input light_bulbs
+              - service: >
+                  {% if light_contorl == 'bulb' %}
+                    light.turn_off
+                  {% else %}
+                    homeassistant.turn_off
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'bulb' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
+                target: !input light_bulbs
           - if:
             - condition: and
               conditions:
@@ -548,8 +677,27 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - service: homeassistant.turn_off
-                data: {}
+              - service: >
+                  {% if light_contorl == 'switch'}
+                    {% if 'light.' in light_switch %}
+                      light.turn_off
+                    {% else %}
+                      switch.turn_off
+                    {% endif %}
+                  {% else %}
+                    homeassistant.turn_off
+                  {% endif %}
+                data: >
+                  {% if light_contorl == 'switch' %}
+                    {% if light_transition != '-1' %}
+                      transition: !input light_transition
+                    {% endif %}
+                    {% if light_brightness_pct != '-1' %}
+                      brightness_pct: !input light_brightness_pct
+                    {% endif %}
+                  {% else %}
+                    {}
+                  {% endif %}
                 target:
                   entity_id: !input light_switch
           - if:
@@ -646,8 +794,20 @@ action:
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
+                  - service: >
+                      {% if light_contorl == 'bulb' %}
+                        light.turn_off
+                      {% else %}
+                        homeassistant.turn_off
+                      {% endif %}
+                    data: >
+                      {% if light_contorl == 'bulb' %}
+                        {% if light_transition != '-1' %}
+                          transition: !input light_transition
+                        {% endif %}
+                      {% else %}
+                        {}
+                      {% endif %}
                     target:
                       entity_id: !input light_bulbs
               - if:
@@ -659,8 +819,27 @@ action:
                   - condition: state
                     entity_id: !input light_switch
                     state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
+                  - service: >
+                      {% if light_contorl == 'switch'}
+                        {% if 'light.' in light_switch %}
+                          light.turn_off
+                        {% else %}
+                          switch.turn_off
+                        {% endif %}
+                      {% else %}
+                        homeassistant.turn_off
+                      {% endif %}
+                    data: >
+                      {% if light_contorl == 'switch' %}
+                        {% if light_transition != '-1' %}
+                          transition: !input light_transition
+                        {% endif %}
+                        {% if light_brightness_pct != '-1' %}
+                          brightness_pct: !input light_brightness_pct
+                        {% endif %}
+                      {% else %}
+                        {}
+                      {% endif %}
                     target:
                       entity_id: !input light_switch
               - if:
@@ -722,8 +901,20 @@ action:
                 - condition: state
                   entity_id: !input light_bulbs
                   state: "on"
-                - service: homeassistant.turn_off
-                  data: {}
+                - service: >
+                    {% if light_contorl == 'bulb' %}
+                      light.turn_off
+                    {% else %}
+                      homeassistant.turn_off
+                    {% endif %}
+                  data: >
+                    {% if light_contorl == 'bulb' %}
+                      {% if light_transition != '-1' %}
+                        transition: !input light_transition
+                      {% endif %}
+                    {% else %}
+                      {}
+                    {% endif %}
                   target:
                     entity_id: !input light_bulbs
             - if:
@@ -735,8 +926,27 @@ action:
                 - condition: state
                   entity_id: !input light_switch
                   state: "on"
-                - service: homeassistant.turn_off
-                  data: {}
+                - service: >
+                    {% if light_contorl == 'switch'}
+                      {% if 'light.' in light_switch %}
+                        light.turn_off
+                      {% else %}
+                        switch.turn_off
+                      {% endif %}
+                    {% else %}
+                      homeassistant.turn_off
+                    {% endif %}
+                  data: >
+                    {% if light_contorl == 'switch' %}
+                      {% if light_transition != '-1' %}
+                        transition: !input light_transition
+                      {% endif %}
+                      {% if light_brightness_pct != '-1' %}
+                        brightness_pct: !input light_brightness_pct
+                      {% endif %}
+                    {% else %}
+                      {}
+                    {% endif %}
                   target:
                     entity_id: !input light_switch
             - if:
