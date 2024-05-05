@@ -275,7 +275,7 @@ variables:
   idle_timer_restarted: false
   light_contorl: !input light_contorl
   light_control_features: !input light_control_features
-  light_control_features_lenght: "{{ light_control_features | length }}"
+  light_control_features_lenght: light_control_features | length
   light_transition: !input light_transition
   light_brightness_pct: !input light_brightness_pct
 
