@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.0rc1)
+  name: WITB+ Dev (0.3.0rc2)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -377,29 +377,55 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: >
-                  {% if light_contorl == 'switch'}
-                    {% if 'light.' in light_switch %}
-                      light.turn_on
-                    {% else %}
-                      switch.turn_on
-                    {% endif %}
-                  {% else %}
-                    homeassistant.turn_on
-                  {% endif %}
-                data: >
-                  {% if light_contorl == 'switch' %}
-                    {% if light_transition != '-1' %}
-                      transition: !input light_transition
-                    {% endif %}
-                    {% if light_brightness_pct != '-1' %}
-                      brightness_pct: !input light_brightness_pct
-                    {% endif %}
-                  {% else %}
-                    {}
-                  {% endif %}
-                target:
-                  entity_id: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ light_contorl == 'switch' }}"
+                then: 
+                  - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'light.' in light_switch }}"
+                      sequence:
+                        - service: light.turn_on
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                              {% if light_brightness_pct != '-1' %}
+                                brightness_pct: !input light_brightness_pct
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'switch.' in light_switch }}"
+                      sequence:
+                        - service: switch.turn_on
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                              {% if light_brightness_pct != '-1' %}
+                                brightness_pct: !input light_brightness_pct
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                else:
+                  - service: homeassistant.turn_on
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
           - if:
             - condition: and
               conditions:
@@ -472,29 +498,49 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - service: >
-                  {% if light_contorl == 'switch'}
-                    {% if 'light.' in light_switch %}
-                      light.turn_off
-                    {% else %}
-                      switch.turn_off
-                    {% endif %}
-                  {% else %}
-                    homeassistant.turn_off
-                  {% endif %}
-                data: >
-                  {% if light_contorl == 'switch' %}
-                    {% if light_transition != '-1' %}
-                      transition: !input light_transition
-                    {% endif %}
-                    {% if light_brightness_pct != '-1' %}
-                      brightness_pct: !input light_brightness_pct
-                    {% endif %}
-                  {% else %}
-                    {}
-                  {% endif %}
-                target:
-                  entity_id: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ light_contorl == 'switch' }}"
+                then: 
+                  - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'light.' in light_switch }}"
+                      sequence:
+                        - service: light.turn_off
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'switch.' in light_switch }}"
+                      sequence:
+                        - service: switch.turn_off
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                else:
+                  - service: homeassistant.turn_off
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
           - if:
             - condition: and
               conditions:
@@ -552,29 +598,55 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: >
-                  {% if light_contorl == 'switch'}
-                    {% if 'light.' in light_switch %}
-                      light.turn_on
-                    {% else %}
-                      switch.turn_on
-                    {% endif %}
-                  {% else %}
-                    homeassistant.turn_on
-                  {% endif %}
-                data: >
-                  {% if light_contorl == 'switch' %}
-                    {% if light_transition != '-1' %}
-                      transition: !input light_transition
-                    {% endif %}
-                    {% if light_brightness_pct != '-1' %}
-                      brightness_pct: !input light_brightness_pct
-                    {% endif %}
-                  {% else %}
-                    {}
-                  {% endif %}
-                target:
-                  entity_id: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ light_contorl == 'switch' }}"
+                then: 
+                  - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'light.' in light_switch }}"
+                      sequence:
+                        - service: light.turn_on
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                              {% if light_brightness_pct != '-1' %}
+                                brightness_pct: !input light_brightness_pct
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'switch.' in light_switch }}"
+                      sequence:
+                        - service: switch.turn_on
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                              {% if light_brightness_pct != '-1' %}
+                                brightness_pct: !input light_brightness_pct
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                else:
+                  - service: homeassistant.turn_on
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
           - if:
             - condition: and
               conditions:
@@ -677,29 +749,49 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - service: >
-                  {% if light_contorl == 'switch'}
-                    {% if 'light.' in light_switch %}
-                      light.turn_off
-                    {% else %}
-                      switch.turn_off
-                    {% endif %}
-                  {% else %}
-                    homeassistant.turn_off
-                  {% endif %}
-                data: >
-                  {% if light_contorl == 'switch' %}
-                    {% if light_transition != '-1' %}
-                      transition: !input light_transition
-                    {% endif %}
-                    {% if light_brightness_pct != '-1' %}
-                      brightness_pct: !input light_brightness_pct
-                    {% endif %}
-                  {% else %}
-                    {}
-                  {% endif %}
-                target:
-                  entity_id: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ light_contorl == 'switch' }}"
+                then: 
+                  - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'light.' in light_switch }}"
+                      sequence:
+                        - service: light.turn_off
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ 'switch.' in light_switch }}"
+                      sequence:
+                        - service: switch.turn_off
+                          metadata: {}
+                          data: >
+                            {% if light_contorl == 'switch' %}
+                              {% if light_transition != '-1' %}
+                                transition: !input light_transition
+                              {% endif %}
+                            {% else %}
+                              {}
+                            {% endif %}
+                          target:
+                            entity_id: !input light_switch
+                else:
+                  - service: homeassistant.turn_off
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
           - if:
             - condition: and
               conditions:
@@ -819,29 +911,49 @@ action:
                   - condition: state
                     entity_id: !input light_switch
                     state: "on"
-                  - service: >
-                      {% if light_contorl == 'switch'}
-                        {% if 'light.' in light_switch %}
-                          light.turn_off
-                        {% else %}
-                          switch.turn_off
-                        {% endif %}
-                      {% else %}
-                        homeassistant.turn_off
-                      {% endif %}
-                    data: >
-                      {% if light_contorl == 'switch' %}
-                        {% if light_transition != '-1' %}
-                          transition: !input light_transition
-                        {% endif %}
-                        {% if light_brightness_pct != '-1' %}
-                          brightness_pct: !input light_brightness_pct
-                        {% endif %}
-                      {% else %}
-                        {}
-                      {% endif %}
-                    target:
-                      entity_id: !input light_switch
+                  - if:
+                      - condition: template
+                        value_template: "{{ light_contorl == 'switch' }}"
+                    then: 
+                      - choose:
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ 'light.' in light_switch }}"
+                          sequence:
+                            - service: light.turn_off
+                              metadata: {}
+                              data: >
+                                {% if light_contorl == 'switch' %}
+                                  {% if light_transition != '-1' %}
+                                    transition: !input light_transition
+                                  {% endif %}
+                                {% else %}
+                                  {}
+                                {% endif %}
+                              target:
+                                entity_id: !input light_switch
+                        - conditions:
+                            - condition: template
+                              value_template: "{{ 'switch.' in light_switch }}"
+                          sequence:
+                            - service: switch.turn_off
+                              metadata: {}
+                              data: >
+                                {% if light_contorl == 'switch' %}
+                                  {% if light_transition != '-1' %}
+                                    transition: !input light_transition
+                                  {% endif %}
+                                {% else %}
+                                  {}
+                                {% endif %}
+                              target:
+                                entity_id: !input light_switch
+                    else:
+                      - service: homeassistant.turn_off
+                        metadata: {}
+                        data: {}
+                        target:
+                          entity_id: !input light_switch
               - if:
                 - condition: and
                   conditions:
@@ -926,29 +1038,49 @@ action:
                 - condition: state
                   entity_id: !input light_switch
                   state: "on"
-                - service: >
-                    {% if light_contorl == 'switch'}
-                      {% if 'light.' in light_switch %}
-                        light.turn_off
-                      {% else %}
-                        switch.turn_off
-                      {% endif %}
-                    {% else %}
-                      homeassistant.turn_off
-                    {% endif %}
-                  data: >
-                    {% if light_contorl == 'switch' %}
-                      {% if light_transition != '-1' %}
-                        transition: !input light_transition
-                      {% endif %}
-                      {% if light_brightness_pct != '-1' %}
-                        brightness_pct: !input light_brightness_pct
-                      {% endif %}
-                    {% else %}
-                      {}
-                    {% endif %}
-                  target:
-                    entity_id: !input light_switch
+                - if:
+                    - condition: template
+                      value_template: "{{ light_contorl == 'switch' }}"
+                  then: 
+                    - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ 'light.' in light_switch }}"
+                        sequence:
+                          - service: light.turn_off
+                            metadata: {}
+                            data: >
+                              {% if light_contorl == 'switch' %}
+                                {% if light_transition != '-1' %}
+                                  transition: !input light_transition
+                                {% endif %}
+                              {% else %}
+                                {}
+                              {% endif %}
+                            target:
+                              entity_id: !input light_switch
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ 'switch.' in light_switch }}"
+                        sequence:
+                          - service: switch.turn_off
+                            metadata: {}
+                            data: >
+                              {% if light_contorl == 'switch' %}
+                                {% if light_transition != '-1' %}
+                                  transition: !input light_transition
+                                {% endif %}
+                              {% else %}
+                                {}
+                              {% endif %}
+                            target:
+                              entity_id: !input light_switch
+                  else:
+                    - service: homeassistant.turn_off
+                      metadata: {}
+                      data: {}
+                      target:
+                        entity_id: !input light_switch
             - if:
               - condition: and
                 conditions:
