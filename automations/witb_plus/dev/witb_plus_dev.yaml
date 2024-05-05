@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.0rc7)
+  name: WITB+ Dev (0.3.0rc8)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -358,10 +358,10 @@ action:
                   - service: light.turn_on
                     metadata: {}
                     data: >
-                      {% if light_transition != '-1' %}
+                      {% if light_transition | float >= 0  %}
                         transition: !input light_transition
                       {% endif %}
-                      {% if light_brightness_pct != '-1' %}
+                      {% if light_brightness_pct | float >= 0  %}
                         brightness_pct: !input light_brightness_pct
                       {% endif %}
                     target:
@@ -393,10 +393,10 @@ action:
                         - service: light.turn_on
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
-                            {% if light_brightness_pct != '-1' %}
+                            {% if light_brightness_pct | float >= 0  %}
                               brightness_pct: !input light_brightness_pct
                             {% endif %}
                           target:
@@ -408,10 +408,10 @@ action:
                         - service: switch.turn_on
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
-                            {% if light_brightness_pct != '-1' %}
+                            {% if light_brightness_pct | float >= 0  %}
                               brightness_pct: !input light_brightness_pct
                             {% endif %}
                           target:
@@ -481,7 +481,7 @@ action:
                   - service: light.turn_off
                     metadata: {}
                     data: >
-                      {% if light_transition != '-1' %}
+                      {% if light_transition | float >= 0  %}
                         transition: !input light_transition
                       {% endif %}
                     target:
@@ -513,7 +513,7 @@ action:
                         - service: light.turn_off
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
                           target:
@@ -525,7 +525,7 @@ action:
                         - service: switch.turn_off
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
                           target:
@@ -583,10 +583,10 @@ action:
                   - service: light.turn_on
                     metadata: {}
                     data: >
-                      {% if light_transition != '-1' %}
+                      {% if light_transition | float >= 0  %}
                         transition: !input light_transition
                       {% endif %}
-                      {% if light_brightness_pct != '-1' %}
+                      {% if light_brightness_pct | float >= 0  %}
                         brightness_pct: !input light_brightness_pct
                       {% endif %}
                     target:
@@ -618,10 +618,10 @@ action:
                         - service: light.turn_on
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
-                            {% if light_brightness_pct != '-1' %}
+                            {% if light_brightness_pct | float >= 0  %}
                               brightness_pct: !input light_brightness_pct
                             {% endif %}
                           target:
@@ -633,10 +633,10 @@ action:
                         - service: switch.turn_on
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
-                            {% if light_brightness_pct != '-1' %}
+                            {% if light_brightness_pct | float >= 0  %}
                               brightness_pct: !input light_brightness_pct
                             {% endif %}
                           target:
@@ -729,7 +729,7 @@ action:
                   - service: light.turn_off
                     metadata: {}
                     data: >
-                      {% if light_transition != '-1' %}
+                      {% if light_transition | float >= 0  %}
                         transition: !input light_transition
                       {% endif %}
                     target:
@@ -761,7 +761,7 @@ action:
                         - service: light.turn_off
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
                           target:
@@ -773,7 +773,7 @@ action:
                         - service: switch.turn_off
                           metadata: {}
                           data: >
-                            {% if light_transition != '-1' %}
+                            {% if light_transition | float >= 0  %}
                               transition: !input light_transition
                             {% endif %}
                           target:
@@ -892,7 +892,7 @@ action:
                       - service: light.turn_off
                         metadata: {}
                         data: >
-                          {% if light_transition != '-1' %}
+                          {% if light_transition | float >= 0  %}
                             transition: !input light_transition
                           {% endif %}
                         target:
@@ -924,7 +924,7 @@ action:
                             - service: light.turn_off
                               metadata: {}
                               data: >
-                                {% if light_transition != '-1' %}
+                                {% if light_transition | float >= 0  %}
                                   transition: !input light_transition
                                 {% endif %}
                               target:
@@ -936,7 +936,7 @@ action:
                             - service: switch.turn_off
                               metadata: {}
                               data: >
-                                {% if light_transition != '-1' %}
+                                {% if light_transition | float >= 0  %}
                                   transition: !input light_transition
                                 {% endif %}
                               target:
@@ -1018,7 +1018,7 @@ action:
                       - service: light.turn_off
                         metadata: {}
                         data: >
-                          {% if light_transition != '-1' %}
+                          {% if light_transition | float >= 0  %}
                             transition: !input light_transition
                           {% endif %}
                         target:
@@ -1050,7 +1050,7 @@ action:
                             - service: light.turn_off
                               metadata: {}
                               data: >
-                                {% if light_transition != '-1' %}
+                                {% if light_transition | float >= 0  %}
                                   transition: !input light_transition
                                 {% endif %}
                               target:
@@ -1062,7 +1062,7 @@ action:
                             - service: switch.turn_off
                               metadata: {}
                               data: >
-                                {% if light_transition != '-1' %}
+                                {% if light_transition | float >= 0  %}
                                   transition: !input light_transition
                                 {% endif %}
                               target:
