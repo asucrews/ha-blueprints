@@ -1,0 +1,114 @@
+- if:
+    - condition: and
+      conditions:
+        - condition: template
+          value_template: "{{ light_bulbs != 'light.none' }}"
+        - condition: state
+          entity_id: !input light_bulbs
+          state: "off"
+  then:
+    - choose:
+        - conditions:
+            - condition: template
+              value_template: "{{ len(light_control_features) == 1 }}"
+          sequence:
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: "{{ ('use_brightness' in light_control_features) }}"
+                  sequence:
+                    - service: light.turn_on
+                      metadata: {}
+                      data:
+                        brightness_pct: 100
+                      target:
+                        entity_id: !input light_bulbs
+                - conditions:
+                    - condition: template
+                      value_template: >-
+                        {{ ('use_colour_temperature' in
+                        light_control_features) }}
+                  sequence:
+                    - service: light.turn_on
+                      metadata: {}
+                      data:
+                        kelvin: 6500
+                      target:
+                        entity_id: !input light_bulbs
+                - conditions:
+                    - condition: template
+                      value_template: "{{ ('use_transition' in light_control_features) }}"
+                  sequence:
+                    - service: light.turn_on
+                      metadata: {}
+                      data:
+                        transition: 0
+                      target:
+                        entity_id: !input light_bulbs
+        - conditions:
+            - condition: template
+              value_template: "{{ len(light_control_features) == 2 }}"
+          sequence:
+            - choose:
+                - conditions:
+                    - condition: template
+                      value_template: >-
+                        {{ 'use_brightness' in light_control_features and
+                        'use_colour_temperature' in light_control_features and
+                        not 'use_transition' in light_control_features }}
+                  sequence:
+                    - service: light.turn_on
+                      metadata: {}
+                      data:
+                        kelvin: 6500
+                        brightness_pct: 100
+                      target:
+                        entity_id: !input light_bulbs
+                - conditions:
+                    - condition: template
+                      value_template: >-
+                        {{ 'use_brightness' in light_control_features and not
+                        'use_colour_temperature' in light_control_features and
+                        'use_transition' in light_control_features }}
+                  sequence:
+                    - service: light.turn_on
+                      metadata: {}
+                      data:
+                        transition: 0
+                        brightness_pct: 100
+                      target:
+                        entity_id: !input light_bulbs
+                - conditions:
+                    - condition: template
+                      value_template: >-
+                        {{ not 'use_brightness' in light_control_features and
+                        'use_colour_temperature' in light_control_features and
+                        'use_transition' in light_control_features }}
+                  sequence:
+                    - service: light.turn_on
+                      metadata: {}
+                      data:
+                        transition: 0
+                        kelvin: 6500
+                      target:
+                        entity_id: !input light_bulbs
+        - conditions:
+            - condition: template
+              value_template: "{{ len(light_control_features) == 3 }}"
+          sequence:
+            - service: light.turn_on
+              metadata: {}
+              data:
+                transition: 0
+                kelvin: 6500
+                brightness_pct: 100
+              target:
+                entity_id: !input light_bulbs
+  else:
+    - condition: state
+      entity_id: !input light_bulbs
+      state: "off"
+    - service: homeassistant.turn_on
+      data: {}
+      target:
+        entity_id: !input light_bulbs

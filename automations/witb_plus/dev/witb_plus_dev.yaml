@@ -275,7 +275,6 @@ variables:
   idle_timer_restarted: false
   light_contorl: !input light_contorl
   light_control_features: !input light_control_features
-  light_control_features_lenght: light_control_features | length
   light_transition: !input light_transition
   light_brightness_pct: !input light_brightness_pct
 
@@ -348,7 +347,6 @@ action:
               - condition: trigger
                 id: Door Closed
         sequence:
-          # turn on occupancy
           - if:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -357,7 +355,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
-          # turn on light bulbs
           - if:
               - condition: and
                 conditions:
@@ -367,27 +364,10 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "off"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'bulb' }}"
-                then:
-                  - service: light.turn_on
-                    metadata: {}
-                    data: >
-                      {% if light_transition_value >= 0  %}
-                        transition: !input light_transition_value
-                      {% endif %}
-                      {% if light_brightness_pct_value >= 0  %}
-                        brightness_pct: !input light_brightness_pct_value
-                      {% endif %}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-                else:
-                  - service: homeassistant.turn_on
-                    data: {}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-          # turn on light switch
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
           - if:
               - condition: and
                 conditions:
@@ -397,48 +377,10 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'switch' }}"
-                then:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'light.' in light_switch }}"
-                        sequence:
-                          - service: light.turn_on
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                              {% if light_brightness_pct_value >= 0  %}
-                                brightness_pct: !input light_brightness_pct_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'switch.' in light_switch }}"
-                        sequence:
-                          - service: switch.turn_on
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                              {% if light_brightness_pct_value >= 0  %}
-                                brightness_pct: !input light_brightness_pct_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                else:
-                  - service: homeassistant.turn_on
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input light_switch
-          # turn on fan
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_switch
           - if:
               - condition: and
                 conditions:
@@ -457,12 +399,11 @@ action:
           - condition: and
             conditions:
               - condition: trigger
-                id: Door Open ed
+                id: Door Opened
               - condition: state
                 state: "off"
                 entity_id: !input motion_sensor
         sequence:
-          # check bypass
           - if:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
@@ -471,7 +412,6 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled
-          # turn off occupancy
           - if:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -480,7 +420,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
-          # turn off light bulbs
           - if:
               - condition: and
                 conditions:
@@ -490,24 +429,10 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "on"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'bulb' }}"
-                then:
-                  - service: light.turn_off
-                    metadata: {}
-                    data: >
-                      {% if light_transition_value >= 0  %}
-                        transition: !input light_transition_value
-                      {% endif %}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-                else:
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-          # turn off light switch
+              - service: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
           - if:
               - condition: and
                 conditions:
@@ -517,42 +442,10 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'switch' }}"
-                then:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'light.' in light_switch }}"
-                        sequence:
-                          - service: light.turn_off
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'switch.' in light_switch }}"
-                        sequence:
-                          - service: switch.turn_off
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                else:
-                  - service: homeassistant.turn_off
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input light_switch
-          # turn off fan
+              - service: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_switch
           - if:
               - condition: and
                 conditions:
@@ -573,16 +466,6 @@ action:
               - condition: trigger
                 id: Motion On
         sequence:
-          # turn on occupancy
-          - if:
-              - condition: template
-                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
-            then:
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input occupancy_helper
-          # turn on light bulbs
           - if:
               - condition: and
                 conditions:
@@ -592,27 +475,10 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "off"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'bulb' }}"
-                then:
-                  - service: light.turn_on
-                    metadata: {}
-                    data: >
-                      {% if light_transition_value >= 0  %}
-                        transition: !input light_transition_value
-                      {% endif %}
-                      {% if light_brightness_pct_value >= 0  %}
-                        brightness_pct: !input light_brightness_pct_value
-                      {% endif %}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-                else:
-                  - service: homeassistant.turn_on
-                    data: {}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-          # turn on light switch
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
           - if:
               - condition: and
                 conditions:
@@ -622,48 +488,10 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'switch' }}"
-                then:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'light.' in light_switch }}"
-                        sequence:
-                          - service: light.turn_on
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                              {% if light_brightness_pct_value >= 0  %}
-                                brightness_pct: !input light_brightness_pct_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'switch.' in light_switch }}"
-                        sequence:
-                          - service: switch.turn_on
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                              {% if light_brightness_pct_value >= 0  %}
-                                brightness_pct: !input light_brightness_pct_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                else:
-                  - service: homeassistant.turn_on
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input light_switch
-          # turn on fan
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_switch
           - if:
               - condition: and
                 conditions:
@@ -677,7 +505,14 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
-          # reset idle timer
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
           - if:
               - condition: and
                 conditions:
@@ -710,7 +545,6 @@ action:
                 state: "on"
                 entity_id: !input door_sensor
         sequence:
-          # check bypass
           - if:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
@@ -719,7 +553,6 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled
-          # turn off occupancy
           - if:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -728,7 +561,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
-          # turn off light bulbs
           - if:
               - condition: and
                 conditions:
@@ -738,24 +570,10 @@ action:
               - condition: state
                 entity_id: !input light_bulbs
                 state: "on"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'bulb' }}"
-                then:
-                  - service: light.turn_off
-                    metadata: {}
-                    data: >
-                      {% if light_transition_value >= 0  %}
-                        transition: !input light_transition_value
-                      {% endif %}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-                else:
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: light.half_bathroom_light_group
-          # turn off light switch
+              - service: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_bulbs
           - if:
               - condition: and
                 conditions:
@@ -765,42 +583,10 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - if:
-                  - condition: template
-                    value_template: "{{ light_contorl == 'switch' }}"
-                then:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'light.' in light_switch }}"
-                        sequence:
-                          - service: light.turn_off
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ 'switch.' in light_switch }}"
-                        sequence:
-                          - service: switch.turn_off
-                            metadata: {}
-                            data: >
-                              {% if light_transition_value >= 0  %}
-                                transition: !input light_transition_value
-                              {% endif %}
-                            target:
-                              entity_id: !input light_switch
-                else:
-                  - service: homeassistant.turn_off
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input light_switch
-          # turn off fan
+              - service: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_switch
           - if:
               - condition: and
                 conditions:
@@ -823,7 +609,6 @@ action:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
         sequence:
-          # start bypass timer
           - if:
               - condition: template
                 value_template: "{{ bypass_timer != 'timer.none' }}"
@@ -846,7 +631,6 @@ action:
                   - condition: trigger
                     id: Bypass Timer Finished
         sequence:
-          # end bypass timer
           - if:
               - condition: template
                 value_template: "{{ bypass_timer != 'timer.none' }}"
@@ -865,7 +649,6 @@ action:
               - condition: template
                 value_template: "{{ bypass_mode == 'bypass_auto_off' }}"
         sequence:
-          # turn off bypass helper
           - if:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
@@ -875,14 +658,12 @@ action:
                 data: {}
                 target:
                   entity_id: !input bypass_helper
-          # bypass auto off
           - if:
               - condition: and
                 conditions:
                   - condition: template
                     value_template: "{{ bypass_finished_action == 'turn_off' }}"
             then:
-              # turn off occupancy
               - if:
                   - condition: template
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -891,7 +672,6 @@ action:
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
-              # turn off light bulbs
               - if:
                   - condition: and
                     conditions:
@@ -901,24 +681,10 @@ action:
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "on"
-                  - if:
-                      - condition: template
-                        value_template: "{{ light_contorl == 'bulb' }}"
-                    then:
-                      - service: light.turn_off
-                        metadata: {}
-                        data: >
-                          {% if light_transition_value >= 0  %}
-                            transition: !input light_transition_value
-                          {% endif %}
-                        target:
-                          entity_id: light.half_bathroom_light_group
-                    else:
-                      - service: homeassistant.turn_off
-                        data: {}
-                        target:
-                          entity_id: light.half_bathroom_light_group
-              # turn off light switch
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
               - if:
                   - condition: and
                     conditions:
@@ -928,42 +694,10 @@ action:
                   - condition: state
                     entity_id: !input light_switch
                     state: "on"
-                  - if:
-                      - condition: template
-                        value_template: "{{ light_contorl == 'switch' }}"
-                    then:
-                      - choose:
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ 'light.' in light_switch }}"
-                            sequence:
-                              - service: light.turn_off
-                                metadata: {}
-                                data: >
-                                  {% if light_transition_value >= 0  %}
-                                    transition: !input light_transition_value
-                                  {% endif %}
-                                target:
-                                  entity_id: !input light_switch
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ 'switch.' in light_switch }}"
-                            sequence:
-                              - service: switch.turn_off
-                                metadata: {}
-                                data: >
-                                  {% if light_transition_value >= 0  %}
-                                    transition: !input light_transition_value
-                                  {% endif %}
-                                target:
-                                  entity_id: !input light_switch
-                    else:
-                      - service: homeassistant.turn_off
-                        metadata: {}
-                        data: {}
-                        target:
-                          entity_id: !input light_switch
-              # turn off fan
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
               - if:
                   - condition: and
                     conditions:
@@ -986,7 +720,6 @@ action:
               - condition: template
                 value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
-          # check bypass
           - if:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
@@ -995,7 +728,6 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled
-          # check no motion, door closed, and idle timer was not restarted
           - if:
               - condition: and
                 conditions:
@@ -1008,7 +740,6 @@ action:
                   - condition: template
                     value_template: "{{ idle_timer_restarted == false }}"
             then:
-              # turn off occupancy
               - if:
                   - condition: template
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
@@ -1017,7 +748,6 @@ action:
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
-              # turn off light bulbs
               - if:
                   - condition: and
                     conditions:
@@ -1027,24 +757,10 @@ action:
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "on"
-                  - if:
-                      - condition: template
-                        value_template: "{{ light_contorl == 'bulb' }}"
-                    then:
-                      - service: light.turn_off
-                        metadata: {}
-                        data: >
-                          {% if light_transition_value >= 0  %}
-                            transition: !input light_transition_value
-                          {% endif %}
-                        target:
-                          entity_id: light.half_bathroom_light_group
-                    else:
-                      - service: homeassistant.turn_off
-                        data: {}
-                        target:
-                          entity_id: light.half_bathroom_light_group
-              # turn off light switch
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
               - if:
                   - condition: and
                     conditions:
@@ -1054,42 +770,10 @@ action:
                   - condition: state
                     entity_id: !input light_switch
                     state: "on"
-                  - if:
-                      - condition: template
-                        value_template: "{{ light_contorl == 'switch' }}"
-                    then:
-                      - choose:
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ 'light.' in light_switch }}"
-                            sequence:
-                              - service: light.turn_off
-                                metadata: {}
-                                data: >
-                                  {% if light_transition_value >= 0  %}
-                                    transition: !input light_transition_value
-                                  {% endif %}
-                                target:
-                                  entity_id: !input light_switch
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ 'switch.' in light_switch }}"
-                            sequence:
-                              - service: switch.turn_off
-                                metadata: {}
-                                data: >
-                                  {% if light_transition_value >= 0  %}
-                                    transition: !input light_transition_value
-                                  {% endif %}
-                                target:
-                                  entity_id: !input light_switch
-                    else:
-                      - service: homeassistant.turn_off
-                        metadata: {}
-                        data: {}
-                        target:
-                          entity_id: !input light_switch
-              # turn off fan
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
               - if:
                   - condition: and
                     conditions:
@@ -1112,7 +796,6 @@ action:
               - condition: template
                 value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
-          # check bypass
           - if:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
@@ -1121,7 +804,6 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled
-          # resatrt idle timer or start timer
           - if:
               - condition: state
                 entity_id: !input idle_timer
@@ -1146,6 +828,5 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-
 mode: queued
 max: 5
