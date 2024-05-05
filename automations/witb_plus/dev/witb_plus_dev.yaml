@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.0rc8)
+  name: WITB+ Dev (0.3.0rc9)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -261,7 +261,9 @@ variables:
   idle_timer_restarted: false
   light_contorl: !input light_contorl
   light_transition: !input light_transition
+  light_transition_value: "{{ light_transition }}"
   light_brightness_pct: !input light_brightness_pct
+  light_brightness_pct_value: "{{ light_brightness_pct }}"
 
 trigger:
   # If door is opened
@@ -358,11 +360,11 @@ action:
                   - service: light.turn_on
                     metadata: {}
                     data: >
-                      {% if light_transition >= 0  %}
-                        transition: !input light_transition
+                      {% if light_transition_value >= 0  %}
+                        transition: !input light_transition_value
                       {% endif %}
-                      {% if light_brightness_pct >= 0  %}
-                        brightness_pct: !input light_brightness_pct
+                      {% if light_brightness_pct_value >= 0  %}
+                        brightness_pct: !input light_brightness_pct_value
                       {% endif %}
                     target:
                       entity_id: light.half_bathroom_light_group
@@ -393,11 +395,11 @@ action:
                           - service: light.turn_on
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
-                              {% if light_brightness_pct >= 0  %}
-                                brightness_pct: !input light_brightness_pct
+                              {% if light_brightness_pct_value >= 0  %}
+                                brightness_pct: !input light_brightness_pct_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -408,11 +410,11 @@ action:
                           - service: switch.turn_on
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
-                              {% if light_brightness_pct >= 0  %}
-                                brightness_pct: !input light_brightness_pct
+                              {% if light_brightness_pct_value >= 0  %}
+                                brightness_pct: !input light_brightness_pct_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -481,8 +483,8 @@ action:
                   - service: light.turn_off
                     metadata: {}
                     data: >
-                      {% if light_transition >= 0  %}
-                        transition: !input light_transition
+                      {% if light_transition_value >= 0  %}
+                        transition: !input light_transition_value
                       {% endif %}
                     target:
                       entity_id: light.half_bathroom_light_group
@@ -513,8 +515,8 @@ action:
                           - service: light.turn_off
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -525,8 +527,8 @@ action:
                           - service: switch.turn_off
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -583,11 +585,11 @@ action:
                   - service: light.turn_on
                     metadata: {}
                     data: >
-                      {% if light_transition >= 0  %}
-                        transition: !input light_transition
+                      {% if light_transition_value >= 0  %}
+                        transition: !input light_transition_value
                       {% endif %}
-                      {% if light_brightness_pct >= 0  %}
-                        brightness_pct: !input light_brightness_pct
+                      {% if light_brightness_pct_value >= 0  %}
+                        brightness_pct: !input light_brightness_pct_value
                       {% endif %}
                     target:
                       entity_id: light.half_bathroom_light_group
@@ -618,11 +620,11 @@ action:
                           - service: light.turn_on
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
-                              {% if light_brightness_pct >= 0  %}
-                                brightness_pct: !input light_brightness_pct
+                              {% if light_brightness_pct_value >= 0  %}
+                                brightness_pct: !input light_brightness_pct_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -633,11 +635,11 @@ action:
                           - service: switch.turn_on
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
-                              {% if light_brightness_pct >= 0  %}
-                                brightness_pct: !input light_brightness_pct
+                              {% if light_brightness_pct_value >= 0  %}
+                                brightness_pct: !input light_brightness_pct_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -729,8 +731,8 @@ action:
                   - service: light.turn_off
                     metadata: {}
                     data: >
-                      {% if light_transition >= 0  %}
-                        transition: !input light_transition
+                      {% if light_transition_value >= 0  %}
+                        transition: !input light_transition_value
                       {% endif %}
                     target:
                       entity_id: light.half_bathroom_light_group
@@ -761,8 +763,8 @@ action:
                           - service: light.turn_off
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -773,8 +775,8 @@ action:
                           - service: switch.turn_off
                             metadata: {}
                             data: >
-                              {% if light_transition >= 0  %}
-                                transition: !input light_transition
+                              {% if light_transition_value >= 0  %}
+                                transition: !input light_transition_value
                               {% endif %}
                             target:
                               entity_id: !input light_switch
@@ -892,8 +894,8 @@ action:
                       - service: light.turn_off
                         metadata: {}
                         data: >
-                          {% if light_transition >= 0  %}
-                            transition: !input light_transition
+                          {% if light_transition_value >= 0  %}
+                            transition: !input light_transition_value
                           {% endif %}
                         target:
                           entity_id: light.half_bathroom_light_group
@@ -924,8 +926,8 @@ action:
                               - service: light.turn_off
                                 metadata: {}
                                 data: >
-                                  {% if light_transition >= 0  %}
-                                    transition: !input light_transition
+                                  {% if light_transition_value >= 0  %}
+                                    transition: !input light_transition_value
                                   {% endif %}
                                 target:
                                   entity_id: !input light_switch
@@ -936,8 +938,8 @@ action:
                               - service: switch.turn_off
                                 metadata: {}
                                 data: >
-                                  {% if light_transition >= 0  %}
-                                    transition: !input light_transition
+                                  {% if light_transition_value >= 0  %}
+                                    transition: !input light_transition_value
                                   {% endif %}
                                 target:
                                   entity_id: !input light_switch
@@ -1018,8 +1020,8 @@ action:
                       - service: light.turn_off
                         metadata: {}
                         data: >
-                          {% if light_transition >= 0  %}
-                            transition: !input light_transition
+                          {% if light_transition_value >= 0  %}
+                            transition: !input light_transition_value
                           {% endif %}
                         target:
                           entity_id: light.half_bathroom_light_group
@@ -1050,8 +1052,8 @@ action:
                               - service: light.turn_off
                                 metadata: {}
                                 data: >
-                                  {% if light_transition >= 0  %}
-                                    transition: !input light_transition
+                                  {% if light_transition_value >= 0  %}
+                                    transition: !input light_transition_value
                                   {% endif %}
                                 target:
                                   entity_id: !input light_switch
@@ -1062,8 +1064,8 @@ action:
                               - service: switch.turn_off
                                 metadata: {}
                                 data: >
-                                  {% if light_transition >= 0  %}
-                                    transition: !input light_transition
+                                  {% if light_transition_value >= 0  %}
+                                    transition: !input light_transition_value
                                   {% endif %}
                                 target:
                                   entity_id: !input light_switch
