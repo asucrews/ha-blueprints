@@ -746,8 +746,6 @@ action:
             conditions:
               - condition: trigger
                 id: Bypass Turn on
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
         sequence:
           # Starts bypass timer if configured
           - if:
@@ -765,8 +763,6 @@ action:
             conditions:
               - condition: trigger
                 id: Bypass Turn off
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
               - condition: not
                 conditions:
                   - condition: trigger
