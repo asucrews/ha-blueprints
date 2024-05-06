@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.3.0] - 2024-04-25
+## [0.3.0] - 2024-05-05
+### Added
+- Nighlight Mode
+
+## [0.3.0] - 2024-05-04
 ### Added
 - Transition
 - Brightness Percentage

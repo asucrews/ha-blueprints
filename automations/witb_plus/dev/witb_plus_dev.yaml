@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.0rc13)
+  name: WITB+ Dev (0.3.1rc0)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -369,6 +369,7 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+
           # Truns on light_bulbs if configured and the light is off
           - if:
               # Check if both conditions are met
@@ -642,7 +643,7 @@ action:
                   entity_id: !input idle_timer
               - variables:
                   idle_timer_restarted: false
-      # Checks if motion is detected.
+      # Actions to perform when motion is detected.
       - conditions:
           - condition: and
             conditions:
