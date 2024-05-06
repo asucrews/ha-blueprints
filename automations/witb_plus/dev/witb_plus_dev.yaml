@@ -580,11 +580,11 @@ action:
                                   transition: !input light_transition
                                 target:
                                   entity_id: !input light_bulbs
-                        # default:
-                        #   # If conditions are not met, turn off the light without considering light_control or selected features
-                        #   - service: light.turn_off
-                        #     target:
-                        #       entity_id: !input light_bulbs
+                        default:
+                          # If conditions are not met, turn off the light without considering light_control or selected features
+                          - service: light.turn_off
+                            target:
+                              entity_id: !input light_bulbs
                 default:
                   # If conditions are not met, turn off the light without considering light_control or selected features
                   - service: light.turn_off
