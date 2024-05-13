@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc1)
+  name: Ratdgo 2.5i Stable (0.1.0rc2)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -62,6 +62,7 @@ variables:
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
   notify_group: !input notify_group
+  obstruction_entity: "{{ ratdgo_device + '_obstruction' }}"
 
 trigger:
   - platform: state
@@ -138,7 +139,7 @@ action:
                   minutes: 0
                   seconds: 1
                   milliseconds: 0
-              - service: notify.all_people
+              - service: !input notify_group
                 data:
                   message: The Garage Door was opened.
       - conditions:
@@ -167,7 +168,7 @@ action:
                   minutes: 0
                   seconds: 1
                   milliseconds: 0
-              - service: notify.all_people
+              - service: !input notify_group
                 data:
                   message: Garage door was closed.
       - conditions:
@@ -176,7 +177,7 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: binary_sensor.ratgdov25i_87e235_obstruction
+                entity_id: !input obstruction_entity
                 state: "off"
             then:
               - service: cover.close_cover
