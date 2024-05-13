@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc5)
+  name: Ratdgo 2.5i Stable (0.1.0rc6)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -49,12 +49,12 @@ blueprint:
     notify_group:
       name: Easy Notify - Devices Notified (Optional)
       description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: []
+      default: "notify.none"
       selector:
-        device:
-          filter:
-            - integration: notify
-          multiple: true
+        entity:
+          domain:
+            - notify
+          multiple: false
 
 variables:
   ratdgo_device: !input ratdgo_device
