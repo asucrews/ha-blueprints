@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc2)
+  name: Ratdgo 2.5i Stable (0.1.0rc3)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -58,11 +58,11 @@ blueprint:
 
 variables:
   ratdgo_device: !input ratdgo_device
+  obstruction_entity: "{{ ratdgo_device.entity_id + '_obstruction' }}"
   garage_door_timer_helper: !input garage_door_timer_helper
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
   notify_group: !input notify_group
-  obstruction_entity: "{{ ratdgo_device + '_obstruction' }}"
 
 trigger:
   - platform: state
