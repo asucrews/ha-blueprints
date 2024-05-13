@@ -1,10 +1,10 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0)
+  name: Ratdgo 2.5i Stable (0.1.0rc1)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/ratdgo_2.51/ratdgo_2.51.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
   input:
     ratdgo_device:
       name: Ratdgo Device
@@ -59,9 +59,9 @@ blueprint:
 variables:
   ratdgo_device: !input ratdgo_device
   garage_door_timer_helper: !input garage_door_timer_helper
-  garage_lights: !input garage_lights
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
+  notify_group: !input notify_group
 
 trigger:
   - platform: state
@@ -131,7 +131,7 @@ action:
               - condition: and
                 conditions:
                   - condition: template
-                    value_template: "{{ notify_device | length > 0 }}"
+                    value_template: "{{ notify_group | length > 0 }}"
             then:
               - delay:
                   hours: 0
@@ -160,7 +160,7 @@ action:
               - condition: and
                 conditions:
                   - condition: template
-                    value_template: "{{ notify_device | length > 0 }}"
+                    value_template: "{{ notify_group | length > 0 }}"
             then:
               - delay:
                   hours: 0
