@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc3)
+  name: Ratdgo 2.5i Stable (0.1.0rc4)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -177,7 +177,7 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: !input obstruction_entity
+                entity_id: "{{ obstruction_entity }}"
                 state: "off"
             then:
               - service: cover.close_cover
