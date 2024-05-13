@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc4)
+  name: Ratdgo 2.5i Stable (0.1.0rc5)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -53,7 +53,7 @@ blueprint:
       selector:
         device:
           filter:
-            - integration: mobile_app
+            - integration: notify
           multiple: true
 
 variables:
