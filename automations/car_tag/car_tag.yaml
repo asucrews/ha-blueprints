@@ -115,11 +115,11 @@ action:
               entity_id: !input garage_door_timer_helper
             enabled: false
       - conditions:
-          condition: and
-          conditions:
-            - condition: trigger
-              id:
-                - iBeacon Found
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - iBeacon Found
         sequence:
           - delay:
               hours: 0
@@ -138,9 +138,11 @@ action:
               entity_id: !input garage_door_cover
             enabled: false
       - conditions:
-          - condition: trigger
-            id:
-              - iBeacon Not Found
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - iBeacon Not Found
         sequence:
           - service: timer.start
             metadata: {}
