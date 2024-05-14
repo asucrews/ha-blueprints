@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.0rc2)
+  name: Car Tag Stable (0.1.0rc3)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -91,7 +91,7 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
-            enabled: true
+            enabled: false
       - conditions:
           - condition: trigger
             id:
@@ -102,6 +102,7 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_timer_helper
+            enabled: false
       - conditions:
           condition: and
           conditions:
@@ -115,7 +116,7 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
-            enabled: true
+            enabled: false
       - conditions:
           - condition: trigger
             id:
@@ -126,3 +127,4 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_timer_helper
+            enabled: false
