@@ -1,8 +1,8 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc15)
+  name: Ratdgo 2.5i Stable (0.1.1)
   homeassistant:
     min_version: 2024.5.0
-  description: lock Management
+  description: Ratdgo Notification and auto close
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
   input:
@@ -69,6 +69,7 @@ blueprint:
         can be used. Enter *notify* for all devices. If 'Notification Group' is
         defined 'Device to notify' will be ignored.
       default: ""
+
 variables:
   ratdgo_device: !input ratdgo_device
   obstruction_entity: "{{device_attr(ratdgo_device, 'name')|regex_replace(find='', replace='', ignorecase=False)}}_obstruction"

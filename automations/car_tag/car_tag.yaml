@@ -1,0 +1,130 @@
+blueprint:
+  name: Car Tag Stable (0.1.0rc0)
+  homeassistant:
+    min_version: 2024.5.0
+  description: lock Management
+  domain: automation
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
+  input:
+    car_tag_node_status:
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+          intergration:
+            - esphome
+          multiple: false
+    car_tag_ble_ibeacon:
+      selector:
+        entity:
+          domain:
+            - device_tracker
+          multiple: false
+    car_tag_ble_area:
+      selector:
+        entity:
+          domain:
+            - sensor
+          multiple: false
+    garage_door_cover:
+      name: Garage Door Cover
+      description: Garage Door Cover?
+      selector:
+        entity:
+          domain:
+            - cover
+          multiple: false
+    garage_door_timer_helper:
+      name: Garage Door Timer Helper
+      description: Garage Door Timer Helper
+      default: timer.none
+      selector:
+        entity:
+          domain:
+            - timer
+          multiple: false
+    areas:
+      name: "Areas"
+      description: >
+        House Areas
+      default: []
+      selector:
+        text:
+
+variables:
+  car_tag_node_status: !input car_tag_node_status
+  car_tag_ble_ibeacon: !input car_tage_ble_ibeacon
+  car_tag_ble_area: !input car_tag_ble_area
+  garage_door_cover: !input garage_door_cover
+  garage_door_timer_helper: !input garage_door_timer_helper
+
+trigger:
+  - platform: state
+    entity_id: !input car_tag_node_status
+    from: "off"
+    to: "on"
+    id: Connected
+    enabled: false
+  - platform: state
+    entity_id: !input car_tag_node_status
+    from: "on"
+    to: "off"
+    id: Disconnected
+    enabled: false
+  - platform: state
+    entity_id: !input car_tage_ble_ibeacon
+    from: not_home
+    to: home
+    id: iBeacon Found
+  - platform: state
+    entity_id: !input car_tage_ble_ibeacon
+    from: home
+    to: not_home
+    id: iBeacon Not Found
+    enabled: true
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: Connected
+        sequence:
+          - service: cover.open_cover
+            data: {}
+            target:
+              entity_id: !input garage_door_cover
+            enabled: true
+      - conditions:
+          - condition: trigger
+            id:
+              - Disconnected
+        sequence:
+          - service: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input garage_door_timer_helper
+      - conditions:
+          condition: and
+          conditions:
+            - condition: trigger
+              id:
+                - iBeacon Found
+            - condition: template
+              value_template: "{{ (car_tag_ble_area in areas) }}"
+        sequence:
+          - service: cover.open_cover
+            data: {}
+            target:
+              entity_id: !input garage_door_cover
+            enabled: true
+      - conditions:
+          - condition: trigger
+            id:
+              - iBeacon Not Found
+        sequence:
+          - service: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input garage_door_timer_helper
