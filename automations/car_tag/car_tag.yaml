@@ -113,10 +113,10 @@ action:
           - delay:
               hours: 0
               minutes: 0
-              seconds: 5
+              seconds: 10
               milliseconds: 0
           - condition: template
-            value_template: "{{ car_tag_ble_area in areas }}"
+            value_template: "{ { car_tag_ble_area in areas } }"
           - service: cover.open_cover
             data: {}
             target:
