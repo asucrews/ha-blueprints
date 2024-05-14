@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.1)
+  name: Ratdgo 2.5i Stable (0.1.2)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -190,6 +190,9 @@ action:
           - condition: trigger
             id:
               - Door timer is done
+          - condition: state
+            entity_id: !input ratdgo_device
+            state: open
         sequence:
           - if:
               - condition: and
