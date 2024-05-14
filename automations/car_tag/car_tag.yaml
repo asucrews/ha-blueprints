@@ -119,7 +119,7 @@ action:
             data_template:
               message: "Variable car_tag_ble_area: {{ car_tag_ble_area }}"
           - condition: template
-            value_template: "{% set area = !input car_tag_ble_area %}{{ states(area) in areas }}"
+            value_template: "{% set area = car_tag_ble_area %}{{ states(area) in areas }}"
           - service: cover.open_cover
             data: {}
             target:
