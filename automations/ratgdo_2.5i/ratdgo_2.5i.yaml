@@ -175,7 +175,7 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: "{{ obstruction_entity }}"
+                entity_id: obstruction_entity
                 state: "off"
             then:
               - service: cover.close_cover
