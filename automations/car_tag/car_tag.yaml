@@ -113,16 +113,12 @@ action:
           - delay:
               hours: 0
               minutes: 0
-              seconds: 10
+              seconds: 5
               milliseconds: 0
-          - service: system_log.write
-            data_template:
-              message: "Variable car_tag_ble_area: {{ states(car_tag_ble_area) }}"
-              level: info
           - condition: template
             value_template: "{% set area = car_tag_ble_area %}{{ states(area) in areas }}"
           - service: cover.open_cover
-            data: {}
+            data: { ) }
             target:
               entity_id: !input garage_door_cover
             enabled: false
