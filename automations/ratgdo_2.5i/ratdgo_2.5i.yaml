@@ -14,14 +14,6 @@ blueprint:
           domain:
             - cover
           multiple: false
-    obstruction_entity:
-      name: Obstruction Entity
-      description: Witch Obstruction Entity?
-      selector:
-        entity:
-          domain:
-            - binary_sensor
-          multiple: false
     garage_door_timer_helper:
       name: Garage Door Timer Helper
       description: Garage Door Timer Helper
@@ -151,7 +143,7 @@ action:
                   - condition: template
                     value_template: "{{ notify_service != none and notify_service != '' }}"
             then:
-              - service: notify.all_people
+              - service: "{{ notify_service }}"
                 metadata: {}
                 data:
                   message: Garage Door is Open
@@ -182,7 +174,7 @@ action:
                   minutes: 0
                   seconds: 1
                   milliseconds: 0
-              - service: notify.all_people
+              - service: "{{ notify_service }}"
                 data:
                   message: Garage door was closed.
       - conditions:
@@ -194,14 +186,14 @@ action:
               - condition: and
                 conditions:
                   - condition: state
-                    entity_id: binary_sensor.ratgdov25i_87e235_obstruction
+                    entity_id: "{{ obstruction_entity }}"
                     state: "off"
             then:
               - service: cover.close_cover
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: cover.ratgdov25i_87e235_door
+                  entity_id: !input ratdgo_device
             else:
               - if:
                   - condition: and
