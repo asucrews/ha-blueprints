@@ -117,7 +117,7 @@ action:
               milliseconds: 0
           - service: system_log.write
             data_template:
-              message: "Variable car_tag_ble_area: {{ car_tag_ble_area }}"
+              message: "Variable car_tag_ble_area: {{ states(car_tag_ble_area) }}"
               level: info
           - condition: template
             value_template: "{% set area = car_tag_ble_area %}{{ states(area) in areas }}"
