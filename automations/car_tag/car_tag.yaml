@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.0rc3)
+  name: Car Tag Stable (0.1.0rc4)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -51,7 +51,7 @@ blueprint:
 
 variables:
   car_tag_node_status: !input car_tag_node_status
-  car_tag_ble_ibeacon: !input car_tage_ble_ibeacon
+  car_tag_ble_ibeacon: !input car_tag_ble_ibeacon
   car_tag_ble_area: !input car_tag_ble_area
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
