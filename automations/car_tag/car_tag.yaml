@@ -45,9 +45,8 @@ blueprint:
       name: "Areas"
       description: >
         House Areas
-      default: []
-      selector:
-        text:
+      default:
+        - "Garage"
 
 variables:
   car_tag_node_status: !input car_tag_node_status
@@ -116,7 +115,7 @@ action:
               seconds: 1
               milliseconds: 0
           - condition: template
-            value_template: "{{ states(car_tag_ble_area) in areas }}"
+            value_template: "{{ states('sensor.jeremy_s_esphome_car_tag_bermuda_ble_area') in ['Garage', 'Kitchen', 'Dinning Room','Family Room'] }}"
           - service: cover.open_cover
             data: {}
             target:
