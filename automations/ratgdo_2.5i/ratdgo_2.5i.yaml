@@ -52,8 +52,6 @@ blueprint:
       default: "{{ obstruction_entity }}"
       selector:
         entity:
-          domain:
-            - notify
           multiple: false
 
 variables:
