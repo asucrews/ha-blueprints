@@ -49,7 +49,7 @@ blueprint:
     notify_group:
       name: Easy Notify - Devices Notified (Optional)
       description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: "notify.none"
+      default: "{{ obstruction_entity }}"
       selector:
         entity:
           domain:
