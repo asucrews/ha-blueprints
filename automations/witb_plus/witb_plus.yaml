@@ -500,7 +500,6 @@ action:
                   entity_id: !input idle_timer
               - variables:
                   idle_timer_restarted: false
-
       # Checks if bypass is off, if door has been opened, and if motion is cleared.
       - conditions:
           - condition: and
