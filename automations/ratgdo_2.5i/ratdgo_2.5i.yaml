@@ -33,16 +33,14 @@ blueprint:
           multiple: false
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
-      description:
-        'Select a smart light bulb or group of smart light bulbs to control
+      description: >
+        Select a smart light bulb or group of smart light bulbs to control
         within the designated area ("box").  These lights illuminate the space based
         on occupancy detected by the motion sensor.<br/>  <br/>Please note: Only entities
         within the light domain are selectable, and only one selection is allowed.  Default
-        value: ''light.none''. Only change if you intend to use this field and this
+        value: 'light.none'. Only change if you intend to use this field and this
         input is optional.<br/>
-
-        '
-      default: light.none
+      default: "light.none"
       selector:
         entity:
           domain:
@@ -50,16 +48,14 @@ blueprint:
           multiple: false
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
-      description:
-        'Choose a light, light group, switch, or switch group to control
+      description: >
+        Choose a light, light group, switch, or switch group to control
         within the designated area ("box").  These devices provide illumination based
         on occupancy detected by the motion sensor.<br/> <br/>Please note: Only entities
         within the light or switch domains are selectable, and only one selection
-        is allowed.  Default value: ''light.none''. Only change if you intend to use
+        is allowed.  Default value: 'light.none'. Only change if you intend to use
         this field and this input is optional.<br/>
-
-        '
-      default: light.none
+      default: "light.none"
       selector:
         entity:
           domain:
@@ -68,7 +64,7 @@ blueprint:
           multiple: false
     notify_group:
       name: Easy Notify - Devices Notified (Optional)
-      description:
+      description: >
         If you've enabled device notifications above, please select the
         devices to receive the notifications.
       default: "notify.none"
@@ -125,9 +121,10 @@ action:
                     value_template: "{{ light_bulbs != 'light.none' }}"
             then:
               - service: light.turn_on
+                metadata: {}
                 data: {}
                 target:
-                  entity_id: light_bulbs
+                  entity_id: !input ligth_bulbs
           - if:
               - condition: and
                 conditions:
@@ -135,6 +132,7 @@ action:
                     value_template: "{{ light_switch != 'light.none' }}"
             then:
               - service: light.turn_on
+                metadata: {}
                 data: {}
                 target:
                   entity_id: !input light_switch
