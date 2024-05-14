@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc9)
+  name: Ratdgo 2.5i Stable (0.1.0rc10)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -63,16 +63,12 @@ blueprint:
             - switch
           multiple: false
     notify_group:
-      name: Easy Notify - Devices Notified (Optional)
+      name: "Notification Group (Optional)"
       description: >
-        If you've enabled device notifications above, please select the
-        devices to receive the notifications.
-      default: "notify.none"
-      selector:
-        entity:
-          domain:
-            - notify
-          multiple: false
+        If several devices are to receive a notification, a [notify group](https://www.home-assistant.io/integrations/group/#notify-groups)
+        can be used. Enter *notify* for all devices. If 'Notification Group' is
+        defined 'Device to notify' will be ignored.
+      default: ""
 variables:
   ratdgo_device: !input ratdgo_device
   obstruction_entity: !input obstruction_entity
@@ -80,6 +76,7 @@ variables:
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
   notify_group: !input notify_group
+  notify_service: "{% if(notify_group is defined and notify_group != '' ) %}notify.{{ notify_group }}{% elif (notify_device != none and notify_device != '' ) %}notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}{% endif %}"
 
 trigger:
   - platform: state
@@ -125,7 +122,7 @@ action:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: light.garage_light_switch
+                  entity_id: !input light_bulbs
           - if:
               - condition: and
                 conditions:
@@ -136,7 +133,7 @@ action:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: light.garage_light_switch
+                  entity_id: !input light_switch
           - if:
               - condition: and
                 conditions:
@@ -147,12 +144,12 @@ action:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: timer.garage_door_open_timer
+                  entity_id: !input garage_door_timer_helper
           - if:
               - condition: and
                 conditions:
                   - condition: template
-                    value_template: "{{ notify_group | length > 0 }}"
+                    value_template: "{{ notify_service != none and notify_service != '' }}"
             then:
               - service: notify.all_people
                 metadata: {}
@@ -173,12 +170,12 @@ action:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: timer.garage_door_open_timer
+                  entity_id: !input garage_door_timer_helper
           - if:
               - condition: and
                 conditions:
                   - condition: template
-                    value_template: "{{ notify_group | length > 0 }}"
+                    value_template: "{{ notify_service != none and notify_service != '' }}"
             then:
               - delay:
                   hours: 0
@@ -216,7 +213,7 @@ action:
                     metadata: {}
                     data: {}
                     target:
-                      entity_id: timer.garage_door_open_timer
+                      entity_id: !input garage_door_timer_helper
 
 mode: queued
 max: 5
