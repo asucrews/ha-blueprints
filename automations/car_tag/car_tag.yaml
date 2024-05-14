@@ -115,7 +115,7 @@ action:
               minutes: 0
               seconds: 10
               milliseconds: 0
-          - service: system_log.writ
+          - service: system_log.write
             data_template:
               message: "Variable car_tag_ble_area: {{ car_tag_ble_area }}"
               level: info
