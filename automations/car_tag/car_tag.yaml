@@ -116,7 +116,7 @@ action:
               milliseconds: 0
           - condition: template
             value_template: >-
-              {{ states('sensor.jeremy_s_esphome_car_tag_bermuda_ble_area') in ['Garage', 'Kitchen', 'Dinning Room', 'Family Room'] }}
+              {{ states('sensor.jeremy_s_esphome_car_tag_bermuda_ble_area') in areas }}
           - service: cover.open_cover
             data: {}
             target:
