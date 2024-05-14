@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc6)
+  name: Ratdgo 2.5i Stable (0.1.0rc7)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -13,6 +13,14 @@ blueprint:
         entity:
           domain:
             - cover
+          multiple: false
+    obstruction_entity:
+      name: Obstruction Entity
+      description: Witch Obstruction Entity?
+      selector:
+        entity:
+          domain:
+            - binary_sensor
           multiple: false
     garage_door_timer_helper:
       name: Garage Door Timer Helper
@@ -63,7 +71,7 @@ blueprint:
       description:
         If you've enabled device notifications above, please select the
         devices to receive the notifications.
-      default: obstruction_entity
+      default: "notify.none"
       selector:
         entity:
           domain:
@@ -71,11 +79,12 @@ blueprint:
           multiple: false
 variables:
   ratdgo_device: !input ratdgo_device
-  obstruction_entity: ratdgo_device.entity_name + '_obstruction'
+  obstruction_entity: !input obstruction_entity
   garage_door_timer_helper: !input garage_door_timer_helper
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
   notify_group: !input notify_group
+
 trigger:
   - platform: state
     entity_id: !input ratdgo_device
@@ -118,7 +127,7 @@ action:
               - service: light.turn_on
                 data: {}
                 target:
-                  entity_id: !input light_bulbs
+                  entity_id: light_bulbs
           - if:
               - condition: and
                 conditions:
@@ -128,7 +137,7 @@ action:
               - service: light.turn_on
                 data: {}
                 target:
-                  entity_id: !input light_switch
+                  entity_id: light_switch
           - if:
               - condition: and
                 conditions:
@@ -138,7 +147,7 @@ action:
               - service: timer.start
                 data: {}
                 target:
-                  entity_id: !input garage_door_timer_helper
+                  entity_id: garage_door_timer_helper
           - if:
               - condition: and
                 conditions:
@@ -150,7 +159,7 @@ action:
                   minutes: 0
                   seconds: 1
                   milliseconds: 0
-              - service: !input notify_group
+              - service: notify_group
                 data:
                   message: The Garage Door was opened.
       - conditions:
@@ -167,7 +176,7 @@ action:
               - service: timer.cancel
                 data: {}
                 target:
-                  entity_id: !input garage_door_timer_helper
+                  entity_id: garage_door_timer_helper
           - if:
               - condition: and
                 conditions:
@@ -179,7 +188,7 @@ action:
                   minutes: 0
                   seconds: 1
                   milliseconds: 0
-              - service: !input notify_group
+              - service: notify_group
                 data:
                   message: Garage door was closed.
       - conditions:
@@ -188,13 +197,13 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: "{{ obstruction_entity }}"
+                entity_id: obstruction_entity
                 state: "off"
             then:
               - service: cover.close_cover
                 data: {}
                 target:
-                  entity_id: !input ratdgo_device
+                  entity_id: ratdgo_device
             else:
               - if:
                   - condition: and
@@ -205,6 +214,6 @@ action:
                   - service: timer.start
                     data: {}
                     target:
-                      entity_id: !input garage_door_timer_helper
+                      entity_id: garage_door_timer_helper
 mode: queued
 max: 5
