@@ -70,12 +70,12 @@ trigger:
     id: Disconnected
     enabled: false
   - platform: state
-    entity_id: !input car_tage_ble_ibeacon
+    entity_id: !input car_tag_ble_ibeacon
     from: not_home
     to: home
     id: iBeacon Found
   - platform: state
-    entity_id: !input car_tage_ble_ibeacon
+    entity_id: !input car_tag_ble_ibeacon
     from: home
     to: not_home
     id: iBeacon Not Found
