@@ -63,7 +63,7 @@ blueprint:
       default: ""
 variables:
   ratdgo_device: !input ratdgo_device
-  obstruction_entity: "{{device_attr(ratdgo_device, 'name')|regex_replace(find='_door', replace='', ignorecase=False)|regex_replace(find='cover', replace='binary_sensor', ignorecase=False)}}_obstruction"
+  obstruction_entity: "{{device_attr(ratdgo_device, 'name')|regex_replace(find='_door', replace='_obstruction', ignorecase=False)|regex_replace(find='cover', replace='binary_sensor', ignorecase=False)}}"
   garage_door_timer_helper: !input garage_door_timer_helper
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
