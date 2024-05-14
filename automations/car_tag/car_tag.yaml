@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.0rc4)
+  name: Car Tag Stable (0.1.0rc5)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -112,10 +112,11 @@ action:
           - delay:
               hours: 0
               minutes: 0
-              seconds: 1
+              seconds: 10
               milliseconds: 0
           - condition: template
-            value_template: "{{ states('sensor.jeremy_s_esphome_car_tag_bermuda_ble_area') in ['Garage', 'Kitchen', 'Dinning Room','Family Room'] }}"
+            value_template: >-
+              {{ states('sensor.jeremy_s_esphome_car_tag_bermuda_ble_area') in ['Garage', 'Kitchen', 'Dinning Room', 'Family Room'] }}
           - service: cover.open_cover
             data: {}
             target:
