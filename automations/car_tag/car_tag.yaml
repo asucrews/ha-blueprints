@@ -1,8 +1,8 @@
 blueprint:
-  name: Car Tag Stable (0.1.0rc6)
+  name: Car Tag Stable (0.1.1rc1)
   homeassistant:
     min_version: 2024.5.0
-  description: lock Management
+  description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
   input:
@@ -55,6 +55,7 @@ variables:
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
   areas: !input areas
+  ibeacon_found_helper: !input ibeacon_found_helper
 
 trigger:
   - platform: state
@@ -84,8 +85,13 @@ trigger:
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            id: Connected
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Connected
+              - condition: state
+                entity_id: !input car_tag_ble_area
+                state: unknown
         sequence:
           - service: cover.open_cover
             data: {}
@@ -93,9 +99,14 @@ action:
               entity_id: !input garage_door_cover
             enabled: false
       - conditions:
-          - condition: trigger
-            id:
-              - Disconnected
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Disconnected
+              - condition: state
+                entity_id: !input car_tag_ble_area
+                state: unknown
         sequence:
           - service: timer.start
             metadata: {}
@@ -115,10 +126,14 @@ action:
               minutes: 0
               seconds: 5
               milliseconds: 0
-          - condition: template
-            value_template: "{% set area = car_tag_ble_area %}{{ states(area) in areas }}"
+          - if:
+              - condition: template
+                value_template: "{{ areas | length > 0 }}"
+            then:
+              - condition: template
+                value_template: "{{ states(car_tag_ble_area) in areas }}"
           - service: cover.open_cover
-            data: { ) }
+            data: {}
             target:
               entity_id: !input garage_door_cover
             enabled: false
