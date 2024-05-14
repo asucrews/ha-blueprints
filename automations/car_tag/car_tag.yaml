@@ -109,9 +109,14 @@ action:
             - condition: trigger
               id:
                 - iBeacon Found
-            - condition: template
-              value_template: "{{ (car_tag_ble_area in areas) }}"
         sequence:
+          - delay:
+              hours: 0
+              minutes: 0
+              seconds: 1
+              milliseconds: 0
+          - condition: template
+            value_template: "{{ (car_tag_ble_area in areas) }}"
           - service: cover.open_cover
             data: {}
             target:
