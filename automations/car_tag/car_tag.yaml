@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.1rc2)
+  name: Car Tag Stable (0.1.2)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
@@ -62,13 +62,11 @@ trigger:
     from: "off"
     to: "on"
     id: Connected
-    enabled: false
   - platform: state
     entity_id: !input car_tag_node_status
     from: "on"
     to: "off"
     id: Disconnected
-    enabled: false
   - platform: state
     entity_id: !input car_tag_ble_ibeacon
     from: not_home
@@ -79,7 +77,6 @@ trigger:
     from: home
     to: not_home
     id: iBeacon Not Found
-    enabled: true
 
 action:
   - choose:
@@ -96,7 +93,6 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
-            enabled: false
       - conditions:
           - condition: and
             conditions:
@@ -112,7 +108,6 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_timer_helper
-            enabled: false
       - conditions:
           - condition: and
             conditions:
@@ -135,7 +130,6 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
-            enabled: false
       - conditions:
           - condition: and
             conditions:
@@ -148,4 +142,3 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_timer_helper
-            enabled: false
