@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.0rc12)
+  name: Ratdgo 2.5i Stable (0.1.0rc13)
   homeassistant:
     min_version: 2024.5.0
   description: lock Management
@@ -63,7 +63,7 @@ blueprint:
       default: ""
 variables:
   ratdgo_device: !input ratdgo_device
-  obstruction_entity: "{{device_attr(ratdgo_device, 'name')|regex_replace(find='_door', replace='_obstruction', ignorecase=False)|regex_replace(find='cover', replace='binary_sensor', ignorecase=False)}}"
+  obstruction_entity: "{{ ratdgo_device | regex_replace(find='_door', replace='_obstruction', ignorecase=False) | regex_replace(find='cover', replace='binary_sensor', ignorecase=False) }}"
   garage_door_timer_helper: !input garage_door_timer_helper
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
