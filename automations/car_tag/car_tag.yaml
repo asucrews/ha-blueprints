@@ -54,6 +54,7 @@ variables:
   car_tag_ble_area: !input car_tag_ble_area
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
+  areas: !input areas
 
 trigger:
   - platform: state
