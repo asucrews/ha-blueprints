@@ -115,6 +115,9 @@ action:
               minutes: 0
               seconds: 10
               milliseconds: 0
+          - service: log.debug
+            data_template:
+              message: "Variable car_tag_ble_area: {{ car_tag_ble_area }}"
           - condition: template
             value_template: "{% set area = !input car_tag_ble_area %}{{ states(area) in areas }}"
           - service: cover.open_cover
