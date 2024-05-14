@@ -11,8 +11,6 @@ blueprint:
         entity:
           domain:
             - binary_sensor
-          integration:
-            - esphome
           multiple: false
     car_tag_ble_ibeacon:
       selector:
