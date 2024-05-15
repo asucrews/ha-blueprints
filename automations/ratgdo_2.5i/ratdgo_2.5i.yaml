@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.1.2)
+  name: Ratdgo 2.5i Stable (0.2.0rc1)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -69,6 +69,15 @@ blueprint:
         can be used. Enter *notify* for all devices. If 'Notification Group' is
         defined 'Device to notify' will be ignored.
       default: ""
+    bypass_helper:
+      name: Bypass Helper
+      description: Garage Door Bypass helper
+      default: input_boolean.none
+      selector:
+        entity:
+          domain:
+            - input_boolean
+          multiple: false
 
 variables:
   ratdgo_device: !input ratdgo_device
@@ -78,6 +87,7 @@ variables:
   light_switch: !input light_switch
   notify_group: !input notify_group
   notify_service: "{% if(notify_group is defined and notify_group != '' ) %}notify.{{ notify_group }}{% elif (notify_device != none and notify_device != '' ) %}notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}{% endif %}"
+  bypass_helper: !input bypass_helper
 
 trigger:
   - platform: state
