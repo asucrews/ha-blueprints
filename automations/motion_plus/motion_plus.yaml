@@ -1,0 +1,183 @@
+blueprint:
+  name: Motion+ Stable (0.1.0rc1)
+  homeassistant:
+    min_version: 2024.4.0
+  description: >
+    Motion+
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus.yaml
+  input:
+    motion_sensor:
+      name: Motion Sensor or Motion Sensor Group
+      description: >
+        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
+        <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+          multiple: false
+    bypass_mode:
+      name: Bypass Mode (Optional)
+      description: >
+        Select the bypass mode to control how the automation handles bypass events.  This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
+        Bypass mode determines whether the automation should ignore occupancy detection temporarily.  Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
+        <br/>Options:<br/>
+          - No Bypass: Automation operates normally without bypassing occupancy detection.<br/>
+          - Bypass No Auto OFF: Automation temporarily ignores occupancy detection until manually turned off. To use this option, create an input_boolean helper entity for bypass control.<br/>
+          - Bypass Auto OFF: Automation temporarily ignores occupancy detection and automatically reverts to normal operation after a specified time. To use this option, create input_boolean and timer helper entities for bypass control and automatic timer management.<br/>
+        <br/>Default value: No Bypass. Only change if you intend to use this field and this input is optional.<br/>
+      default: no_bypass
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: No Bypass
+              value: no_bypass
+            - label: Bypass No Auto OFF
+              value: bypass_no_auto_off
+            - label: Bypass Auto OFF
+              value: bypass_auto_off
+          custom_value: false
+          multiple: false
+          sort: false
+    bypass_helper:
+      name: Bypass Helper (Optional)
+      description: >
+        Select an input boolean entity to serve as a bypass helper within the designated area ("box").  The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
+        To enable bypass for a WIAB room, manually integrate call service actions into your automations or methods.  For instance, you might configure a double-tap action on the light switch to set the bypass helper.<br/>
+        To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+        <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "input_boolean.none"
+      selector:
+        entity:
+          domain:
+            - input_boolean
+          multiple: false
+    bypass_timer:
+      name: Bypass Auto Off Timer (Optional)
+      description: >
+        Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+        To utilize this function, create an timer helper entity in your Home Assistant configuration or UI.<br/>
+        <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "timer.none"
+      selector:
+        entity:
+          domain:
+            - timer
+          multiple: false
+    bypass_finished_action:
+      name: Bypass Action After Timer Finished (Optional)
+      description: >
+        Specify the action to be taken after the bypass auto-off timer finishes counting down.  This determines whether the automation should turn off lights or other devices when the bypass timer expires.<br/>
+        <br/>Options:<br/>
+        - Turn Off: Automatically turns off lights or devices when the bypass timer expires.<br/>
+        - Do Nothing: Leaves lights or devices unchanged after the bypass timer expires.<br/>
+        <br/>Default value: Turn Off. Only change if you intend to use this field and this input is optional.<br/>
+      default: turn_off
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Turn Off
+              value: turn_off
+            - label: Do Nothing
+              value: do_nothing
+          custom_value: false
+          multiple: false
+          sort: false
+    idle_timer:
+      name: Idle Timer (Optional)
+      description: >
+        Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+        To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
+        <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "timer.none"
+      selector:
+        entity:
+          domain:
+            - timer
+          multiple: false
+
+variables:
+  motion_sensor: !input motion_sensor
+  bypass_mode: !input bypass_mode
+  bypass_helper: !input bypass_helper
+  bypass_timer: !input bypass_timer
+  bypass_finished_action: !input bypass_finished_action
+  idle_timer: !input idle_timer
+
+trigger:
+  # If motion is detected
+  - platform: state
+    entity_id: !input motion_sensor
+    from: "off"
+    to: "on"
+    id: Motion On
+  # If motion is cleared
+  - platform: state
+    entity_id: !input motion_sensor
+    from: "on"
+    to: "off"
+    id: Motion Off
+    for: !input motion_sensor_delay
+  # If bypass is enabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "off"
+    to: "on"
+    id: Bypass Turn on
+  # If bypass is disabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "on"
+    to: "off"
+    id: Bypass Turn off
+  # If bypass auto off timer ends
+  - platform: state
+    entity_id: !input bypass_timer
+    from: active
+    to: idle
+    id: Bypass Timer Finished
+  # If idle timer ends
+  - platform: state
+    entity_id: !input idle_timer
+    from: active
+    to: idle
+    id: Idle Timer Finished
+
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: Motion
+        sequence:
+          - service: light.turn_on
+            data: {}
+            target:
+              entity_id: light.garage_light_switch
+          - service: timer.start
+            data: {}
+            target:
+              entity_id: timer.garage_light_timer
+      - conditions:
+          - condition: trigger
+            id: No Motion
+        sequence:
+          - if:
+              - condition: state
+                entity_id: binary_sensor.garage_backdoor_multi_sensor_motion_detection
+                state: "off"
+            then:
+              - service: light.turn_off
+                data: {}
+                target:
+                  entity_id: light.garage_light_switch
+            else: []
+      - conditions:
+          - condition: trigger
+            id: Battery Low
+        sequence:
+          - service: notify.jeremys_stuff
+            data:
+              message: Battery low on garage backdoor multi sensor
