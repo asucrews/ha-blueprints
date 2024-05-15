@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion+ Stable (0.1.0rc1)
+  name: Motion+ Stable (0.1.0rc2)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -17,6 +17,19 @@ blueprint:
           domain:
             - binary_sensor
           multiple: false
+    motion_sensor_delay:
+      name: Motion off delay (Optional)
+      description: >
+        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        <br/>Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
+      default: 30
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 3600.0
+          unit_of_measurement: seconds
+          step: 1.0
     bypass_mode:
       name: Bypass Mode (Optional)
       description: >
@@ -101,6 +114,7 @@ blueprint:
 
 variables:
   motion_sensor: !input motion_sensor
+  motion_sensor_delay: !input motion_sensor_delay
   bypass_mode: !input bypass_mode
   bypass_helper: !input bypass_helper
   bypass_timer: !input bypass_timer
