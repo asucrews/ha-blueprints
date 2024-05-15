@@ -1,4 +1,9 @@
 # Changelog
+## [0.3.0] - 2024-05-04
+### Added
+- Transition
+- Brightness Percentage
+- Witch is the source of light control
 
 ## [0.2.6] - 2024-04-25
 ### Fixes
