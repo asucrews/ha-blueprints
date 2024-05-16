@@ -95,7 +95,7 @@ action:
           - service: cover.open_cover
             data: {}
             target:
-              entity_id: !input
+              entity_id: !input garage_door_cover
             enabled: false
       - conditions:
           - condition: and
