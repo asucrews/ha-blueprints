@@ -1,0 +1,72 @@
+blueprint:
+  name: LUX Sensor (0.1.0)
+  description: >
+    <br/>
+    <br/>
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml
+  input:
+    lux_sensor:
+      name: LUX Sensor
+      description: >
+        <br/>
+        <br/>
+      selector:
+        entity:
+          domain:
+          - sensor
+          multiple: false
+    day_normal_lux_level:
+      name: Normal LUX level for day time
+      description: >
+        <br/>
+        <br/>
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 1000.0
+          unit_of_measurement: lx
+          step: 1.0
+    night_normal_lux_level:
+      name: Normal LUX level for night time
+      description: >
+        <br/>
+        <br/>
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0.0
+          max: 1000.0
+          unit_of_measurement: lx
+          step: 1.0  
+
+variables:
+  lux_sensor: !input lux_sensor
+  day_normal_lux_level: !input day_normal_lux_level
+  night_normal_lux_level: !input night_normal_lux_level
+  
+trigger:
+  - platform: numeric_state
+    entity_id: sensor.office_lux_sesnsor_illuminance
+    above: "{{ day_normal_lux_level }}"
+    id: Light is on
+  - platform: numeric_state
+    entity_id: sensor.office_lux_sesnsor_illuminance
+    above: "{{ day_normal_lux_level }} - 1"
+    id: Light is off
+
+action:
+  - choose:
+    - conditions:
+        - condition: sun
+          before: sunset
+          after: sunrise
+      sequence: []
+    - conditions:
+        - condition: sun
+          before: sunrise
+          after: sunset
+      sequence: []
