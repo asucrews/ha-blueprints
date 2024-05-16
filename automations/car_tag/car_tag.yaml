@@ -105,12 +105,30 @@ action:
               - condition: state
                 entity_id: !input car_tag_ble_area
                 state: unknown
+              - condition: state
+                entity_id: !input garage_door_cover
+                state: open
         sequence:
-          - service: timer.start
-            metadata: {}
-            data: {}
-            target:
-              entity_id: !input garage_door_timer_helper
+          - if:
+              - condition: state
+                entity_id: !input garage_door_timer_helper
+                state: active
+            then:
+              - service: timer.cancel
+                target:
+                  entity_id: !input garage_door_timer_helper
+                data: {}
+              - service: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input garage_door_timer_helper
+            else:
+              - service: timer.start
+                metadata: {}
+                data: {}a
+                target:
+                  entity_id: !input garage_door_timer_helper
       - conditions:
           - condition: and
             conditions:
