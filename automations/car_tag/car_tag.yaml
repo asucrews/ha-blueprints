@@ -126,7 +126,7 @@ action:
             else:
               - service: timer.start
                 metadata: {}
-                data: {}a
+                data: {}
                 target:
                   entity_id: !input garage_door_timer_helper
       - conditions:
