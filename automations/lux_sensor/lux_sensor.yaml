@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc6)
+  name: LUX Sensor (0.1.0rc7)
   description: >
     <br/>
     <br/>
@@ -46,14 +46,14 @@ blueprint:
 variables:
   lux_sensor: !input lux_sensor
   day_normal_lux_level: !input day_normal_lux_level
-  day_below: "{{ float(day_normal_lux_level) + 1 }}"
+  day_below: "{{ float(day_normal_lux_level.state) + 1 }}"
   night_normal_lux_level: !input night_normal_lux_level
-  night_below: "{{ float(night_normal_lux_level) + 1 }}"
+  night_below: "{{ float(night_normal_lux_level.state) + 1 }}"
 
 trigger:
   - platform: numeric_state
     entity_id: !input lux_sensor
-    above: "{{ day_normal_lux_level }}"
+    above: "{{ float(day_normal_lux_level) }}"
     id: Light is on
   - platform: numeric_state
     entity_id: !input lux_sensor
