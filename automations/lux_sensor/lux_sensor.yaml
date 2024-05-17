@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc19)
+  name: LUX Sensor Stable (0.1.0)
   description: >
     <br/>
     <br/>
@@ -27,7 +27,7 @@ blueprint:
             - input_boolean
           multiple: false
     day_above_lux_level:
-      name: Normal LUX level for day time
+      name: Above LUX level for day time
       description: >
         <br/>
         <br/>
@@ -35,12 +35,12 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 1000
+          max: 250
           step: 10
           unit_of_measurement: lx
           mode: slider
     day_below_lux_level:
-      name: Normal LUX level for day time
+      name: Below LUX level for day time
       description: >
         <br/>
         <br/>
@@ -48,12 +48,12 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 1000
+          max: 250
           step: 10
           unit_of_measurement: lx
           mode: slider
     night_above_lux_level:
-      name: Normal LUX level for night time
+      name: Above LUX level for night time
       description: >
         <br/>
         <br/>
@@ -61,12 +61,12 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 1000
+          max: 250
           step: 10
           unit_of_measurement: lx
           mode: slider
     night_below_lux_level:
-      name: Normal LUX level for night time
+      name: Below LUX level for night time
       description: >
         <br/>
         <br/>
@@ -74,7 +74,7 @@ blueprint:
       selector:
         number:
           min: 0
-          max: 1000
+          max: 250
           step: 10
           unit_of_measurement: lx
           mode: slider
