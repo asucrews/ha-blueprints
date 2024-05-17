@@ -53,11 +53,11 @@ variables:
 trigger:
   - platform: numeric_state
     entity_id: !input lux_sensor
-    above: "{{ states(day_normal_lux_level).state }}"
+    above: "{{ states(day_normal_lux_level).state | float }}"
     id: Light is on
   - platform: numeric_state
     entity_id: !input lux_sensor
-    below: "{{ day_below }}"
+    below: "{{ day_below |float }}"
     id: Light is off
 
 action:
