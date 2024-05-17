@@ -283,7 +283,6 @@ variables:
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
-  idle_timer_restarted: false
   light_contorl: !input light_contorl
   light_control_features: !input light_control_features
   light_brightness_pct: !input light_brightness_pct
@@ -347,7 +346,7 @@ trigger:
   - platform: event
     event_type: timer.finished
     event_data:
-      entity_id:  !input idle_timer
+      entity_id: !input idle_timer
     id: Idle Timer Finished
 
 action:
@@ -630,8 +629,6 @@ action:
                     entity_id: !input idle_timer
                     state: active
             then:
-              - variables:
-                  idle_timer_restarted: true
               - service: timer.cancel
                 target:
                   entity_id: !input idle_timer
@@ -641,8 +638,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-              - variables:
-                  idle_timer_restarted: false
       # Actions to perform when motion is detected.
       - conditions:
           - condition: and
@@ -819,8 +814,6 @@ action:
                     entity_id: !input idle_timer
                     state: active
             then:
-              - variables:
-                  idle_timer_restarted: true
               - service: timer.cancel
                 target:
                   entity_id: !input idle_timer
@@ -830,8 +823,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-              - variables:
-                  idle_timer_restarted: false
       # Actions to perform when motion is cleared
       - conditions:
           - condition: and
@@ -1185,8 +1176,6 @@ action:
                 entity_id: !input idle_timer
                 state: active
             then:
-              - variables:
-                  idle_timer_restarted: true
               - service: timer.cancel
                 target:
                   entity_id: !input idle_timer
@@ -1196,8 +1185,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-              - variables:
-                  idle_timer_restarted: false
             # Starts idle timer if configured and conditions are not met
             else:
               - service: timer.start

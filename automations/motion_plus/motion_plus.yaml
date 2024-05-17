@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion+ Stable (0.1.1ec0)
+  name: Motion+ Stable (0.1.1ec1)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -111,6 +111,72 @@ blueprint:
           domain:
             - timer
           multiple: false
+    light_contorl:
+      name: Light Control
+      description: >
+        What is controls lighting effects? Is it a swith or bulb?<br/>
+        <br/>
+      default: none
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: None
+              value: none
+            - label: Bulb
+              value: bulb
+            - label: Switch
+              value: switch
+          custom_value: false
+          multiple: false
+          sort: false
+    light_control_features:
+      name: Light Control Features?
+      description: What light features to contorl?
+      default: []
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Use brightness
+              value: "use_brightness"
+            - label: Use colour temperature
+              value: "use_colour_temperature"
+            - label: Use transition
+              value: "use_transition"
+    light_brightness_pct:
+      name: Light brightness Percentage (Optional)
+      description: Light brightness Percentage 1 to 100%. 0 Turn off the light so we are ingoring that value.
+      default: 1
+      selector:
+        number:
+          mode: box
+          min: 1
+          max: 100
+          unit_of_measurement: percentage
+          step: 1
+    light_temperature:
+      name: Light temperature (Optional)
+      description: Light temperature in Kelvin 2000 to 65000
+      default: 2000
+      selector:
+        number:
+          mode: box
+          min: 2000
+          max: 6500
+          unit_of_measurement: kelvin
+          step: 1
+    light_transition:
+      name: Light Transition (Optional)
+      description: Light Transition 0 to 10 seconds
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0
+          max: 10
+          unit_of_measurement: seconds
+          step: 1
 
 variables:
   door_sensor: !input door_sensor
@@ -127,7 +193,6 @@ variables:
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
-  idle_timer_restarted: false
   light_contorl: !input light_contorl
   light_control_features: !input light_control_features
   light_brightness_pct: !input light_brightness_pct
@@ -170,7 +235,7 @@ trigger:
   - platform: event
     event_type: timer.finished
     event_data:
-      entity_id:  !input idle_timer
+      entity_id: !input idle_timer
     id: Idle Timer Finished
 
 action:

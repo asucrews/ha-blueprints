@@ -139,17 +139,17 @@ action:
                 entity_id: !input garage_door_cover
                 state: closed
         sequence:
-          - delay:
-              hours: 0
-              minutes: 0
-              seconds: 5
-              milliseconds: 0
           - if:
               - condition: template
                 value_template: "{{ areas | length > 0 }}"
             then:
               - condition: template
                 value_template: "{{ states(car_tag_ble_area) in areas }}"
+              - delay:
+                  hours: 0
+                  minutes: 0
+                  seconds: 5
+                  milliseconds: 0
           - service: cover.open_cover
             data: {}
             target:
