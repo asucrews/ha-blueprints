@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion+ Stable (0.1.1rc2)
+  name: Motion+ Stable (0.1.1rc3)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -10,7 +10,7 @@ blueprint:
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group
       description: >
-        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
+        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area.<br/>
         <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
       selector:
         entity:
@@ -33,7 +33,7 @@ blueprint:
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
       description: >
-        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+        Select a smart light bulb or group of smart light bulbs to control within the designated area.  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
         <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "light.none"
       selector:
@@ -44,7 +44,7 @@ blueprint:
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
       description: >
-        Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+        Choose a light, light group, switch, or switch group to control within the designated area.  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
         <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "light.none"
       selector:
@@ -56,7 +56,7 @@ blueprint:
     fan_switch:
       name: Fan or Fan Group (Optional)
       description: >
-        Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+        Select a fan or group of fans to control within the designated area.  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
         <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "fan.none"
       selector:
@@ -68,7 +68,7 @@ blueprint:
     occupancy_helper:
       name: Occupancy Helper (Optional)
       description: >
-        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+        Select an input boolean entity to serve as an occupancy helper within the designated.  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
         The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection.  Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
         <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "input_boolean.none"
@@ -104,7 +104,7 @@ blueprint:
     bypass_helper:
       name: Bypass Helper (Optional)
       description: >
-        Select an input boolean entity to serve as a bypass helper within the designated area ("box").  The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
+        Select an input boolean entity to serve as a bypass helper within the designated area.  The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
         To enable bypass for a WIAB room, manually integrate call service actions into your automations or methods.  For instance, you might configure a double-tap action on the light switch to set the bypass helper.<br/>
         To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
         <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
@@ -283,7 +283,7 @@ trigger:
     id: Idle Timer Finished
 
 action:
-  # Actions to perform when the door is closed
+  # Actions to perform based on motion
   - choose:
       # Actions to perform when motion is detected.
       - conditions:
@@ -461,8 +461,6 @@ action:
                     entity_id: !input idle_timer
                     state: active
             then:
-              - variables:
-                  idle_timer_restarted: true
               - service: timer.cancel
                 target:
                   entity_id: !input idle_timer
@@ -472,17 +470,12 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-              - variables:
-                  idle_timer_restarted: false
       # Actions to perform when motion is cleared
       - conditions:
           - condition: and
             conditions:
               - condition: trigger
                 id: Motion Off
-              - condition: state
-                state: "on"
-                entity_id: !input door_sensor
         sequence:
           # Enables bypass if configured
           - if:
@@ -717,9 +710,6 @@ action:
                   - condition: state
                     state: "off"
                     entity_id: !input motion_sensor
-                  - condition: state
-                    state: "off"
-                    entity_id: !input door_sensor
                   - condition: template
                     value_template: "{{ idle_timer_restarted == false }}"
             then:
@@ -819,8 +809,6 @@ action:
                 entity_id: !input idle_timer
                 state: active
             then:
-              - variables:
-                  idle_timer_restarted: true
               - service: timer.cancel
                 target:
                   entity_id: !input idle_timer
@@ -830,8 +818,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-              - variables:
-                  idle_timer_restarted: false
             # Starts idle timer if configured and conditions are not met
             else:
               - service: timer.start
