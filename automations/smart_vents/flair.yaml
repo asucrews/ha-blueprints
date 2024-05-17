@@ -1,5 +1,5 @@
 blueprint:
-  name: Smart Vents - Flair (0.1.0rc5)
+  name: Smart Vents - Flair (0.1.0)
   homeassistant:
     min_version: 2024.4.0
   description: >
