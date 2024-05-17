@@ -45,16 +45,15 @@ blueprint:
 
 variables:
   lux_sensor: !input lux_sensor
-  day_normal_lux_level: !input day_normal_lux_level
-  day_normal_lux_level_float: "{{ float(day_normal_lux_level) }}"
-  day_below: "{{ day_normal_lux_level_float + 1.0 }}"
-  night_normal_lux_level: !input night_normal_lux_level
-  night_below: "{{ float(night_normal_lux_level.state) + 1 }}"
+  day_above_lux_level: "{{ !input day_above_lux_level | float }}"
+  day_below_lux_level: "{{ day_above_lux_level | float + 1 }}"
+  night_above_lux_level: !input night_above_lux_level
+  night_below_lux_level: !input night_below_lux_level
 
 trigger:
   - platform: numeric_state
     entity_id: !input lux_sensor
-    above: "{{ day_normal_lux_level_float }}"
+    above: "{{ day_above_lux_level | float }}"
     id: Light is on
   - platform: numeric_state
     entity_id: !input lux_sensor

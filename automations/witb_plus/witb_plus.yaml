@@ -1067,8 +1067,6 @@ action:
                   - condition: state
                     state: "off"
                     entity_id: !input door_sensor
-                  - condition: template
-                    value_template: "{{ idle_timer_restarted == false }}"
             then:
               # Turns off occupancy helper if configured
               - if:

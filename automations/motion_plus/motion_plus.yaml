@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion+ Stable (0.1.1rc3)
+  name: Motion+ Stable (0.1.1rc4)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -710,8 +710,6 @@ action:
                   - condition: state
                     state: "off"
                     entity_id: !input motion_sensor
-                  - condition: template
-                    value_template: "{{ idle_timer_restarted == false }}"
             then:
               # Turns off occupancy helper if configured
               - if:
@@ -793,37 +791,5 @@ action:
                     data: {}
                     target:
                       entity_id: !input fan_switch
-
-          # Enables bypass if configured
-          - if:
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-            then:
-              - condition: state
-                state: "on"
-                entity_id: !input bypass_helper
-              - stop: Bypass Enabled
-          # Restarts idle timer if configured and conditions are met
-          - if:
-              - condition: state
-                entity_id: !input idle_timer
-                state: active
-            then:
-              - service: timer.cancel
-                target:
-                  entity_id: !input idle_timer
-                data: {}
-              - service: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input idle_timer
-            # Starts idle timer if configured and conditions are not met
-            else:
-              - service: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input idle_timer
 mode: queued
 max: 5
