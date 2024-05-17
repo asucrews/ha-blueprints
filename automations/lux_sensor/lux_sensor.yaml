@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc18)
+  name: LUX Sensor (0.1.0rc19)
   description: >
     <br/>
     <br/>
@@ -16,7 +16,7 @@ blueprint:
           domain:
             - sensor
           multiple: false
-    binary_sensor:
+    status_boolean:
       name: Binary Sensor
       description: >
         <br/>
@@ -24,7 +24,7 @@ blueprint:
       selector:
         entity:
           domain:
-            - binary_sensor
+            - input_boolean
           multiple: false
     day_above_lux_level:
       name: Normal LUX level for day time
@@ -81,7 +81,7 @@ blueprint:
 
 variables:
   lux_sensor: !input lux_sensor
-  binary_sensor: !input binary_sensor
+  status_boolean: !input status_boolean
   day_above_lux_level: !input day_above_lux_level
   day_below_lux_level: !input day_below_lux_level
   night_above_lux_level: !input night_above_lux_level
@@ -122,7 +122,7 @@ action:
                     metadata: {}
                     data: {}
                     target:
-                      entity_id: !input binary_sensor
+                      entity_id: !input status_boolean
               - conditions:
                   - condition: trigger
                     id:
@@ -132,7 +132,7 @@ action:
                     metadata: {}
                     data: {}
                     target:
-                      entity_id: !input binary_sensor
+                      entity_id: !input status_boolean
       - conditions:
           - condition: sun
             before: sunrise
@@ -148,7 +148,7 @@ action:
                     metadata: {}
                     data: {}
                     target:
-                      entity_id: !input binary_sensor
+                      entity_id: !input status_boolean
               - conditions:
                   - condition: trigger
                     id:
@@ -158,4 +158,4 @@ action:
                     metadata: {}
                     data: {}
                     target:
-                      entity_id: !input binary_sensor
+                      entity_id: !input status_boolean
