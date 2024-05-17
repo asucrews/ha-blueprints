@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc17)
+  name: LUX Sensor (0.1.0rc18)
   description: >
     <br/>
     <br/>
@@ -15,6 +15,16 @@ blueprint:
         entity:
           domain:
             - sensor
+          multiple: false
+    binary_sensor:
+      name: Binary Sensor
+      description: >
+        <br/>
+        <br/>
+      selector:
+        entity:
+          domain:
+            - binary_sensor
           multiple: false
     day_above_lux_level:
       name: Normal LUX level for day time
@@ -71,6 +81,7 @@ blueprint:
 
 variables:
   lux_sensor: !input lux_sensor
+  binary_sensor: !input binary_sensor
   day_above_lux_level: !input day_above_lux_level
   day_below_lux_level: !input day_below_lux_level
   night_above_lux_level: !input night_above_lux_level
@@ -100,9 +111,51 @@ action:
           - condition: sun
             before: sunset
             after: sunrise
-        sequence: []
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: trigger
+                    id:
+                      - Light is on at day
+                sequence:
+                  - service: input_boolean.turn_on
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input binary_sensor
+              - conditions:
+                  - condition: trigger
+                    id:
+                      - Light is off at day
+                sequence:
+                  - service: input_boolean.turn_off
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input binary_sensor
       - conditions:
           - condition: sun
             before: sunrise
             after: sunset
-        sequence: []
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: trigger
+                    id:
+                      - Light is on at night
+                sequence:
+                  - service: input_boolean.turn_on
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input binary_sensor
+              - conditions:
+                  - condition: trigger
+                    id:
+                      - Light is off at night
+                sequence:
+                  - service: input_boolean.turn_off
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input binary_sensor
