@@ -1,5 +1,5 @@
 blueprint:
-  name: Motion+ Stable (0.1.1ec1)
+  name: Motion+ Stable (0.1.1rc2)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -30,6 +30,53 @@ blueprint:
           max: 3600.0
           unit_of_measurement: seconds
           step: 1.0
+    light_bulbs:
+      name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
+      description: >
+        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+        <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "light.none"
+      selector:
+        entity:
+          domain:
+            - light
+          multiple: false
+    light_switch:
+      name: Light, Light Group, Switch, or Switch Group (Optional)
+      description: >
+        Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+        <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "light.none"
+      selector:
+        entity:
+          domain:
+            - light
+            - switch
+          multiple: false
+    fan_switch:
+      name: Fan or Fan Group (Optional)
+      description: >
+        Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+        <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "fan.none"
+      selector:
+        entity:
+          domain:
+            - fan
+            - light
+          multiple: false
+    occupancy_helper:
+      name: Occupancy Helper (Optional)
+      description: >
+        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection.  Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
+        <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "input_boolean.none"
+      selector:
+        entity:
+          domain:
+            - input_boolean
+          multiple: false
     bypass_mode:
       name: Bypass Mode (Optional)
       description: >
@@ -179,9 +226,6 @@ blueprint:
           step: 1
 
 variables:
-  door_sensor: !input door_sensor
-  door_sensor_open_delay: !input door_sensor_open_delay
-  door_sensor_close_delay: !input door_sensor_close_delay
   motion_sensor: !input motion_sensor
   motion_sensor_delay: !input motion_sensor_delay
   light_bulbs: !input light_bulbs
