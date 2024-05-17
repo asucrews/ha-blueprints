@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc16)
+  name: LUX Sensor (0.1.0rc17)
   description: >
     <br/>
     <br/>
@@ -29,7 +29,33 @@ blueprint:
           step: 10
           unit_of_measurement: lx
           mode: slider
+    day_below_lux_level:
+      name: Normal LUX level for day time
+      description: >
+        <br/>
+        <br/>
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 10
+          unit_of_measurement: lx
+          mode: slider
     night_above_lux_level:
+      name: Normal LUX level for night time
+      description: >
+        <br/>
+        <br/>
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 1000
+          step: 10
+          unit_of_measurement: lx
+          mode: slider
+    night_below_lux_level:
       name: Normal LUX level for night time
       description: >
         <br/>
@@ -45,22 +71,28 @@ blueprint:
 
 variables:
   lux_sensor: !input lux_sensor
-  ay_above_lux_level: !input day_above_lux_level
-  day_above_lux_level_float: "{{ day_above_lux_level | float }}"
-  day_below_lux_level_float: "{{ day_above_lux_level + 1 }}"
+  day_above_lux_level: !input day_above_lux_level
+  day_below_lux_level: !input day_below_lux_level
   night_above_lux_level: !input night_above_lux_level
-  night_above_lux_level_float: "{{ night_above_lux_level | float }}"
-  night_below_lux_level_float: "{{ night_above_lux_level + 1 }}"
+  night_below_lux_level: !input night_below_lux_level
 
 trigger:
   - platform: numeric_state
     entity_id: !input lux_sensor
-    above: "{{ day_above_lux_level_float | float }}"
-    id: Light is on
+    above: !input day_above_lux_level
+    id: Light is on at day
   - platform: numeric_state
     entity_id: !input lux_sensor
-    below: "{{ day_below_lux_level_float | float }}"
-    id: Light is off
+    below: !input day_below_lux_level
+    id: Light is off at day
+  - platform: numeric_state
+    entity_id: !input lux_sensor
+    above: !input day_above_lux_level
+    id: Light is on at night
+  - platform: numeric_state
+    entity_id: !input lux_sensor
+    below: !input day_below_lux_level
+    id: Light is off at night
 
 action:
   - choose:
