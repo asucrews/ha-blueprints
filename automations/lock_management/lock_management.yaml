@@ -44,10 +44,10 @@ trigger:
     event_data:
        entity_id: !input lock
     id: LCM Event
-  - platform: state
-    entity_id: !input auto_lock_timer
-    from: active
-    to: idle
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input auto_lock_timer
     id: Timer Finished
 
 action:

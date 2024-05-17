@@ -338,16 +338,16 @@ trigger:
     to: "off"
     id: Bypass Turn off
   # If bypass auto off timer ends
-  - platform: state
-    entity_id: !input bypass_timer
-    from: active
-    to: idle
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input bypass_timer
     id: Bypass Timer Finished
   # If idle timer ends
-  - platform: state
-    entity_id: !input idle_timer
-    from: active
-    to: idle
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id:  !input idle_timer
     id: Idle Timer Finished
 
 action:

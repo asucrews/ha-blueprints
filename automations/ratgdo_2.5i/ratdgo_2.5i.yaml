@@ -110,10 +110,10 @@ trigger:
     from: closing
     to: closed
     id: Garage Door is Closed
-  - platform: state
-    entity_id: !input garage_door_timer_helper
-    from: active
-    to: idle
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input garage_door_timer_helper
     id: Door timer is done
 
 action:
