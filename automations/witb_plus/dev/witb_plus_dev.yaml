@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.1rc0)
+  name: WITB+ Dev (0.3.2rc0)
   homeassistant:
     min_version: 2024.4.0
   description: >

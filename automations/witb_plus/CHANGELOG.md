@@ -1,4 +1,8 @@
 # Changelog
+## [0.3.1] - 2024-05-16
+### Changes
+- Moved to timer.finished event
+
 ## [0.3.0] - 2024-05-04
 ### Added
 - Transition
