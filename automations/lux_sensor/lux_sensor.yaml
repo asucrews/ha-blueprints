@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc14)
+  name: LUX Sensor (0.1.0rc15)
   description: >
     <br/>
     <br/>
@@ -16,7 +16,7 @@ blueprint:
           domain:
             - sensor
           multiple: false
-    day_normal_lux_level:
+    day_above_lux_level:
       name: Normal LUX level for day time
       description: >
         <br/>
