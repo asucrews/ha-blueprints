@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor (0.1.0rc11)
+  name: LUX Sensor (0.1.0rc12)
   description: >
     <br/>
     <br/>
@@ -29,7 +29,7 @@ blueprint:
           step: 10
           unit_of_measurement: lx
           mode: slider
-    night_normal_lux_level:
+    night_above_lux_level:
       name: Normal LUX level for night time
       description: >
         <br/>
