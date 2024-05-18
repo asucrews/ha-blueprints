@@ -2,7 +2,9 @@ blueprint:
   name: "Person: Status Update Fork (1.0.0)"
   homeassistant:
     min_version: 2024.5.0
-  description: Making Home Assistant’s Presence Detection not so Binary
+  description: >
+    Making Home Assistant’s Presence Detection not so Binary
+    https://gist.github.com/cliffordwhansen/aa993e4173d2ce2e44fc6a0cb0af3599
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update.yaml
   input:
