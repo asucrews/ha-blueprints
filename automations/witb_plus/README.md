@@ -1,11 +1,10 @@
-**Warning**: AI was used to write and format this readme
-
 # Stable WITB+ (Wasp in the Box Plus) Blueprint
+
+**Warning**: AI was used to write and format this readme
 
 ## Overview
 
 WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for occupancy detection using multiple sensors. This blueprint is inspired by the concept of "Wasp in a Box" and employs motion and door sensors to monitor occupants within a defined space (the "box"). When motion is detected, indicating the presence of a "wasp" (occupant), the box's state is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.
-
 
 [![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fasucrews%2Fha-blueprints%2Fblob%2Fmain%2Fautomations%2Fwitb_plus%2Fwitb_plus.yaml)
 
@@ -129,7 +128,6 @@ WITB+ (Wasp in the Box Plus) is an advanced automation blueprint designed for oc
 - **idle_timer**: Input variable representing the selected timer entity for the automatic cancellation of a bypass event due to idleness.
 - **idel_timer_restarted**: Boolean variable indicating whether the idle timer has been restarted.
 
-
 ## Trigger
 
 ## Triggers
@@ -203,21 +201,22 @@ The action section defines sequences of actions to be executed based on the trig
     - If the bypass helper entity is set, turn it on to enable bypass mode.
     - If specified conditions are met, turn off occupancy helper, lights, switches, and fans.
 
-
 ## Source Code
 
-The source code for WITB+ Blueprint can be found on GitHub:  
+The source code for WITB+ Blueprint can be found on GitHub:
+
 - [View Source Code - Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus.yaml)  
 - [View Source Code - Dev](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_dev.yaml)  
 
 ## Future Enhancements
+
 - **Additional Lighting Controls:** We plan to expand the capabilities of the blueprint by incorporating more advanced lighting controls. This could include adjusting brightness, changing colors, or even integrating scene selection functionality.
 - **Customization Options:** We aim to provide users with more customization options to tailor the blueprint to their specific needs and preferences. This might involve configurable parameters for sensitivity, timing, or integration with other devices.
 - **Integration with Environmental Sensors:** In future iterations, we envision integrating the blueprint with environmental sensors to enhance automation based on factors like ambient light, temperature, or humidity.
 - **Improved Bypass Functionality:** We're exploring ways to enhance the bypass functionality to make it more intuitive and user-friendly. This could involve simplifying the setup process or adding additional bypass modes for greater flexibility.
 - **Time of Day Events:** We're considering adding time-based events to the blueprint, allowing users to configure different behaviors based on the time of day. This could include features like nightlight settings, where the lighting adjusts automatically based on the time, creating a more comfortable environment during nighttime hours.
 
-# Feedback
+## Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the WITB+ Blueprint. Whether you have ideas for improvements, encountered issues during implementation, or simply want to share your experience using the blueprint, your feedback is invaluable to us.
 

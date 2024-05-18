@@ -1,6 +1,6 @@
-**Warning**: AI was used to write and format this readme
-
 # Lock Management Dev (0.1.0)
+
+**Warning**: AI was used to write and format this readme
 
 ## Overview
 
@@ -8,7 +8,7 @@ Lock Management Dev (0.1.0) is an automation blueprint designed for managing doo
 
 ## Assumptions
 
-- User must have Lock Code Manager configured and working by raman325 (Github)[https://github.com/raman325/lock_code_manager]
+- User must have Lock Code Manager configured and working by raman325 [Github](https://github.com/raman325/lock_code_manager)
 - It is assumed that users have configured their door locks and timers correctly within their home automation system.
 - Users are expected to ensure that the necessary triggers and conditions are met for the automation to function as intended.
 

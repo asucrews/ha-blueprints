@@ -22,8 +22,6 @@ Blueprints for Home Assistant
 - **Blueprint Stable Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/CHANGELOG.md)
 - **Discussion**: [Home Assistant Community](https://community.home-assistant.io/t/witb-wasp-in-the-box-plus-blueprint/721520)
 
-
-
 ## Work In Progress (Development)
 
 ### Inovelli Smart Dimmer
@@ -45,11 +43,12 @@ Blueprints for Home Assistant
 - **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/dev/CHANGELOG_DEV.md)
 
 ### WITB+ Dev
+
 - **Blueprint Dev Home**: [GitHub](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/dev)
 - **Blueprint Dev YAML**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_dev.yaml)
 - **Blueprint Dev Changelog**: [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/CHANGELOG_DEV.md)
 
-# Feedback
+## Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the Blueprints. Your feedback helps us continually improve and refine our offerings for the community.
 
