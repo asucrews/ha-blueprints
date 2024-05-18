@@ -1,0 +1,146 @@
+blueprint:
+  name: "Person: Status Update Fork (1.0.0)"
+  homeassistant:
+    min_version: 2024.5.0
+  description: Making Home Assistant’s Presence Detection not so Binary
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update.yaml
+  input:
+    person_entity:
+      name: Person entity
+      description: The person entity to track
+      selector:
+        entity:
+          domain: person
+    person_input_select:
+      name: Input select
+      description: The input select that tracks the person's status
+      selector:
+        entity:
+          domain: input_select
+    time_till_marked_away:
+      name: Time till marked away
+      description: How long to wait in "Just Left" before getting set as "Away"
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: minutes
+    time_till_marked_home:
+      name: Time till marked home
+      description: How long to wait in "Just Arrived" before getting set as "Home"
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: minutes
+    time_till_marked_extended_away:
+      name: Time till marked extended away
+      description: How long to wait in "Away" before being set to "Extended Away"
+      default: 24
+      selector:
+        number:
+          min: 0
+          max: 168
+          unit_of_measurement: hours
+
+trigger:
+  - platform: state
+    entity_id: !input person_entity
+    to: home
+    id: person_home
+  - platform: state
+    entity_id: !input person_input_select
+    for:
+      minutes: !input time_till_marked_home
+    id: input_select_wait_arrived
+    to: Just Arrived
+  - platform: state
+    entity_id: !input person_input_select
+    from: Just Left
+    to: Just Arrived
+    id: input_select_debounce
+  - platform: state
+    entity_id: !input person_entity
+    from: home
+    id: person_not_home
+  - platform: state
+    entity_id: !input person_input_select
+    to: Just Left
+    for:
+      minutes: !input time_till_marked_away
+    id: input_select_wait_left
+  - platform: state
+    entity_id: !input person_input_select
+    to: Away
+    for:
+      hours: !input time_till_marked_extended_away
+    id: input_select_wait_away
+condition:
+  - condition: template
+    value_template: "{{ trigger.to_state.state != trigger.from_state.state }}"
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: person_home
+          - condition: state
+            entity_id: !input person_input_select
+            state: Just Left
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input person_input_select
+            data:
+              option: Home
+      - conditions:
+          - condition: trigger
+            id: person_home
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input person_input_select
+            data:
+              option: Just Arrived
+      - conditions:
+          - condition: or
+            conditions:
+              - condition: trigger
+                id: input_select_wait_arrived
+              - condition: trigger
+                id: input_select_debounce
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input person_input_select
+            data:
+              option: Home
+      - conditions:
+          - condition: trigger
+            id: person_not_home
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input person_input_select
+            data:
+              option: Just Left
+      - conditions:
+          - condition: trigger
+            id: input_select_wait_left
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input person_input_select
+            data:
+              option: Away
+    default:
+      - condition: trigger
+        id: input_select_wait_away
+      - service: input_select.select_option
+        target:
+          entity_id: !input person_input_select
+        data:
+          option: Extended Away
+mode: queued

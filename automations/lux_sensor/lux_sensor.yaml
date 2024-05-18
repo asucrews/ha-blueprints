@@ -1,5 +1,7 @@
 blueprint:
   name: LUX Sensor (0.1.0rc19)
+  homeassistant:
+    min_version: 2024.5.0
   description: >
     <br/>
     <br/>
