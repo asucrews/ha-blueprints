@@ -201,7 +201,7 @@ blueprint:
           domain:
             - timer
           multiple: false
-    light_contorl:
+    light_control:
       name: Light Control
       description: >
         What is controls lighting effects? Is it a swith or bulb?<br/>
