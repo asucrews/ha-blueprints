@@ -283,7 +283,7 @@ variables:
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
-  light_contorl: !input light_contorl
+  light_control: !input light_control
   light_control_features: !input light_control_features
   light_brightness_pct: !input light_brightness_pct
   light_temperature: !input light_temperature
