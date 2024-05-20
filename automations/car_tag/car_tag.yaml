@@ -9,7 +9,7 @@ blueprint:
     bermuda_ble:
       selector:
         entity:
-          integration: "bbermuda"
+          integration: "bermuda"
           domain:
             - device_tracker
           multiple: false
