@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.4)
+  name: Car Tag Stable (0.1.5)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
@@ -85,12 +85,10 @@ action:
             conditions:
               - condition: trigger
                 id: Connected
-              - condition: state
-                entity_id: !input car_tag_ble_area
-                state: unknown
-              - condition: state
-                entity_id: !input garage_door_cover
-                state: closed
+              - condition: template
+                value_template: "{{ is_state(car_tag_ble_area, ['unknown','unavailable','off']) }}"
+              - platform: template
+                value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
           - service: cover.open_cover
             data: {}
@@ -102,12 +100,11 @@ action:
               - condition: trigger
                 id:
                   - Disconnected
-              - condition: state
-                entity_id: !input car_tag_ble_area
+              - condition: template
+                value_template: "{{ is_state(car_tag_ble_area, ['unknown','unavailable','off']) }}"
                 state: unknown
-              - condition: state
-                entity_id: !input garage_door_cover
-                state: open
+              - platform: template
+                value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }"
         sequence:
           - if:
               - condition: state
@@ -135,31 +132,37 @@ action:
               - condition: trigger
                 id:
                   - iBeacon Found
-              - condition: state
-                entity_id: !input garage_door_cover
-                state: closed
+              - platform: template
+                value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
           - if:
               - condition: template
-                value_template: "{{ areas | length > 0 }}"
+                value_template: "{{ len(areas) > 0 }}"
             then:
               - condition: template
-                value_template: "{{ states(car_tag_ble_area) in areas }}"
+                value_template: "{{ is_state(car_tag_ble_area, areas) }}"
               - delay:
                   hours: 0
                   minutes: 0
                   seconds: 5
                   milliseconds: 0
-          - service: cover.open_cover
-            data: {}
-            target:
-              entity_id: !input garage_door_cover
+              - service: cover.open_cover
+                data: {}
+                target:
+                  entity_id: !input garage_door_cover
+            else:
+              - service: cover.open_cover
+                data: {}
+                target:
+                  entity_id: !input garage_door_cover
       - conditions:
           - condition: and
             conditions:
               - condition: trigger
                 id:
                   - iBeacon Not Found
+              - platform: template
+                value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }"
         sequence:
           - if:
               - condition: state

@@ -1,0 +1,224 @@
+blueprint:
+  name: WITB+ Stable (0.3.1)
+  homeassistant:
+    min_version: 2024.5.0
+  description: >
+    <br/>
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/dev/on_off_plus.yaml
+  input:
+    light_bulbs:
+      name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
+      description: >
+        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+        <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "light.none"
+      selector:
+        entity:
+          domain:
+            - light
+          multiple: false
+    light_switch:
+      name: Light, Light Group, Switch, or Switch Group (Optional)
+      description: >
+        Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+        <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "light.none"
+      selector:
+        entity:
+          domain:
+            - light
+            - switch
+          multiple: false
+    fan_switch:
+      name: Fan or Fan Group (Optional)
+      description: >
+        Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+        <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "fan.none"
+      selector:
+        entity:
+          domain:
+            - fan
+            - light
+          multiple: false
+    bypass_mode:
+      name: Bypass Mode (Optional)
+      description: >
+        Select the bypass mode to control how the automation handles bypass events.  This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
+        Bypass mode determines whether the automation should ignore occupancy detection temporarily.  Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
+        <br/>Options:<br/>
+          - No Bypass: Automation operates normally without bypassing occupancy detection.<br/>
+          - Bypass No Auto OFF: Automation temporarily ignores occupancy detection until manually turned off. To use this option, create an input_boolean helper entity for bypass control.<br/>
+          - Bypass Auto OFF: Automation temporarily ignores occupancy detection and automatically reverts to normal operation after a specified time. To use this option, create input_boolean and timer helper entities for bypass control and automatic timer management.<br/>
+        <br/>Default value: No Bypass. Only change if you intend to use this field and this input is optional.<br/>
+      default: no_bypass
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: No Bypass
+              value: no_bypass
+            - label: Bypass No Auto OFF
+              value: bypass_no_auto_off
+            - label: Bypass Auto OFF
+              value: bypass_auto_off
+          custom_value: false
+          multiple: false
+          sort: false
+    bypass_helper:
+      name: Bypass Helper (Optional)
+      description: >
+        Select an input boolean entity to serve as a bypass helper within the designated area ("box").  The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
+        To enable bypass for a WIAB room, manually integrate call service actions into your automations or methods.  For instance, you might configure a double-tap action on the light switch to set the bypass helper.<br/>
+        To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+        <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "input_boolean.none"
+      selector:
+        entity:
+          domain:
+            - input_boolean
+          multiple: false
+    bypass_timer:
+      name: Bypass Auto Off Timer (Optional)
+      description: >
+        Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+        To utilize this function, create an timer helper entity in your Home Assistant configuration or UI.<br/>
+        <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "timer.none"
+      selector:
+        entity:
+          domain:
+            - timer
+          multiple: false
+    bypass_finished_action:
+      name: Bypass Action After Timer Finished (Optional)
+      description: >
+        Specify the action to be taken after the bypass auto-off timer finishes counting down.  This determines whether the automation should turn off lights or other devices when the bypass timer expires.<br/>
+        <br/>Options:<br/>
+        - Turn Off: Automatically turns off lights or devices when the bypass timer expires.<br/>
+        - Do Nothing: Leaves lights or devices unchanged after the bypass timer expires.<br/>
+        <br/>Default value: Turn Off. Only change if you intend to use this field and this input is optional.<br/>
+      default: turn_off
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: Turn Off
+              value: turn_off
+            - label: Do Nothing
+              value: do_nothing
+          custom_value: false
+          multiple: false
+          sort: false
+    light_control:
+      name: Light Control
+      description: >
+        What is controls lighting effects? Is it a swith or bulb?<br/>
+        <br/>
+      default: none
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: None
+              value: none
+            - label: Bulb
+              value: bulb
+            - label: Switch
+              value: switch
+          custom_value: false
+          multiple: false
+          sort: false
+    light_control_features:
+      name: Light Control Features?
+      description: What light features to contorl?
+      default: []
+      selector:
+        select:
+          multiple: true
+          options:
+            - label: Use brightness
+              value: "use_brightness"
+            - label: Use colour temperature
+              value: "use_colour_temperature"
+            - label: Use transition
+              value: "use_transition"
+    light_brightness_pct:
+      name: Light brightness Percentage (Optional)
+      description: Light brightness Percentage 1 to 100%. 0 Turn off the light so we are ingoring that value.
+      default: 1
+      selector:
+        number:
+          mode: box
+          min: 1
+          max: 100
+          unit_of_measurement: percentage
+          step: 1
+    light_temperature:
+      name: Light temperature (Optional)
+      description: Light temperature in Kelvin 2000 to 65000
+      default: 2000
+      selector:
+        number:
+          mode: box
+          min: 2000
+          max: 6500
+          unit_of_measurement: kelvin
+          step: 1
+    light_transition:
+      name: Light Transition (Optional)
+      description: Light Transition 0 to 10 seconds
+      default: 0
+      selector:
+        number:
+          mode: box
+          min: 0
+          max: 10
+          unit_of_measurement: seconds
+          step: 1
+
+variables:
+  light_bulbs: !input light_bulbs
+  light_switch: !input light_switch
+  fan_switch: !input fan_switch
+  bypass_mode: !input bypass_mode
+  bypass_helper: !input bypass_helper
+  bypass_timer: !input bypass_timer
+  bypass_finished_action: !input bypass_finished_action
+  light_control: !input light_control
+  light_control_features: !input light_control_features
+  light_brightness_pct: !input light_brightness_pct
+  light_temperature: !input light_temperature
+  light_transition: !input light_transition
+
+trigger:
+  - platform: time
+    at: "07:30:00"
+    id: Weekday Open Time
+  - platform: time
+    at: "08:30:00"
+    id: Weekend Open Time
+  - platform: time
+    at: "19:30:00"
+    id: Weekday Close Time
+  - platform: time
+    at: "20:30:00"
+    id: Weekend Close Time
+  - platform: numeric_state
+    entity_id:
+      - sun.sun
+    attribute: elevation
+    below: -1.5
+    id: Dusk
+  - platform: numeric_state
+    entity_id:
+      - sun.sun
+    attribute: elevation
+    id: Dawn
+    above: -4
+
+action: []
+
+mode: queued
+max: 5
