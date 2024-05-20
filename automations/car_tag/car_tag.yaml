@@ -11,6 +11,7 @@ blueprint:
         entity:
           integration: "bermuda"
           domain:
+            - binary_sensor
             - device_tracker
           multiple: false
     bermuda_ble_area:
