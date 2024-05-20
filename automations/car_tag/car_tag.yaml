@@ -1,28 +1,48 @@
 blueprint:
-  name: Car Tag Stable (0.1.5)
+  name: Car Tag Stable (0.1.6)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
   input:
-    car_tag_node_status:
+    bermuda_ble:
       selector:
         entity:
-          domain:
-            - binary_sensor
-          multiple: false
-    car_tag_ble_ibeacon:
-      selector:
-        entity:
+          integration:
+            - bermuda
           domain:
             - device_tracker
           multiple: false
-    car_tag_ble_area:
+    bermuda_ble_area:
       selector:
         entity:
+          integration:
+            - bermuda
           domain:
             - sensor
+          multiple: false
+    bermuda_ble_areas:
+      name: "Areas"
+      description: >
+        House Areas
+      default:
+        - "Garage"
+    esphome_ble:
+      selector:
+        entity:
+          integration:
+            - esphome
+          domain:
+            - binary_sensor
+          multiple: false
+    esphome_node_status:
+      selector:
+        entity:
+          integration:
+            - esphome
+          domain:
+            - binary_sensor
           multiple: false
     garage_door_cover:
       name: Garage Door Cover
@@ -38,45 +58,52 @@ blueprint:
       default: timer.none
       selector:
         entity:
+          integration:
+            - timer
           domain:
             - timer
           multiple: false
-    areas:
-      name: "Areas"
-      description: >
-        House Areas
-      default:
-        - "Garage"
 
 variables:
-  car_tag_node_status: !input car_tag_node_status
-  car_tag_ble_ibeacon: !input car_tag_ble_ibeacon
-  car_tag_ble_area: !input car_tag_ble_area
+  bermuda_ble: !input bermuda_ble
+  bermuda_ble_area: !input bermuda_ble_area
+  bermuda_ble_areas: !input bermuda_ble_areas
+  esphome_ble: !input esphome_ble
+  esphome_node_status: !input esphome_node_status
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
-  areas: !input areas
 
 trigger:
   - platform: state
-    entity_id: !input car_tag_node_status
+    entity_id: !input bermuda_ble
+    from: not_home
+    to: home
+    id: Bermuda BLE Found
+  - platform: state
+    entity_id: !input bermuda_ble
+    from: home
+    to: not_home
+    id: Bermuda BLE Not Found
+  - platform: state
+    entity_id: !input esphome_ble
+    from: "off"
+    to: "on"
+    id: ESPHome BLE Found
+  - platform: state
+    entity_id: !input esphome_ble
+    from: "on"
+    to: "off"
+    id: ESPHome BLE Not Found
+  - platform: state
+    entity_id: !input esphome_node_status
     from: "off"
     to: "on"
     id: Connected
   - platform: state
-    entity_id: !input car_tag_node_status
+    entity_id: !input esphome_node_status
     from: "on"
     to: "off"
     id: Disconnected
-  - platform: state
-    entity_id: !input car_tag_ble_ibeacon
-    from: not_home
-    to: home
-    id: iBeacon Found
-  - platform: state
-    entity_id: !input car_tag_ble_ibeacon
-    from: home
-    to: not_home
-    id: iBeacon Not Found
 
 action:
   - choose:
@@ -86,7 +113,7 @@ action:
               - condition: trigger
                 id: Connected
               - condition: template
-                value_template: "{{ is_state(car_tag_ble_area, ['unknown','unavailable','off']) }}"
+                value_template: "{{ is_state(bermuda_ble_area, ['unknown','unavailable','off']) }}"
               - platform: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
@@ -101,7 +128,7 @@ action:
                 id:
                   - Disconnected
               - condition: template
-                value_template: "{{ is_state(car_tag_ble_area, ['unknown','unavailable','off']) }}"
+                value_template: "{{ is_state(bermuda_ble_area, ['unknown','unavailable','off']) }}"
                 state: unknown
               - platform: template
                 value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }"
@@ -131,16 +158,17 @@ action:
             conditions:
               - condition: trigger
                 id:
-                  - iBeacon Found
+                  - Bermuda BLE Found
+                  - ESPHome BLE Found
               - platform: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
           - if:
               - condition: template
-                value_template: "{{ len(areas) > 0 }}"
+                value_template: "{{ len(bermuda_ble_areas) > 0 }}"
             then:
               - condition: template
-                value_template: "{{ is_state(car_tag_ble_area, areas) }}"
+                value_template: "{{ is_state(bermuda_ble_area, bermuda_ble_areas) }}"
               - delay:
                   hours: 0
                   minutes: 0
@@ -160,7 +188,8 @@ action:
             conditions:
               - condition: trigger
                 id:
-                  - iBeacon Not Found
+                  - Bermuda BLE Not Found
+                  - ESPHome BLE Not Found
               - platform: template
                 value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }"
         sequence:
