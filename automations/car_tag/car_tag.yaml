@@ -110,11 +110,6 @@ trigger:
     id: Disconnected
 
 action:
-  - service: input_text.set_value
-    target:
-      entity_id: !input automation_trigger_id_helper
-    data:
-      value: "{{ trigger.id }}"
   - choose:
       - conditions:
           - condition: and
@@ -222,6 +217,11 @@ action:
                 data: {}
                 target:
                   entity_id: !input garage_door_timer_helper
+  - service: input_text.set_value
+    target:
+      entity_id: !input automation_trigger_id_helper
+    data:
+      value: "{{ trigger.id }}"
 
 mode: queued
 max: 5
