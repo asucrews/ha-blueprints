@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.6rc2)
+  name: Car Tag Stable (0.1.6rc3)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
@@ -58,8 +58,17 @@ blueprint:
           domain:
             - timer
           multiple: false
+    automation_trigger_id_helper:
+      name: Automation Trigger ID
+      description: Automation Trigger ID
+      selector:
+        entity:
+          domain:
+            - input_text
+          multiple: false
 
 variables:
+  automation_trigger_id_helper: !input automation_trigger_id_helpe
   bermuda_ble: !input bermuda_ble
   bermuda_ble_area: !input bermuda_ble_area
   bermuda_ble_areas: !input bermuda_ble_areas
@@ -101,6 +110,11 @@ trigger:
     id: Disconnected
 
 action:
+  - service: input_text.set_value
+    target:
+      entity_id: !input automation_trigger_id_helper
+    data:
+      value: "{{ trigger.id }}"
   - choose:
       - conditions:
           - condition: and
