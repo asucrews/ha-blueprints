@@ -68,7 +68,7 @@ blueprint:
           multiple: false
 
 variables:
-  automation_trigger_id_helper: !input automation_trigger_id_helpe
+  automation_trigger_id_helper: !input automation_trigger_id_helper
   bermuda_ble: !input bermuda_ble
   bermuda_ble_area: !input bermuda_ble_area
   bermuda_ble_areas: !input bermuda_ble_areas
