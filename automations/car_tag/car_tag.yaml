@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.8)
+  name: Car Tag Stable (0.1.9)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
@@ -174,13 +174,13 @@ action:
                     id:
                       - Bermuda BLE Found
             then:
-              - condition: template
-                value_template: "{{ is_state(bermuda_ble_area, bermuda_ble_areas) }}"
               - delay:
                   hours: 0
                   minutes: 0
                   seconds: 5
                   milliseconds: 0
+              - condition: template
+                value_template: "{{ is_state(bermuda_ble_area, bermuda_ble_areas) }}"
               - service: cover.open_cover
                 data: {}
                 target:
