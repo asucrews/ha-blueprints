@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.1.9)
+  name: Car Tag Stable (0.1.10rc1)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
@@ -124,6 +124,7 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
+            enabled: false
       - conditions:
           - condition: and
             conditions:
@@ -185,11 +186,13 @@ action:
                 data: {}
                 target:
                   entity_id: !input garage_door_cover
+                enabled: false
             else:
               - service: cover.open_cover
                 data: {}
                 target:
                   entity_id: !input garage_door_cover
+                enabled: false
       - conditions:
           - condition: and
             conditions:
