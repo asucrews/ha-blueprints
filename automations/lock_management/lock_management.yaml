@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Stable (0.2.1)
+  name: Lock Management Stable (0.3.0)
   homeassistant:
     min_version: 2024.4.0
   description: lock Management 
@@ -13,6 +13,17 @@ blueprint:
         entity:
           domain:
             - lock
+          multiple: false
+    door_sensor:
+      name: Door Sensor or Door Sensor Group
+      description: >
+        Select the door sensor or group of door sensors where occupancy is detected.<br/>
+        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
+      default: binary_sensor.none
+      selector:
+        entity:
+          domain:
+            - binary_sensor
           multiple: false
     auto_lock_timer:
       name: Auto Lock Timer
@@ -35,6 +46,7 @@ blueprint:
 
 variables:
   lock: !input lock
+  door_sensor: !input door_sensor
   auto_lock_timer: !input auto_lock_timer
   notify_device: !input notify_device
 
@@ -83,7 +95,7 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
+                        value_template: "{{ notify_device | list | count > 0 }}"
                     then:
                       - repeat:
                           for_each: !input notify_device
@@ -128,7 +140,7 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
+                        value_template: "{{ notify_device | list | count > 0 }}"
                     then:
                       - repeat:
                           for_each: !input notify_device
@@ -151,11 +163,28 @@ action:
               id:
                 - Timer Finished
         sequence:
-          - service: lock.lock
-            metadata: {}
-            data: {}
-            target:
-              entity_id: !input lock
-
+          - if:
+            - condition: and
+              conditions:
+                - condition: template
+                  value_template: "{{ is_state(door_sensor, ['on']) }}"
+                - condition: template
+                  value_template: "{{ door_sensor != 'binary_sensor.none' }}"
+            then:
+              - service: timer.cancel
+                target:
+                  entity_id: !input auto_lock_timer
+                data: {}
+              - service: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input auto_lock_timer
+            else:
+              - service: lock.lock
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input lock
 mode: queued
 max: 5
