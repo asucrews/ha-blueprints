@@ -179,7 +179,7 @@ action:
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: !input gauto_lock_timer
+                  entity_id: !input auto_lock_timer
             else:
               - service: lock.lock
                 metadata: {}
