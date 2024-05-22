@@ -1,6 +1,10 @@
 # Changelog
 
-## [0.2.0rc1] 2024-04-29
+## [0.3.0] 2024-05-22
+### Added
+- Door Sensor support
+
+## [0.2.0] 2024-04-29
 ### Added
 - Notification
 
