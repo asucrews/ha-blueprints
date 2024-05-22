@@ -80,7 +80,6 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
-            enabled: false
       - conditions:
           - condition: and
             conditions:
@@ -123,7 +122,6 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_cover
-            enabled: false
       - conditions:
           - condition: and
             conditions:
