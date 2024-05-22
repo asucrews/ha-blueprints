@@ -23,11 +23,11 @@ blueprint:
           step: 1
     left_open_timer_helper:
       name: "Left Open Timer Helper"
-      description: ""
+      description:
+      default: timer.none
       selector:
         entity:
           domain: timer
-
     notify_device:
       name: "Device to notify"
       description: Device which gets a notification.

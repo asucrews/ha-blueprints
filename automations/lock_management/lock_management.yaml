@@ -1,8 +1,8 @@
 blueprint:
-  name: Lock Management Stable (0.3.0)
+  name: Lock Management Stable (0.4.0)
   homeassistant:
     min_version: 2024.4.0
-  description: lock Management 
+  description: lock Management
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
   input:
@@ -34,15 +34,10 @@ blueprint:
           domain:
             - timer
           multiple: false
-    notify_device:
-      name: Easy Notify - Devices Notified (Optional)
+    notify_group:
+      name: Easy Notify Group - Devices Notified (Optional)
       description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: []
-      selector:
-        device:
-          filter:
-            - integration: mobile_app
-          multiple: true
+      default: ""
 
 variables:
   lock: !input lock
@@ -54,7 +49,7 @@ trigger:
   - platform: event
     event_type: lock_code_manager_lock_state_changed
     event_data:
-       entity_id: !input lock
+      entity_id: !input lock
     id: LCM Event
   - platform: event
     event_type: timer.finished
@@ -80,8 +75,8 @@ action:
                     value_template: "{{ lock_state == 'locked' }}"
                 sequence:
                   - if:
-                    - condition: template
-                      value_template: "{{ auto_lock_timer != 'timer.none' }}"
+                      - condition: template
+                        value_template: "{{ auto_lock_timer != 'timer.none' }}"
                     then:
                       - if:
                           - condition: state
@@ -95,20 +90,21 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | list | count > 0 }}"
+                        value_template: "{{ notify_group is defined }}"
                     then:
-                      - repeat:
-                          for_each: !input notify_device
-                          sequence:
-                            - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
-                              data:
-                                message: >
-                                  {% if code_slot > 0 %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
-                                  {% else %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked"
-                                  {% endif %}
-                                title: "{{ device_attr(lock, 'name') }}"
+                      - service: notify.{{ notify_group }}
+                        data:
+                          title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
+                          message: >
+                            {% if code_slot > 0 %}
+                              "{{ device_attr(lock, 'name') }} was locked by {{ code_slot_name }}"
+                            {% else %}
+                              "{{ device_attr(lock, 'name') }} was locked"
+                            {% endif %}
+                          data:
+                            ttl: 0
+                            priority: high
+                            tag: "tag-{{ trigger.entity_id }}"
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
@@ -140,36 +136,37 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | list | count > 0 }}"
+                        value_template: "{{ notify_group is defined }}"
                     then:
-                      - repeat:
-                          for_each: !input notify_device
-                          sequence:
-                            - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
-                              data:
-                                message: >
-                                  {% if code_slot > 0 %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
-                                  {% else %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked"
-                                  {% endif %}
-                                title: "{{ device_attr(lock, 'name') }}"
+                      - service: notify.{{ notify_group }}
+                        data:
+                          title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
+                          message: >
+                            {% if code_slot > 0 %}
+                              "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
+                            {% else %}
+                              "{{ device_attr(lock, 'name') }} was unlocked"
+                            {% endif %}
+                          data:
+                            ttl: 0
+                            priority: high
+                            tag: "tag-{{ trigger.entity_id }}"
       - conditions:
           - condition: and
             conditions:
-            - condition: template
-              value_template: "{{ auto_lock_timer != 'timer.none' }}"
-            - condition: trigger
-              id:
-                - Timer Finished
+              - condition: template
+                value_template: "{{ auto_lock_timer != 'timer.none' }}"
+              - condition: trigger
+                id:
+                  - Timer Finished
         sequence:
           - if:
-            - condition: and
-              conditions:
-                - condition: template
-                  value_template: "{{ is_state(door_sensor, ['on']) }}"
-                - condition: template
-                  value_template: "{{ door_sensor != 'binary_sensor.none' }}"
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ is_state(door_sensor, ['on']) }}"
+                  - condition: template
+                    value_template: "{{ door_sensor != 'binary_sensor.none' }}"
             then:
               - service: timer.cancel
                 target:
