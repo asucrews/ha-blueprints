@@ -1,10 +1,10 @@
-# Lock Management Dev (0.1.0)
+# Lock Management Stable
 
 **Warning**: AI was used to write and format this readme
 
 ## Overview
 
-Lock Management Dev (0.1.0) is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
+Lock Management Stable is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
 
 ## Assumptions
 
