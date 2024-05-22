@@ -43,7 +43,7 @@ variables:
   lock: !input lock
   door_sensor: !input door_sensor
   auto_lock_timer: !input auto_lock_timer
-  notify_device: !input notify_device
+  notify_group: !input notify_group
 
 trigger:
   - platform: event
