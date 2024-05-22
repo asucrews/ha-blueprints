@@ -234,7 +234,7 @@ action:
                 id:
                   - Obstruction Found
               - condition: template
-                value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
+                value_template: "{{ is_state(ratdgo_device, ['on', 'open', 'opening']) }}"
               - condition: template
                 value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
         sequence:
