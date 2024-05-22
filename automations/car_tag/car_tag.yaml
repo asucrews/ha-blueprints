@@ -12,13 +12,13 @@ blueprint:
           domain:
             - binary_sensor
           multiple: false
-    esphome_node_status:  
+    esphome_node_status:
       selector:
         entity:
           integration: "esphome"
           domain:
             - binary_sensor
-          multiple: false
+          multiple: true
     garage_door_cover:
       name: Garage Door Cover
       description: Garage Door Cover?
@@ -37,7 +37,7 @@ blueprint:
           domain:
             - timer
           multiple: false
- 
+
 variables:
   esphome_ble: !input esphome_ble
   esphome_node_status: !input esphome_node_status
