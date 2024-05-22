@@ -18,7 +18,7 @@ blueprint:
       name: Door Sensor or Door Sensor Group
       description: >
         Select the door sensor or group of door sensors where occupancy is detected.<br/>
-        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
       default: binary_sensor.none
       selector:
         entity:
