@@ -1,3 +1,6 @@
 [submodule "other_peoples/automations/Home-Automation"]
 	path = other_peoples/automations/Home-Automation
 	url = https://github.com/etiennec78/Home-Automation.git
+[submodule "other_peoples/automations/etiennec78-ha"]
+	path = other_peoples/automations/etiennec78-ha
+	url = https://github.com/etiennec78/Home-Automation.git
