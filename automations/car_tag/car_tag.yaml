@@ -181,7 +181,7 @@ action:
                   seconds: 5
                   milliseconds: 0
               - condition: template
-                value_template: "{{ is_state(bermuda_ble_area, bermuda_ble_areas.split(',') }}"
+                value_template: "{{ is_state(bermuda_ble_area, bermuda_ble_areas.split(',')) }}"
               - service: cover.open_cover
                 data: {}
                 target:
