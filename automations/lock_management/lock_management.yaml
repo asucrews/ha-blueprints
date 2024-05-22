@@ -140,7 +140,7 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
+                        value_template: "{{ notify_device | list | count > 0 }}"
                     then:
                       - repeat:
                           for_each: !input notify_device
