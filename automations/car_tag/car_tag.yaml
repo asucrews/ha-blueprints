@@ -1,31 +1,11 @@
 blueprint:
-  name: Car Tag Stable (0.1.10rc4)
+  name: Car Tag Stable (0.2.0)
   homeassistant:
     min_version: 2024.5.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
   input:
-    bermuda_ble:
-      selector:
-        entity:
-          integration: "bermuda"
-          domain:
-            - device_tracker
-          multiple: false
-    bermuda_ble_area:
-      selector:
-        entity:
-          integration: "bermuda"
-          domain:
-            - sensor
-          multiple: false
-    bermuda_ble_areas:
-      name: "Areas"
-      description: >
-        House Areas
-      default:
-        - "Garage"
     esphome_ble:
       selector:
         entity:
@@ -57,36 +37,14 @@ blueprint:
           domain:
             - timer
           multiple: false
-    automation_trigger_id_helper:
-      name: Automation Trigger ID
-      description: Automation Trigger ID
-      selector:
-        entity:
-          domain:
-            - input_text
-          multiple: false
-
+ 
 variables:
-  automation_trigger_id_helper: !input automation_trigger_id_helper
-  bermuda_ble: !input bermuda_ble
-  bermuda_ble_area: !input bermuda_ble_area
-  bermuda_ble_areas: !input bermuda_ble_areas
   esphome_ble: !input esphome_ble
   esphome_node_status: !input esphome_node_status
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
 
 trigger:
-  - platform: state
-    entity_id: !input bermuda_ble
-    from: not_home
-    to: home
-    id: Bermuda BLE Found
-  - platform: state
-    entity_id: !input bermuda_ble
-    from: home
-    to: not_home
-    id: Bermuda BLE Not Found
   - platform: state
     entity_id: !input esphome_ble
     from: "off"
@@ -116,8 +74,6 @@ action:
               - condition: trigger
                 id: Connected
               - condition: template
-                value_template: "{{ is_state(bermuda_ble_area, ['unknown','unavailable','off']) }}"
-              - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
           - service: cover.open_cover
@@ -131,8 +87,6 @@ action:
               - condition: trigger
                 id:
                   - Disconnected
-              - condition: template
-                value_template: "{{ is_state(bermuda_ble_area, ['unknown','unavailable','off']) }}"
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
         sequence:
@@ -161,46 +115,20 @@ action:
             conditions:
               - condition: trigger
                 id:
-                  - Bermuda BLE Found
                   - ESPHome BLE Found
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ bermuda_ble_areas | list | count > 0 }}"
-                  - condition: trigger
-                    id:
-                      - Bermuda BLE Found
-                  - condition: template
-                    value_template: "{{ automation_trigger_id_helper != 'ESPHome BLE Found' }}"
-            then:
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 5
-                  milliseconds: 0
-              - condition: template
-                value_template: "{{ is_state(bermuda_ble_area, bermuda_ble_areas.split(',')) }}"
-              - service: cover.open_cover
-                data: {}
-                target:
-                  entity_id: !input garage_door_cover
-                enabled: false
-            else:
-              - service: cover.open_cover
-                data: {}
-                target:
-                  entity_id: !input garage_door_cover
-                enabled: false
+          - service: cover.open_cover
+            data: {}
+            target:
+              entity_id: !input garage_door_cover
+            enabled: false
       - conditions:
           - condition: and
             conditions:
               - condition: trigger
                 id:
-                  - Bermuda BLE Not Found
                   - ESPHome BLE Not Found
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
@@ -225,11 +153,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input garage_door_timer_helper
-  - service: input_text.set_value
-    target:
-      entity_id: !input automation_trigger_id_helper
-    data:
-      value: "{{ trigger.id }}"
 
 mode: queued
 max: 5
