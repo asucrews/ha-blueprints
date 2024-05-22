@@ -213,7 +213,7 @@ action:
             id:
               - Door timer is done
           - condition: template
-            value_template: "{{ is_state(garage_door_cover, ['on', 'open']) }}"
+            value_template: "{{ is_state(ratdgo_device, ['on', 'open']) }}"
         sequence:
           - if:
               - condition: and
