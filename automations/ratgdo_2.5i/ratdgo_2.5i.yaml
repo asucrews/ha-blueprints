@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.2.1)
+  name: Ratdgo 2.5i Stable (0.3.0)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -90,16 +90,16 @@ variables:
   bypass_helper: !input bypass_helper
 
 trigger:
-  - platform: state
-    entity_id: !input ratdgo_device
-    from: closed
-    to: opening
-    id: Garage Door is Opening
-  - platform: state
-    entity_id: !input ratdgo_device
-    from: opening
-    to: open
-    id: Garage Door is Open
+  # - platform: state
+  #   entity_id: !input ratdgo_device
+  #   from: closed
+  #   to: opening
+  #   id: Garage Door is Opening
+  # - platform: state
+  #   entity_id: !input ratdgo_device
+  #   from: opening
+  #   to: open
+  #   id: Garage Door is Open
   - platform: state
     entity_id: !input ratdgo_device
     from: open
@@ -115,6 +115,16 @@ trigger:
     event_data:
       entity_id: !input garage_door_timer_helper
     id: Door timer is done
+  - platform: state
+    entity_id: !input obstruction_entity
+    from: "off"
+    to: "on"
+    id: Obstruction Found
+  # - platform: state
+  #   entity_id: !input obstruction_entity
+  #   from: "on"
+  #   to: "off"
+  #   id: Obstruction Not Found
 
 action:
   - choose:
@@ -176,6 +186,8 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
+                  - condition: template
+                    value_template: "{{ is_state(garage_door_timer_helper, ['active', 'paused'] ) }}"
             then:
               - service: timer.cancel
                 metadata: {}
@@ -200,9 +212,8 @@ action:
           - condition: trigger
             id:
               - Door timer is done
-          - condition: state
-            entity_id: !input ratdgo_device
-            state: open
+          - condition: template
+            value_template: "{{ is_state(garage_door_cover, ['on', 'open']) }}"
         sequence:
           - if:
               - condition: and
@@ -216,18 +227,25 @@ action:
                 data: {}
                 target:
                   entity_id: !input ratdgo_device
-            else:
-              - if:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
-                then:
-                  - service: timer.start
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input garage_door_timer_helper
-
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Obstruction Found
+              - condition: template
+                value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
+              - condition: template
+                value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
+        sequence:
+          - service: timer.cancel
+            target:
+              entity_id: !input garage_door_timer_helper
+            data: {}
+          - service: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input garage_door_timer_helper
 mode: queued
 max: 5
