@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.3.0)
+  name: Ratdgo 2.5i Stable (0.3.1)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -95,16 +95,16 @@ trigger:
   #   from: closed
   #   to: opening
   #   id: Garage Door is Opening
-  # - platform: state
-  #   entity_id: !input ratdgo_device
-  #   from: opening
-  #   to: open
-  #   id: Garage Door is Open
   - platform: state
     entity_id: !input ratdgo_device
-    from: open
-    to: closing
-    id: Garage Door is Closing
+    from: opening
+    to: open
+    id: Garage Door is Open
+  # - platform: state
+  #   entity_id: !input ratdgo_device
+  #   from: open
+  #   to: closing
+  #   id: Garage Door is Closing
   - platform: state
     entity_id: !input ratdgo_device
     from: closing
