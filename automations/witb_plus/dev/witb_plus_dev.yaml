@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.4.0rc1)
+  name: WITB+ Dev (0.4.0rc2)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -389,12 +389,18 @@ action:
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
             then:
               - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
@@ -585,12 +591,18 @@ action:
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
@@ -709,12 +721,18 @@ action:
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
             then:
               - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
@@ -924,12 +942,18 @@ action:
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on

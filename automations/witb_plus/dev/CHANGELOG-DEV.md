@@ -4,7 +4,7 @@
 
 ### Added
 
-- Bedtime to stop automatic lights
+- Bedtime to stop automatic lights only if the room is occupied
 
 ## [0.3.1] - 2024-05-16
 
