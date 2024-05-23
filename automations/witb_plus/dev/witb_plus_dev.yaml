@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.3.2rc0)
+  name: WITB+ Stable (0.4.0rc1)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -21,8 +21,7 @@ blueprint:
         <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
       selector:
         entity:
-          domain:
-            - binary_sensor
+          domain: binary_sensor
           multiple: false
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group
@@ -31,8 +30,7 @@ blueprint:
         <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
       selector:
         entity:
-          domain:
-            - binary_sensor
+          domain: binary_sensor
           multiple: false
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
@@ -42,8 +40,7 @@ blueprint:
       default: "light.none"
       selector:
         entity:
-          domain:
-            - light
+          domain: light
           multiple: false
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
@@ -65,9 +62,7 @@ blueprint:
       default: "fan.none"
       selector:
         entity:
-          domain:
-            - fan
-            - light
+          domain: fan
           multiple: false
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
@@ -117,8 +112,7 @@ blueprint:
       default: "input_boolean.none"
       selector:
         entity:
-          domain:
-            - input_boolean
+          domain: input_boolean
           multiple: false
     bypass_mode:
       name: Bypass Mode (Optional)
@@ -154,8 +148,7 @@ blueprint:
       default: "input_boolean.none"
       selector:
         entity:
-          domain:
-            - input_boolean
+          domain: input_boolean
           multiple: false
     bypass_timer:
       name: Bypass Auto Off Timer (Optional)
@@ -166,8 +159,7 @@ blueprint:
       default: "timer.none"
       selector:
         entity:
-          domain:
-            - timer
+          domain: timer
           multiple: false
     bypass_finished_action:
       name: Bypass Action After Timer Finished (Optional)
@@ -198,10 +190,9 @@ blueprint:
       default: "timer.none"
       selector:
         entity:
-          domain:
-            - timer
+          domain: timer
           multiple: false
-    light_contorl:
+    light_control:
       name: Light Control
       description: >
         What is controls lighting effects? Is it a swith or bulb?<br/>
@@ -222,7 +213,7 @@ blueprint:
           sort: false
     light_control_features:
       name: Light Control Features?
-      description: <br/>
+      description: What light features to contorl?
       default: []
       selector:
         select:
@@ -236,7 +227,7 @@ blueprint:
               value: "use_transition"
     light_brightness_pct:
       name: Light brightness Percentage (Optional)
-      description: test
+      description: Light brightness Percentage 1 to 100%. 0 Turn off the light so we are ingoring that value.
       default: 1
       selector:
         number:
@@ -247,7 +238,7 @@ blueprint:
           step: 1
     light_temperature:
       name: Light temperature (Optional)
-      description: test
+      description: Light temperature in Kelvin 2000 to 65000
       default: 2000
       selector:
         number:
@@ -258,7 +249,7 @@ blueprint:
           step: 1
     light_transition:
       name: Light Transition (Optional)
-      description: test
+      description: Light Transition 0 to 10 seconds
       default: 0
       selector:
         number:
@@ -267,6 +258,24 @@ blueprint:
           max: 10
           unit_of_measurement: seconds
           step: 1
+    weekday_bedtime:
+      name: "Weekday Bedtime"
+      description: >
+        Set weekday bedtime schedule.  This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+      default: "schedule.none"
+      selector:
+        entity:
+          domain: schedule
+          multiple: false
+    weekend_bedtime:
+      name: "Weekdend Bedtime"
+      description: >
+        Set weekend bedtime schedule. This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+      default: "schedule.none"
+      selector:
+        entity:
+          domain: schedule
+          multiple: false
 
 variables:
   door_sensor: !input door_sensor
@@ -283,11 +292,13 @@ variables:
   bypass_timer: !input bypass_timer
   bypass_finished_action: !input bypass_finished_action
   idle_timer: !input idle_timer
-  light_contorl: !input light_contorl
+  light_control: !input light_control
   light_control_features: !input light_control_features
   light_brightness_pct: !input light_brightness_pct
   light_temperature: !input light_temperature
   light_transition: !input light_transition
+  weekday_bedtime: !input weekday_bedtime
+  weekend_bedtime: !input weekend_bedtime
 
 trigger:
   # If door is opened
@@ -368,7 +379,24 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
-
+          # Check for bedtime, if so then stop
+          - if:
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+            then:
+              - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
           - if:
               # Check if both conditions are met
@@ -491,7 +519,6 @@ action:
                   - service: homeassistant.turn_on
                     target:
                       entity_id: !input light_bulbs
-
           # Turns on light switch if configured and currently off
           - if:
               - condition: and
@@ -548,6 +575,24 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Check for bedtime, if so then stop
+          - if:
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+            then:
+              - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
           - if:
               # Check if both conditions are met
@@ -654,6 +699,24 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Check for bedtime, if so then stop
+          - if:
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+            then:
+              - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
           - if:
               # Check if both conditions are met
@@ -851,6 +914,24 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Check for bedtime, if so then stop
+          - if:
+              - condition: or
+                conditions:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                      - condition: template
+                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
+            then:
+              - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
           - if:
               # Check if both conditions are met
@@ -956,14 +1037,64 @@ action:
         sequence:
           # Finishes bypass timer if configured
           - if:
-              - condition: template
-                value_template: "{{ bypass_timer != 'timer.none' }}"
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ bypass_finished_action == 'turn_off' }}"
+                  - condition: template
+                    value_template: "{{ bypass_timer != 'timer.none' }}"
             then:
-              - service: timer.finish
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input bypass_timer
+              # Turns off occupancy helper if configured
+              - if:
+                  - condition: template
+                    value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+                then:
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input occupancy_helper
+              # Turns off light bulbs if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ light_bulbs != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "on"
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
+              # Turns off light switch if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ light_switch != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
+              # Turns off fan switch if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ fan_switch != 'fan.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
+                  - service: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input fan_switch
       # Actions to perform when bypass timer finishes
       - conditions:
           - condition: and
@@ -1069,8 +1200,6 @@ action:
                   - condition: state
                     state: "off"
                     entity_id: !input door_sensor
-                  - condition: template
-                    value_template: "{{ idle_timer_restarted == false }}"
             then:
               # Turns off occupancy helper if configured
               - if:
@@ -1192,5 +1321,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
+
 mode: queued
 max: 5
