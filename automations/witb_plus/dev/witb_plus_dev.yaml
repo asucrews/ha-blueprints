@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.4.0rc2)
+  name: WITB+ Dev (0.4.0rc3)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -392,6 +392,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
                   - condition: and
                     conditions:
                       - condition: template
@@ -401,6 +405,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
             then:
               - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
@@ -594,6 +602,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
                   - condition: and
                     conditions:
                       - condition: template
@@ -603,6 +615,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
@@ -724,6 +740,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
                   - condition: and
                     conditions:
                       - condition: template
@@ -733,6 +753,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
             then:
               - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
@@ -945,6 +969,10 @@ action:
                       - condition: state
                         entity_id: !input occupancy_helper
                         state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 30
                   - condition: and
                     conditions:
                       - condition: template
