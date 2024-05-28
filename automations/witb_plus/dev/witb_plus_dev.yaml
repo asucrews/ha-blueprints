@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.4.0rc3)
+  name: WITB+ Dev (0.4.0rc4)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -361,6 +361,8 @@ trigger:
     id: Idle Timer Finished
 
 action:
+  - variables:
+      previous_occupancy_helper_state: "{{ states(occupancy_helper) }}"
   # Actions to perform when the door is closed
   - choose:
       # Actions to perfrom when the door is closed
@@ -388,27 +390,31 @@ action:
                       - condition: template
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
             then:
               - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
@@ -598,27 +604,31 @@ action:
                       - condition: template
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
@@ -736,27 +746,31 @@ action:
                       - condition: template
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
             then:
               - stop: Bedtime
           # Truns on light_bulbs if configured and the light is off
@@ -965,23 +979,31 @@ action:
                       - condition: template
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 30
+                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
                       - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, ['on']) }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
+                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
+                      - condition: template
+                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
+                      # - condition: state
+                      #   entity_id: !input occupancy_helper
+                      #   state: "on"
+                      #   for:
+                      #     hours: 0
+                      #     minutes: 0
+                      #     seconds: 10
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on

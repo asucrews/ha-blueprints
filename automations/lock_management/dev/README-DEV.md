@@ -1,14 +1,14 @@
-**Warning**: AI was used to write and format this readme
+# Lock Management Dev
 
-# Lock Management Dev (0.1.1.rc0)
+**Warning**: AI was used to write and format this readme
 
 ## Overview
 
-Lock Management Dev (0.1.1.rc0) is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
+Lock Management Dev is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
 
 ## Assumptions
 
-- User must have Lock Code Manager configured and working by raman325 (Github)[https://github.com/raman325/lock_code_manager]
+- User must have Lock Code Manager configured and working by raman325 [Github](https://github.com/raman325/lock_code_manager)
 - It is assumed that users have configured their door locks and timers correctly within their home automation system.
 - Users are expected to ensure that the necessary triggers and conditions are met for the automation to function as intended.
 
@@ -63,7 +63,7 @@ The source code for Log Management Blueprint can be found on GitHub:
 
 ## Future Enhancements
 
-# Feedback
+## Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the WITB+ Blueprint. Whether you have ideas for improvements, encountered issues during implementation, or simply want to share your experience using the blueprint, your feedback is invaluable to us.
 

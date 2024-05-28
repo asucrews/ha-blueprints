@@ -1,8 +1,8 @@
 blueprint:
-  name: Lock Management Dev (0.3.0.r0)
+  name: Lock Management Stable (0.4.0)
   homeassistant:
     min_version: 2024.4.0
-  description: lock Management 
+  description: lock Management
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
   input:
@@ -14,6 +14,17 @@ blueprint:
           domain:
             - lock
           multiple: false
+    door_sensor:
+      name: Door Sensor or Door Sensor Group
+      description: >
+        Select the door sensor or group of door sensors where occupancy is detected.<br/>
+        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
+      default: binary_sensor.none
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+          multiple: false
     auto_lock_timer:
       name: Auto Lock Timer
       description: Auto Lock Timer
@@ -23,31 +34,27 @@ blueprint:
           domain:
             - timer
           multiple: false
-    notify_device:
-      name: Easy Notify - Devices Notified (Optional)
+    notify_group:
+      name: Easy Notify Group - Devices Notified (Optional)
       description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: []
-      selector:
-        device:
-          filter:
-            - integration: mobile_app
-          multiple: true
+      default: ""
 
 variables:
   lock: !input lock
+  door_sensor: !input door_sensor
   auto_lock_timer: !input auto_lock_timer
-  notify_device: !input notify_device
+  notify_group: !input notify_group
 
 trigger:
   - platform: event
     event_type: lock_code_manager_lock_state_changed
     event_data:
-       entity_id: !input lock
+      entity_id: !input lock
     id: LCM Event
-  - platform: state
-    entity_id: !input auto_lock_timer
-    from: active
-    to: idle
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input auto_lock_timer
     id: Timer Finished
 
 action:
@@ -68,8 +75,8 @@ action:
                     value_template: "{{ lock_state == 'locked' }}"
                 sequence:
                   - if:
-                    - condition: template
-                      value_template: "{{ auto_lock_timer != 'timer.none' }}"
+                      - condition: template
+                        value_template: "{{ auto_lock_timer != 'timer.none' }}"
                     then:
                       - if:
                           - condition: state
@@ -83,20 +90,21 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
+                        value_template: "{{ notify_group is defined }}"
                     then:
-                      - repeat:
-                          for_each: !input notify_device
-                          sequence:
-                            - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
-                              data:
-                                message: >
-                                  {% if code_slot > 0 %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
-                                  {% else %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked"
-                                  {% endif %}
-                                title: "{{ device_attr(lock, 'name') }}"
+                      - service: notify.{{ notify_group }}
+                        data:
+                          title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
+                          message: >
+                            {% if code_slot > 0 %}
+                              {{ device_attr(lock, 'name') }} was locked by {{ code_slot_name }}
+                            {% else %}
+                              {{ device_attr(lock, 'name') }} was locked
+                            {% endif %}
+                          data:
+                            ttl: 0
+                            priority: high
+                            tag: "tag-lock-management"
               - conditions:
                   - condition: template
                     value_template: "{{ lock_state == 'unlocked' }}"
@@ -128,34 +136,48 @@ action:
                               entity_id: !input auto_lock_timer
                   - if:
                       - condition: template
-                        value_template: "{{ notify_device | length > 0 }}"
+                        value_template: "{{ notify_group is defined }}"
                     then:
-                      - repeat:
-                          for_each: !input notify_device
-                          sequence:
-                            - service: notify.mobile_app_{{ device_attr(repeat.item, 'name') | slugify }}
-                              data:
-                                message: >
-                                  {% if code_slot > 0 %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}"
-                                  {% else %}
-                                    "{{ device_attr(lock, 'name') }} was unlocked"
-                                  {% endif %}
-                                title: "{{ device_attr(lock, 'name') }}"
+                      - service: notify.{{ notify_group }}
+                        data:
+                          title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
+                          message: >
+                            {% if code_slot > 0 %}
+                              {{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}
+                            {% else %}
+                              {{ device_attr(lock, 'name') }} was unlocked
+                            {% endif %}
+                          data:
+                            ttl: 0
+                            priority: high
+                            tag: "tag-lock-management"
       - conditions:
           - condition: and
             conditions:
-            - condition: template
-              value_template: "{{ auto_lock_timer != 'timer.none' }}"
-            - condition: trigger
-              id:
-                - Timer Finished
+              - condition: template
+                value_template: "{{ auto_lock_timer != 'timer.none' }}"
+              - condition: trigger
+                id:
+                  - Timer Finished
         sequence:
-          - service: lock.lock
-            metadata: {}
-            data: {}
-            target:
-              entity_id: !input lock
-
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ is_state(door_sensor, 'on') }}"
+                  - condition: template
+                    value_template: "{{ door_sensor != 'binary_sensor.none' }}"
+            then:
+              - service: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input auto_lock_timer
+            else:
+              - service: lock.lock
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input lock
 mode: queued
 max: 5
