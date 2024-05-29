@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.4.0rc5)
+  name: WITB+ Dev (0.4.0rc6)
   homeassistant:
     min_version: 2024.4.0
   description: >
@@ -389,15 +389,13 @@ action:
                         value_template: "{{ weekday_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekday_bedtime, 'on') }}"
-                      - condition: template
-                        vaule_template: "{{ previous_occupancy_helper_state == 'on' }}"
-                      # - condition: state
-                      #   entity_id: !input occupancy_helper
-                      #   state: "on"
-                      #   for:
-                      #     hours: 0
-                      #     minutes: 0
-                      #     seconds: 10
+                      - condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
+                        for:
+                          hours: 0
+                          minutes: 0
+                          seconds: 10
                   - condition: and
                     conditions:
                       - condition: template
