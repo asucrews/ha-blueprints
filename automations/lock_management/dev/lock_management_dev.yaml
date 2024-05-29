@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Stable (0.4.1rc2)
+  name: Lock Management Dev (0.4.1)
   homeassistant:
     min_version: 2024.4.0
   description: lock Management
@@ -37,7 +37,7 @@ blueprint:
           name: Auto Lock Timer
           description: >
             Set the duration, in seconds, for the automatic lock. After the specified time elapses, will automaticly lock; if door sensor is enabled then timer will reset if the door sensor shows open.<br/>
-            To utilize this function, create an timer helper entity in your Home Assistant configuration or UI.<br/>
+            To utilize this function, create an timer helper entity in your Home Assistant configuration or UI, see https://www.home-assistant.io/integrations/timer/<br/>
             <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
           default: timer.none
           selector:
@@ -45,9 +45,16 @@ blueprint:
               domain:
                 - timer
               multiple: false
+    notification_entities:
+      name: Notification Entities
+      description: Optinoal notification entity
+      input:
         notify_group:
           name: Easy Notify Group - Devices Notified
-          description: If you've enabled device notifications above, please select the devices to receive the notifications.
+          description: >
+            If you've enabled device notifications above, please select the devices to receive the notifications. Enter only entity_id, the part after notify. <br/>
+            This is only for notifications group, see https://www.home-assistant.io/integrations/group/#notify-groups.
+            <br/>Default value: "". Only change if you intend to use notifcations and this input is optional.<br/>
           default: ""
 
 variables:
