@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Stable (0.4.1rc0)
+  name: Lock Management Stable (0.4.1rc1)
   homeassistant:
     min_version: 2024.4.0
   description: lock Management
@@ -7,27 +7,28 @@ blueprint:
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
   input:
     device_section:
-    description: This is not collapsible as it does not have a default.
-    input:
-      lock:
-        name: Lock
-        description: Lock
-        selector:
-          entity:
-            domain:
-              - lock
-            multiple: false
-      door_sensor:
-        name: Door Sensor or Door Sensor Group
-        description: >
-          Select the door sensor or group of door sensors where occupancy is detected.<br/>
-          <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
-        default: binary_sensor.none
-        selector:
-          entity:
-            domain:
-              - binary_sensor
-            multiple: false
+      name: Devices required
+      description: This is not collapsible as it does not have a default.
+      input:
+        lock:
+          name: Lock
+          description: Lock
+          selector:
+            entity:
+              domain:
+                - lock
+              multiple: false
+        door_sensor:
+          name: Door Sensor or Door Sensor Group
+          description: >
+            Select the door sensor or group of door sensors where occupancy is detected.<br/>
+            <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
+          default: binary_sensor.none
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
     auto_lock_timer:
       name: Auto Lock Timer
       description: Auto Lock Timer
