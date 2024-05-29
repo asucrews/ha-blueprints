@@ -1,14 +1,14 @@
 blueprint:
-  name: Lock Management Stable (0.4.1rc1)
+  name: Lock Management Stable (0.4.1rc2)
   homeassistant:
     min_version: 2024.4.0
   description: lock Management
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
   input:
-    device_section:
-      name: Devices required
-      description: This is not collapsible as it does not have a default.
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
       input:
         lock:
           name: Lock
@@ -18,6 +18,10 @@ blueprint:
               domain:
                 - lock
               multiple: false
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      input:
         door_sensor:
           name: Door Sensor or Door Sensor Group
           description: >
@@ -29,19 +33,22 @@ blueprint:
               domain:
                 - binary_sensor
               multiple: false
-    auto_lock_timer:
-      name: Auto Lock Timer
-      description: Auto Lock Timer
-      default: timer.none
-      selector:
-        entity:
-          domain:
-            - timer
-          multiple: false
-    notify_group:
-      name: Easy Notify Group - Devices Notified (Optional)
-      description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: ""
+        auto_lock_timer:
+          name: Auto Lock Timer
+          description: >
+            Set the duration, in seconds, for the automatic lock. After the specified time elapses, will automaticly lock; if door sensor is enabled then timer will reset if the door sensor shows open.<br/>
+            To utilize this function, create an timer helper entity in your Home Assistant configuration or UI.<br/>
+            <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: timer.none
+          selector:
+            entity:
+              domain:
+                - timer
+              multiple: false
+        notify_group:
+          name: Easy Notify Group - Devices Notified
+          description: If you've enabled device notifications above, please select the devices to receive the notifications.
+          default: ""
 
 variables:
   lock: !input lock
@@ -96,7 +103,7 @@ action:
                       - condition: template
                         value_template: "{{ notify_group is defined }}"
                     then:
-                      - service: notify.{{ notify_group }}
+                      - service: "notify.{{ notify_group }}"
                         data:
                           title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
                           message: >
@@ -142,7 +149,7 @@ action:
                       - condition: template
                         value_template: "{{ notify_group is defined }}"
                     then:
-                      - service: notify.{{ notify_group }}
+                      - service: "notify.{{ notify_group }}"
                         data:
                           title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
                           message: >
