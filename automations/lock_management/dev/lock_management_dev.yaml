@@ -1,10 +1,10 @@
 blueprint:
   name: Lock Management Dev (0.4.1)
   homeassistant:
-    min_version: 2024.4.0
+    min_version: 2024.6.0b0
   description: lock Management
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev/lock_management_dev.yaml
   input:
     required_entities:
       name: Required Entities
@@ -12,7 +12,7 @@ blueprint:
       input:
         lock:
           name: Lock
-          description: Lock
+          description: Lock entity to manage
           selector:
             entity:
               domain:

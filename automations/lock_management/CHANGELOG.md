@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.4.1] 2024-05-29
+
+### Added
+
+- Blueprint input sections
+- Input Documentations
+
+### Fixes
+
+- Notifacations bug
+
 ## [0.4.0] 2024-05-22
 
 ### Fixes

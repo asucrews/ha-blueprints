@@ -1,43 +1,63 @@
 blueprint:
-  name: Lock Management Stable (0.4.0)
+  name: Lock Management Stable (0.4.1)
   homeassistant:
-    min_version: 2024.4.0
-  description: lock Management
+    min_version: 2024.6.0
+  description: >
+    Lock Management is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.<br/>
+    Requeries Lock Code Manager https://github.com/raman325/lock_code_manager by Raman325.<br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
   input:
-    lock:
-      name: Lock
-      description: Lock
-      selector:
-        entity:
-          domain:
-            - lock
-          multiple: false
-    door_sensor:
-      name: Door Sensor or Door Sensor Group
-      description: >
-        Select the door sensor or group of door sensors where occupancy is detected.<br/>
-        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
-      default: binary_sensor.none
-      selector:
-        entity:
-          domain:
-            - binary_sensor
-          multiple: false
-    auto_lock_timer:
-      name: Auto Lock Timer
-      description: Auto Lock Timer
-      default: timer.none
-      selector:
-        entity:
-          domain:
-            - timer
-          multiple: false
-    notify_group:
-      name: Easy Notify Group - Devices Notified (Optional)
-      description: If you've enabled device notifications above, please select the devices to receive the notifications.
-      default: ""
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      input:
+        lock:
+          name: Lock
+          description: Lock entity to manage
+          selector:
+            entity:
+              domain:
+                - lock
+              multiple: false
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      input:
+        door_sensor:
+          name: Door Sensor or Door Sensor Group
+          description: >
+            Select the door sensor or group of door sensors where occupancy is detected.<br/>
+            <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is optional.<br/>
+          default: binary_sensor.none
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+        auto_lock_timer:
+          name: Auto Lock Timer
+          description: >
+            Set the duration, in seconds, for the automatic lock. After the specified time elapses, will automaticly lock; if door sensor is enabled then timer will reset if the door sensor shows open.<br/>
+            To utilize this function, create an timer helper entity in your Home Assistant configuration or UI, see https://www.home-assistant.io/integrations/timer/<br/>
+            <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: timer.none
+          selector:
+            entity:
+              domain:
+                - timer
+              multiple: false
+    notification_entities:
+      name: Notification Entities
+      description: Optinoal notification entity
+      input:
+        notify_group:
+          name: Easy Notify Group - Devices Notified
+          description: >
+            If you've enabled device notifications above, please select the devices to receive the notifications. Enter only entity_id, the part after notify. <br/>
+            This is only for notifications group, see https://www.home-assistant.io/integrations/group/#notify-groups.
+            <br/>Default value: "". Only change if you intend to use notifcations and this input is optional.<br/>
+          default: ""
 
 variables:
   lock: !input lock
@@ -92,7 +112,7 @@ action:
                       - condition: template
                         value_template: "{{ notify_group is defined }}"
                     then:
-                      - service: notify.{{ notify_group }}
+                      - service: "notify.{{ notify_group }}"
                         data:
                           title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
                           message: >
@@ -138,7 +158,7 @@ action:
                       - condition: template
                         value_template: "{{ notify_group is defined }}"
                     then:
-                      - service: notify.{{ notify_group }}
+                      - service: "notify.{{ notify_group }}"
                         data:
                           title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
                           message: >
