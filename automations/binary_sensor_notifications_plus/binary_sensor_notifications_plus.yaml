@@ -1,15 +1,46 @@
 blueprint:
-  name: "Binary Sensor Notification"
+  name: "Binary Sensor Notification (0.1.0rc0)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/panhans/homeassistant/blob/main/blueprints/automation/panhans/binary_sensor_notification.yaml
   domain: automation
   input:
-    sensor_entity:
-      name: "Sensor"
-      description: "Sensor which triggers the notification."
-      selector:
-        entity:
-          domain: binary_sensor
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      input:
+        sensor_entity:
+          name: "Sensor"
+          description: "Sensor which triggers the notification."
+          selector:
+            entity:
+              domain: binary_sensor
+        left_open_timer_helper:
+          name: "Left Open Timer Helper"
+          description:
+          default: timer.none
+          selector:
+            entity:
+              domain: timer
+    notification_entities:
+      name: Notification Settings
+      description: Optinoal notification entity
+      input:
+        notify_group:
+          name: Notification Group
+          description: "The name of the notification group to call. ('notify' for all devices)"
+          default: ""
+        title:
+          name: "Title"
+          description: "Notification title"
+        message_open:
+          name: "Message"
+          description: "Message to be sent"
+        message_close:
+          name: "Message"
+          description: "Message to be sent"
+        message_left:
+          name: "Message"
+          description: "Message to be sent"
     debounce_duration:
       name: "Debounce duration"
       description: "Duration time the notification won't be sent again after sensor changed its state."
@@ -21,56 +52,15 @@ blueprint:
           unit_of_measurement: "s"
           mode: slider
           step: 1
-    left_open_timer_helper:
-      name: "Left Open Timer Helper"
-      description:
-      default: timer.none
-      selector:
-        entity:
-          domain: timer
-    notify_device:
-      name: "Device to notify"
-      description: Device which gets a notification.
-      default: false
-      selector:
-        device:
-          integration: mobile_app
-    notify_group:
-      name: Notification Group
-      description: "The name of the notification group to call. ('notify' for all devices)"
-      default: ""
-    title:
-      name: "Title"
-      description: "Notification title"
-    message:
-      name: "Message"
-      description: "Message to be sent"
-    tag:
-      name: "Tag"
-      description: "If you want to do something in another automation"
-      default: "tag-{{ trigger.entity_id }}"
-    status_bar_icon:
-      name: "Status bar icon"
-      description: "Sets the status bar icon. (Android only)"
-      default: mdi:home-assistant
-      selector:
-        icon:
-          placeholder: mdi:home-assistant
-    custom_action:
-      name: "Custom Action"
-      description: "An action which can be processed if notification is triggered"
-      default: []
-      selector:
-        action: {}
 
 variables:
-  message: !input message
-  title: !input title
   sensor_entity: !input sensor_entity
   debounce_duration: !input debounce_duration
-  group_target: !input notify_group
-  custom_action: !input custom_action
-  notify_device: !input notify_device
+  left_open_timer_helper: !input left_open_timer_helper
+  title: !input title
+  message_open: !input message_open
+  message_close: !input message_close
+  message_left: !input message_left
 
 trigger:
   - platform: state
@@ -83,15 +73,11 @@ trigger:
     to: "on"
     from: "off"
     id: Closed
-  - platform: state
-    entity_id: !input "sensor_entity"
-    to: "off"
-    from: "on"
-    for:
-      hours: 0
-      minutes: !input left_opened_minutes
-      seconds: 0
-    id: Left Opened
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input aleft_open_timer_helper
+    id: Timer Finished
 
 condition:
   condition: template
@@ -100,29 +86,29 @@ condition:
 
 action:
   - choose:
-      - conditions: "{{ not group_target }}"
+      - conditions:
+          - condition: trigger
+            id:
+              - Opened
         sequence:
-          - service: 'notify.mobile_app_{{ device_attr(notify_device, "name") | slugify }}'
-            data:
-              title: "{{ title }}"
-              message: "{{ message }}"
-              data:
-                ttl: 0
-                priority: high
-                notification_icon: !input "status_bar_icon"
-                tag: !input tag
-      - conditions: "{{ group_target is defined }}"
-        sequence:
-          - service: notify.{{ group_target }}
+          - service: "notify.{{ group_target }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message }}"
               data:
                 ttl: 0
                 priority: high
-                notification_icon: !input "status_bar_icon"
-                tag: !input tag
-  - choose:
+                tag: tag-binary-sensor-notification
       - conditions:
-          - "{{ custom_action is defined }}"
-        sequence: !input "custom_action"
+          - condition: trigger
+            id:
+              - Closed
+        sequence:
+          - service: "notify.{{ group_target }}"
+            data:
+              title: "{{ title }} | {{ states('sensor.time') }}"
+              message: "{{ message }}"
+              data:
+                ttl: 0
+                priority: high
+                tag: tag-binary-sensor-notification
