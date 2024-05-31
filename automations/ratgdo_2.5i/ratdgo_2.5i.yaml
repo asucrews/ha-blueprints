@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.4.0)
+  name: Ratdgo 2.5i Stable (0.4.1)
   homeassistant:
     min_version: 2024.6.0
   description: Ratdgo Notification and auto close
@@ -96,7 +96,6 @@ variables:
   light_bulbs: !input light_bulbs
   light_switch: !input light_switch
   notify_group: !input notify_group
-  notify_service: "{% if(notify_group is defined and notify_group != '' ) %}notify.{{ notify_group }}{% elif (notify_device != none and notify_device != '' ) %}notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}{% endif %}"
   bypass_helper: !input bypass_helper
 
 trigger:
@@ -149,7 +148,7 @@ action:
                   - condition: template
                     value_template: "{{ light_bulbs != 'light.none' }}"
                   - condition: template
-                    variables: "{{ is_state(light_bulbs, ['off']) }}"
+                    vavalue_template: "{{ is_state(light_bulbs, 'off') }}"
             then:
               - service: light.turn_on
                 metadata: {}
@@ -162,7 +161,7 @@ action:
                   - condition: template
                     value_template: "{{ light_switch != 'light.none' }}"
                   - condition: template
-                    variables: "{{ is_state(light_switch, ['off']) }}"
+                    value_template: "{{ is_state(light_switch, 'off') }}"
             then:
               - service: light.turn_on
                 metadata: {}
@@ -181,15 +180,17 @@ action:
                 target:
                   entity_id: !input garage_door_timer_helper
           - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ notify_service != none and notify_service != '' }}"
+              - condition: template
+                value_template: "{{ notify_group is defined }}"
             then:
-              - service: "{{ notify_service }}"
-                metadata: {}
+              - service: "notify.{{ notify_group }}"
                 data:
+                  title: "{{ device_attr(ratdgo_device, 'name') }} | {{ states('sensor.time') }}"
                   message: Garage Door is Open
+                  data:
+                    ttl: 0
+                    priority: high
+                    tag: "tag-ratdgo"
       - conditions:
           - condition: trigger
             id:
@@ -209,19 +210,17 @@ action:
                 target:
                   entity_id: !input garage_door_timer_helper
           - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ notify_service != none and notify_service != '' }}"
+              - condition: template
+                value_template: "{{ notify_group is defined }}"
             then:
-              - delay:
-                  hours: 0
-                  minutes: 0
-                  seconds: 1
-                  milliseconds: 0
-              - service: "{{ notify_service }}"
+              - service: "notify.{{ notify_group }}"
                 data:
-                  message: Garage door was closed.
+                  title: "{{ device_attr(ratdgo_device, 'name') }} | {{ states('sensor.time') }}"
+                  message: Garage Door is Closed
+                  data:
+                    ttl: 0
+                    priority: high
+                    tag: "tag-ratdgo"
       - conditions:
           - condition: trigger
             id:
@@ -261,5 +260,6 @@ action:
             data: {}
             target:
               entity_id: !input garage_door_timer_helper
+
 mode: queued
 max: 5
