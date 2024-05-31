@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.4.1)
+  name: Ratdgo 2.5i Stable (0.4.2)
   homeassistant:
     min_version: 2024.6.0
   description: Ratdgo Notification and auto close
@@ -148,7 +148,7 @@ action:
                   - condition: template
                     value_template: "{{ light_bulbs != 'light.none' }}"
                   - condition: template
-                    vavalue_template: "{{ is_state(light_bulbs, 'off') }}"
+                    value_template: "{{ is_state(light_bulbs, 'off') }}"
             then:
               - service: light.turn_on
                 metadata: {}
