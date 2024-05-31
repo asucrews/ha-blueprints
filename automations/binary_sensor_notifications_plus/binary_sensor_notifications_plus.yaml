@@ -1,5 +1,5 @@
 blueprint:
-  name: "Binary Sensor Notification (0.2.0)"
+  name: "Binary Sensor Notification (0.2.2)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
@@ -17,13 +17,6 @@ blueprint:
           selector:
             entity:
               domain: binary_sensor
-        left_open_timer_helper:
-          name: "Left Open Timer Helper"
-          description: "Left Open Timer Helper"
-          default: timer.none
-          selector:
-            entity:
-              domain: timer
         notify_group:
           name: Notification Group
           description: "The name of the notification group to call. ('notify' for all devices)"
@@ -48,6 +41,13 @@ blueprint:
           name: "Message when entity is on for extended period of time"
           description: "Message to be sent"
           default: "None"
+        left_open_timer_helper:
+          name: "Left Open Timer Helper"
+          description: "Left Open Timer Helper"
+          default: timer.none
+          selector:
+            entity:
+              domain: timer
         debounce_duration:
           name: "Debounce duration"
           description: "Duration time the notification won't be sent again after sensor changed its state."
@@ -102,7 +102,7 @@ action:
               - condition: template
                 value_template: "{{ message_open  != 'None' }}"
         sequence:
-          - service: "notify.{{ group_target }}"
+          - service: "notify.{{ notify_group }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message_open }}"
@@ -124,7 +124,7 @@ action:
               - condition: template
                 value_template: "{{ message_close  != 'None' }}"
         sequence:
-          - service: "notify.{{ group_target }}"
+          - service: "notify.{{ notify_group }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message_close }}"
@@ -146,7 +146,7 @@ action:
               - condition: template
                 value_template: "{{ message_left  != 'None' }}"
         sequence:
-          - service: "notify.{{ group_target }}"
+          - service: "notify.{{ notify_group }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message_left }}"
