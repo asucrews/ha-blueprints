@@ -1,5 +1,5 @@
 blueprint:
-  name: "Binary Sensor Notification (0.2.2)"
+  name: "Binary Sensor Notification (0.2.3)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
@@ -18,8 +18,11 @@ blueprint:
             entity:
               domain: binary_sensor
         notify_group:
-          name: Notification Group
-          description: "The name of the notification group to call. ('notify' for all devices)"
+          name: Easy Notify Group - Devices Notified
+          description: >
+            If you've enabled device notifications above, please select the devices to receive the notifications. Enter only entity_id, the part after notify. <br/>
+            This is only for notifications group, see https://www.home-assistant.io/integrations/group/#notify-groups.
+            <br/>Default value: "". Only change if you intend to use notifcations and this input is optional.<br/>
           default: ""
         title:
           name: "Title"
@@ -109,7 +112,7 @@ action:
               data:
                 ttl: 0
                 priority: high
-                tag: tag-binary-sensor-notification
+                tag: t"tag-binary-sensor-notification"
           - service: timer.start
             metadata: {}
             data: {}
@@ -131,7 +134,7 @@ action:
               data:
                 ttl: 0
                 priority: high
-                tag: tag-binary-sensor-notification
+                tag: "tag-binary-sensor-notification"
           - service: timer.cancel
             metadata: {}
             data: {}
@@ -153,4 +156,4 @@ action:
               data:
                 ttl: 0
                 priority: high
-                tag: tag-binary-sensor-notificatio
+                tag: "tag-binary-sensor-notification"
