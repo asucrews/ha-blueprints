@@ -9,6 +9,7 @@ blueprint:
     required_entities:
       name: Required Entities
       description: The required entities for this automation
+      collapsed: false
       input:
         lock:
           name: Lock
@@ -21,6 +22,7 @@ blueprint:
     optional_entities:
       name: Optional Entities
       description: The optional entities for this automation
+      collapsed: true
       input:
         door_sensor:
           name: Door Sensor or Door Sensor Group
@@ -48,6 +50,7 @@ blueprint:
     notification_entities:
       name: Notification Entities
       description: Optinoal notification entity
+      collapsed: true
       input:
         notify_group:
           name: Easy Notify Group - Devices Notified
