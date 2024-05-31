@@ -1,5 +1,5 @@
 blueprint:
-  name: "Binary Sensor Notification (0.2.3)"
+  name: "Binary Sensor Notification (0.2.4)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
@@ -67,6 +67,7 @@ variables:
   sensor_entity: !input sensor_entity
   debounce_duration: !input debounce_duration
   left_open_timer_helper: !input left_open_timer_helper
+  notify_group: !input notify_group
   title: !input title
   message_open: !input message_open
   message_close: !input message_close
