@@ -1,5 +1,5 @@
 blueprint:
-  name: "Binary Sensor Notification (0.1.0)"
+  name: "Binary Sensor Notification (0.2.0)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
@@ -31,20 +31,23 @@ blueprint:
         title:
           name: "Title"
           description: "Notification title"
-        message_open:
-          name: "Message when entity is on"
-          description: "Message to be sent"
-        message_close:
-          name: "Message when entity is off"
-          description: "Message to be sent"
-        message_left:
-          name: "Message when entity is on for extended period of time"
-          description: "Message to be sent"
-    adjustable_parameters:
+    optional_entities:
       name: Optional Entities
       description: The optional entities for this automation
       collapsed: true
       input:
+        message_open:
+          name: "Message when entity is on"
+          description: "Message to be sent"
+          default: "None"
+        message_close:
+          name: "Message when entity is off"
+          description: "Message to be sent"
+          default: "None"
+        message_left:
+          name: "Message when entity is on for extended period of time"
+          description: "Message to be sent"
+          default: "None"
         debounce_duration:
           name: "Debounce duration"
           description: "Duration time the notification won't be sent again after sensor changed its state."
@@ -91,9 +94,13 @@ condition:
 action:
   - choose:
       - conditions:
-          - condition: trigger
-            id:
-              - Opened
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Opened
+              - condition: template
+                value_template: "{{ message_open  != 'None' }}"
         sequence:
           - service: "notify.{{ group_target }}"
             data:
@@ -109,9 +116,13 @@ action:
             target:
               entity_id: !input left_open_timer_helper
       - conditions:
-          - condition: trigger
-            id:
-              - Closed
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Closed
+              - condition: template
+                value_template: "{{ message_close  != 'None' }}"
         sequence:
           - service: "notify.{{ group_target }}"
             data:
@@ -127,9 +138,13 @@ action:
             target:
               entity_id: !input left_open_timer_helper
       - conditions:
-          - condition: trigger
-            id:
-              - Timer Finished
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Timer Finished
+              - condition: template
+                value_template: "{{ message_left  != 'None' }}"
         sequence:
           - service: "notify.{{ group_target }}"
             data:
