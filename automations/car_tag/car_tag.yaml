@@ -1,42 +1,52 @@
 blueprint:
   name: Car Tag Stable (0.2.0)
   homeassistant:
-    min_version: 2024.5.0
+    min_version: 2024.6.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
   input:
-    esphome_ble:
-      selector:
-        entity:
-          domain:
-            - binary_sensor
-          multiple: false
-    esphome_node_status:
-      selector:
-        entity:
-          integration: "esphome"
-          domain:
-            - binary_sensor
-          multiple: true
-    garage_door_cover:
-      name: Garage Door Cover
-      description: Garage Door Cover?
-      selector:
-        entity:
-          domain:
-            - cover
-          multiple: false
-    garage_door_timer_helper:
-      name: Garage Door Timer Helper
-      description: Garage Door Timer Helper
-      default: timer.none
-      selector:
-        entity:
-          integration: "timer"
-          domain:
-            - timer
-          multiple: false
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        esphome_ble:
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+        esphome_node_status:
+          selector:
+            entity:
+              integration: "esphome"
+              domain:
+                - binary_sensor
+              multiple: true
+        garage_door_cover:
+          name: Garage Door Cover
+          description: Garage Door Cover?
+          selector:
+            entity:
+              domain:
+                - cover
+              multiple: false
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      collapsed: true
+      input:
+        garage_door_timer_helper:
+          name: Garage Door Timer Helper
+          description: Garage Door Timer Helper
+          default: timer.none
+          selector:
+            entity:
+              integration: "timer"
+              domain:
+                - timer
+              multiple: false
 
 variables:
   esphome_ble: !input esphome_ble

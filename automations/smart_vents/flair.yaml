@@ -1,77 +1,87 @@
 blueprint:
-  name: Smart Vents - Flair (0.1.0)
+  name: Smart Vents - Flair (0.2.0)
   homeassistant:
-    min_version: 2024.4.0
+    min_version: 2024.6.0
   description: >
     <br/>
     <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml
   input:
-    room_occupancy_sensor:
-      name: Door Sensor, Door Sensor Group, or Occupancy Helper
-      description: >
-        Does the room or area have only a door sensor or an occupancy helper? An occupancy helper is an input boolean used to track if a room is occupied. In most cases, multiple automations or scripts will track room occupancy. A helper makes it easier because you only need one place, versus many, to track this.<br/>
-        Select the door sensor, group of door sensors, or Occupancy Helper<br/>
-        <br/>Please note: This input is restricted to entities within the binary_sensor domain or input_boolean and allows only a single selection.  This field and this input is required.<br/>
-      selector:
-        entity:
-          domain:
-          - binary_sensor
-          - input_boolean
-          multiple: false
-    door_sensor_open_delay:
-      name: Door Sensor Open Delay (Optional)
-      description: >
-        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
-        <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
-      default: 0
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 60.0
-          unit_of_measurement: seconds
-          step: 1.0
-    door_sensor_close_delay:
-      name: Door Sensor Close Delay (Optional)
-      description: >
-        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
-        <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
-      default: 0
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 60.0
-          unit_of_measurement: seconds
-          step: 1.0
-    flair_activity_status:
-      name: Flair Activity Status
-      description: Flair Activity Status
-      selector:
-        entity:
-          domain:
-          - select
-          multiple: false        
-    flair_clear_hold:
-      name: Flair Clear Hold Button
-      description: Flair Clear Hold Button
-      selector:
-        entity:
-          domain:
-          - button
-          multiple: false  
-    hvac_smart_sensor_occupancy:
-      name: HVAC Smart Sensor Occupancy
-      description: HVAC Smart Sensor Occupancy
-      default: 'binary_sensor.none'
-      selector:
-        entity:
-          domain:
-          - binary_sensor
-          multiple: false
- 
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        room_occupancy_sensor:
+          name: Door Sensor, Door Sensor Group, or Occupancy Helper
+          description: >
+            Does the room or area have only a door sensor or an occupancy helper? An occupancy helper is an input boolean used to track if a room is occupied. In most cases, multiple automations or scripts will track room occupancy. A helper makes it easier because you only need one place, versus many, to track this.<br/>
+            Select the door sensor, group of door sensors, or Occupancy Helper<br/>
+            <br/>Please note: This input is restricted to entities within the binary_sensor domain or input_boolean and allows only a single selection.  This field and this input is required.<br/>
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+                - input_boolean
+              multiple: false
+        flair_activity_status:
+          name: Flair Activity Status
+          description: Flair Activity Status
+          selector:
+            entity:
+              domain:
+                - select
+              multiple: false
+        flair_clear_hold:
+          name: Flair Clear Hold Button
+          description: Flair Clear Hold Button
+          selector:
+            entity:
+              domain:
+                - button
+              multiple: false
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      collapsed: true
+      input:
+        door_sensor_open_delay:
+          name: Door Sensor Open Delay (Optional)
+          description: >
+            Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
+          default: 0
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: seconds
+              step: 1.0
+        door_sensor_close_delay:
+          name: Door Sensor Close Delay (Optional)
+          description: >
+            Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
+          default: 0
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: seconds
+              step: 1.0
+        hvac_smart_sensor_occupancy:
+          name: HVAC Smart Sensor Occupancy
+          description: HVAC Smart Sensor Occupancy
+          default: "binary_sensor.none"
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+
 variables:
   room_occupancy_sensor: !input room_occupancy_sensor
   door_sensor_open_delay: !input door_sensor_open_delay
@@ -95,13 +105,13 @@ trigger:
     to: "off"
     id: Room Unoccupied
     for: !input door_sensor_close_delay
-  # HVAC Remote Occupancy Sensor is detected 
+  # HVAC Remote Occupancy Sensor is detected
   - platform: state
     entity_id: !input hvac_smart_sensor_occupancy
     from: "off"
     to: "on"
     id: HVAC Occupied
-  # HVAC Remote Occupancy Sensor is clear  
+  # HVAC Remote Occupancy Sensor is clear
   - platform: state
     entity_id: !input hvac_smart_sensor_occupancy
     from: "on"
@@ -113,9 +123,9 @@ action:
       - conditions:
           - condition: and
             conditions:
-            - condition: trigger
-              id:
-                - Room Occupied
+              - condition: trigger
+                id:
+                  - Room Occupied
         sequence:
           - service: select.select_option
             data:
@@ -129,9 +139,9 @@ action:
       - conditions:
           - condition: and
             conditions:
-            - condition: trigger
-              id:
-                - Room Unoccupied
+              - condition: trigger
+                id:
+                  - Room Unoccupied
         sequence:
           - service: select.select_option
             data:
@@ -150,7 +160,7 @@ action:
                   - HVAC Occupied
               - condition: state
                 entity_id: !input room_occupancy_sensor
-                state: 'on'
+                state: "on"
         sequence:
           - service: select.select_option
             data:
@@ -169,7 +179,7 @@ action:
                   - HVAC Unoccupied
               - condition: state
                 entity_id: !input room_occupancy_sensor
-                state: 'on'
+                state: "on"
         sequence:
           - service: select.select_option
             data:
@@ -179,4 +189,4 @@ action:
           - service: button.press
             data: {}
             target:
-              entity_id: !input flair_clear_hold 
+              entity_id: !input flair_clear_hold

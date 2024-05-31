@@ -49,11 +49,6 @@ blueprint:
               domain:
                 - timer
               multiple: false
-    notification_entities:
-      name: Notification Entities
-      description: Optinoal notification entity
-      collapsed: true
-      input:
         notify_group:
           name: Easy Notify Group - Devices Notified
           description: >

@@ -1,85 +1,90 @@
 blueprint:
-  name: LUX Sensor Stable (0.1.0)
+  name: LUX Sensor Stable (0.2.0)
   homeassistant:
-    min_version: 2024.5.0
+    min_version: 2024.6.0
   description: >
     <br/>
     <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml
   input:
-    lux_sensor:
-      name: LUX Sensor
-      description: >
-        <br/>
-        <br/>
-      selector:
-        entity:
-          domain:
-            - sensor
-          multiple: false
-    status_boolean:
-      name: Binary Sensor
-      description: >
-        <br/>
-        <br/>
-      selector:
-        entity:
-          domain:
-            - input_boolean
-          multiple: false
-    day_above_lux_level:
-      name: Above LUX level for day time
-      description: >
-        <br/>
-        <br/>
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 250
-          step: 10
-          unit_of_measurement: lx
-          mode: slider
-    day_below_lux_level:
-      name: Below LUX level for day time
-      description: >
-        <br/>
-        <br/>
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 250
-          step: 10
-          unit_of_measurement: lx
-          mode: slider
-    night_above_lux_level:
-      name: Above LUX level for night time
-      description: >
-        <br/>
-        <br/>
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 250
-          step: 10
-          unit_of_measurement: lx
-          mode: slider
-    night_below_lux_level:
-      name: Below LUX level for night time
-      description: >
-        <br/>
-        <br/>
-      default: 0
-      selector:
-        number:
-          min: 0
-          max: 250
-          step: 10
-          unit_of_measurement: lx
-          mode: slider
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        lux_sensor:
+          name: LUX Sensor
+          description: >
+            <br/>
+            <br/>
+          selector:
+            entity:
+              domain:
+                - sensor
+              multiple: false
+        status_boolean:
+          name: Binary Sensor
+          description: >
+            <br/>
+            <br/>
+          selector:
+            entity:
+              domain:
+                - input_boolean
+              multiple: false
+        day_above_lux_level:
+          name: Above LUX level for day time
+          description: >
+            <br/>
+            <br/>
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 250
+              step: 10
+              unit_of_measurement: lx
+              mode: slider
+        day_below_lux_level:
+          name: Below LUX level for day time
+          description: >
+            <br/>
+            <br/>
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 250
+              step: 10
+              unit_of_measurement: lx
+              mode: slider
+        night_above_lux_level:
+          name: Above LUX level for night time
+          description: >
+            <br/>
+            <br/>
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 250
+              step: 10
+              unit_of_measurement: lx
+              mode: slider
+        night_below_lux_level:
+          name: Below LUX level for night time
+          description: >
+            <br/>
+            <br/>
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 250
+              step: 10
+              unit_of_measurement: lx
+              mode: slider
 
 variables:
   lux_sensor: !input lux_sensor

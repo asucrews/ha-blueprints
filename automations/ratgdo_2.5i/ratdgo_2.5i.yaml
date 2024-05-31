@@ -1,83 +1,93 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.3.2)
+  name: Ratdgo 2.5i Stable (0.4.0)
   homeassistant:
-    min_version: 2024.5.0
+    min_version: 2024.6.0
   description: Ratdgo Notification and auto close
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
   input:
-    ratdgo_device:
-      name: Ratdgo Device
-      description: Witch Ratdgo Device?
-      selector:
-        entity:
-          domain:
-            - cover
-          multiple: false
-    obstruction_entity:
-      name: Obstruction Entity
-      description: Witch Obstruction Entity?
-      selector:
-        entity:
-          domain:
-            - binary_sensor
-          multiple: false
-    garage_door_timer_helper:
-      name: Garage Door Timer Helper
-      description: Garage Door Timer Helper
-      default: timer.none
-      selector:
-        entity:
-          domain:
-            - timer
-          multiple: false
-    light_bulbs:
-      name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
-      description: >
-        Select a smart light bulb or group of smart light bulbs to control
-        within the designated area ("box").  These lights illuminate the space based
-        on occupancy detected by the motion sensor.<br/>  <br/>Please note: Only entities
-        within the light domain are selectable, and only one selection is allowed.  Default
-        value: 'light.none'. Only change if you intend to use this field and this
-        input is optional.<br/>
-      default: "light.none"
-      selector:
-        entity:
-          domain:
-            - light
-          multiple: false
-    light_switch:
-      name: Light, Light Group, Switch, or Switch Group (Optional)
-      description: >
-        Choose a light, light group, switch, or switch group to control
-        within the designated area ("box").  These devices provide illumination based
-        on occupancy detected by the motion sensor.<br/> <br/>Please note: Only entities
-        within the light or switch domains are selectable, and only one selection
-        is allowed.  Default value: 'light.none'. Only change if you intend to use
-        this field and this input is optional.<br/>
-      default: "light.none"
-      selector:
-        entity:
-          domain:
-            - light
-            - switch
-          multiple: false
-    notify_group:
-      name: "Notification Group (Optional)"
-      description: >
-        If several devices are to receive a notification, a [notify group](https://www.home-assistant.io/integrations/group/#notify-groups)
-        can be used. Enter *notify* for all devices. If 'Notification Group' is
-        defined 'Device to notify' will be ignored.
-      default: ""
-    bypass_helper:
-      name: Bypass Helper
-      description: Garage Door Bypass helper
-      default: input_boolean.none
-      selector:
-        entity:
-          domain:
-            - input_boolean
-          multiple: false
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        ratdgo_device:
+          name: Ratdgo Device
+          description: Witch Ratdgo Device?
+          selector:
+            entity:
+              domain:
+                - cover
+              multiple: false
+        obstruction_entity:
+          name: Obstruction Entity
+          description: Witch Obstruction Entity?
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      collapsed: true
+      input:
+        garage_door_timer_helper:
+          name: Garage Door Timer Helper
+          description: Garage Door Timer Helper
+          default: timer.none
+          selector:
+            entity:
+              domain:
+                - timer
+              multiple: false
+        light_bulbs:
+          name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
+          description: >
+            Select a smart light bulb or group of smart light bulbs to control
+            within the designated area ("box").  These lights illuminate the space based
+            on occupancy detected by the motion sensor.<br/>  <br/>Please note: Only entities
+            within the light domain are selectable, and only one selection is allowed.  Default
+            value: 'light.none'. Only change if you intend to use this field and this
+            input is optional.<br/>
+          default: "light.none"
+          selector:
+            entity:
+              domain:
+                - light
+              multiple: false
+        light_switch:
+          name: Light, Light Group, Switch, or Switch Group (Optional)
+          description: >
+            Choose a light, light group, switch, or switch group to control
+            within the designated area ("box").  These devices provide illumination based
+            on occupancy detected by the motion sensor.<br/> <br/>Please note: Only entities
+            within the light or switch domains are selectable, and only one selection
+            is allowed.  Default value: 'light.none'. Only change if you intend to use
+            this field and this input is optional.<br/>
+          default: "light.none"
+          selector:
+            entity:
+              domain:
+                - light
+                - switch
+              multiple: false
+        notify_group:
+          name: "Notification Group (Optional)"
+          description: >
+            If several devices are to receive a notification, a [notify group](https://www.home-assistant.io/integrations/group/#notify-groups)
+            can be used. Enter *notify* for all devices. If 'Notification Group' is
+            defined 'Device to notify' will be ignored.
+          default: ""
+        bypass_helper:
+          name: Bypass Helper
+          description: Garage Door Bypass helper
+          default: input_boolean.none
+          selector:
+            entity:
+              domain:
+                - input_boolean
+              multiple: false
 
 variables:
   ratdgo_device: !input ratdgo_device

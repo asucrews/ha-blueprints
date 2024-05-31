@@ -1,9 +1,9 @@
 # Base on https://gist.github.com/mitchcapper/ce031de253c0300a7141f43a6e1a405c and https://github.com/rohankapoorcom/homeassistant-config/blob/master/blueprints/automation/rohankapoorcom/inovelli-vzw31-sn-red-series-switch.yaml
 # Modify by asucrews
 blueprint:
-  name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS (0.1.0)
+  name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS (0.2.0)
   homeassistant:
-    min_version: 2024.4.0
+    min_version: 2024.6.0
   description: >
     Perform actions on various scenes supported by the Inovelli Inovelli Smart Dimmer FKA 2-1 Switch<br/>
     <br/>
@@ -12,266 +12,301 @@ blueprint:
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml
   input:
-    inovelli_switch:
-      name: Inovelli On/Off Switch
-      description: The Inovelli On/Off or Dimmer Switch to do actions on
-      selector:
-        device:
-          integration: zwave_js
-          manufacturer: Inovelli
-          model: VZW31-SN
-    up_action:
-      name: Press Up Once Action
-      description: Action to perform when pressing up once
-      default: []
-      selector:
-        action:
-    down_action:
-      name: Press Down Once Action
-      description: Action to perform when pressing down once
-      default: []
-      selector:
-        action:
-    config_action:
-      name: Config Button Action
-      description: The action to perform when the config button is pressed once
-      default: []
-      selector:
-        action:
-    up_x2_action:
-      name: Press Up Twice Action
-      description: Action to perform when pressing up twice
-      default: []
-      selector:
-        action:
-    down_x2_action:
-      name: Press Down Twice Action
-      description: Action to perform when pressing down twice
-      default: []
-      selector:
-        action:
-    config_x2_action:
-      name: Press Config Twice Times Action
-      description: Action to perform when pressing config twice
-      default: []
-      selector:
-        action:
-    up_x3_action:
-      name: Press Up 3 Times Action
-      description: Action to perform on when pressing up 3 times
-      default: []
-      selector:
-        action:
-    down_x3_action:
-      name: Press Down 3 Times Action
-      description: Action to perform when pressing down 3 times
-      default: []
-      selector:
-        action:
-    config_x3_action:
-      name: Press config 3 Times Action
-      description: Action to perform when pressing config 3 times
-      default: []
-      selector:
-        action:
-    up_x4_action:
-      name: Press Up 4 Times Action
-      description: Action to perform when pressing up 4 times
-      default: []
-      selector:
-        action:
-    down_x4_action:
-      name: Press Down 4 Times Action
-      description: Action to perform when pressing down 4 times
-      default: []
-      selector:
-        action:
-    config_x4_action:
-      name: Press config 4 Times Action
-      description: Action to perform when pressing config 4 times
-      default: []
-      selector:
-        action:
-    up_x5_action:
-      name: Press Up 5 Times Action
-      description: Action to perform when pressing up 5 times
-      default: []
-      selector:
-        action:
-    down_x5_action:
-      name: Press Down 5 Times Action
-      description: Action to perform when pressing down 5 times
-      default: []
-      selector:
-        action:
-    config_x5_action:
-      name: Press config 5 Times Action
-      description: Action to perform when pressing config 5 times
-      default: []
-      selector:
-        action:
-    up_hold_action:
-      name: Hold Up Action
-      description: Action to perform when holding the up button
-      default: []
-      selector:
-        action:
-    up_release_action:
-      name: Release Up Action
-      description: Action to perform when releasing the up button
-      default: []
-      selector:
-        action:
-    down_hold_action:
-      name: Hold Down Action
-      description: Action to perform when holding the down button
-      default: []
-      selector:
-        action:
-    down_release_action:
-      name: Release Down Action
-      description: Action to perform when releasing the down button
-      default: []
-      selector:
-        action:
-    config_hold_action:
-      name: Hold Config Action
-      description: Action to perform when holding the Config button
-      default: []
-      selector:
-        action:
-    config_release_action:
-      name: Release Config Action
-      description: Action to perform when releasing the Config button
-      default: []
-      selector:
-        action:
-    aux_up_action:
-      name: Press Up Once Action on Aux Switch
-      description: Action to perform when pressing up once
-      default: []
-      selector:
-        action:
-    aux_down_action:
-      name: Press Down Once Action on Aux Switch
-      description: Action to perform when pressing down once
-      default: []
-      selector:
-        action:
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        inovelli_switch:
+          name: Inovelli On/Off Switch
+          description: The Inovelli On/Off or Dimmer Switch to do actions on
+          selector:
+            device:
+              integration: zwave_js
+              manufacturer: Inovelli
+              model: VZW31-SN
+    up_actions:
+      name: Actions up press
+      description: Action to perform when pressing up
+      collapsed: true
+      input:
+        up_action:
+          name: Press Up Once Action
+          description: Action to perform when pressing up once
+          default: []
+          selector:
+            action:
+        up_x2_action:
+          name: Press Up Twice Action
+          description: Action to perform when pressing up twice
+          default: []
+          selector:
+            action:
+        up_x3_action:
+          name: Press Up 3 Times Action
+          description: Action to perform on when pressing up 3 times
+          default: []
+          selector:
+            action:
+        up_x4_action:
+          name: Press Up 4 Times Action
+          description: Action to perform when pressing up 4 times
+          default: []
+          selector:
+            action:
+        up_x5_action:
+          name: Press Up 5 Times Action
+          description: Action to perform when pressing up 5 times
+          default: []
+          selector:
+            action:
+        up_hold_action:
+          name: Hold Up Action
+          description: Action to perform when holding the up button
+          default: []
+          selector:
+            action:
+        up_release_action:
+          name: Release Up Action
+          description: Action to perform when releasing the up button
+          default: []
+          selector:
+            action:
+    down_actions:
+      name: Actions down press
+      description: Action to perform when pressing down
+      collapsed: true
+      input:
+        down_action:
+          name: Press Down Once Action
+          description: Action to perform when pressing down once
+          default: []
+          selector:
+            action:
+        down_x2_action:
+          name: Press Down Twice Action
+          description: Action to perform when pressing down twice
+          default: []
+          selector:
+            action:
+        down_x3_action:
+          name: Press Down 3 Times Action
+          description: Action to perform when pressing down 3 times
+          default: []
+          selector:
+            action:
+        down_x4_action:
+          name: Press Down 4 Times Action
+          description: Action to perform when pressing down 4 times
+          default: []
+          selector:
+            action:
+        down_x5_action:
+          name: Press Down 5 Times Action
+          description: Action to perform when pressing down 5 times
+          default: []
+          selector:
+            action:
+        down_hold_action:
+          name: Hold Down Action
+          description: Action to perform when holding the down button
+          default: []
+          selector:
+            action:
+        down_release_action:
+          name: Release Down Action
+          description: Action to perform when releasing the down button
+          default: []
+          selector:
+            action:
+    config_actions:
+      name: Actions config press
+      description: Action to perform when pressing config
+      collapsed: true
+      input:
+        config_action:
+          name: Config Button Action
+          description: The action to perform when the config button is pressed once
+          default: []
+          selector:
+            action:
+        config_x2_action:
+          name: Press Config Twice Times Action
+          description: Action to perform when pressing config twice
+          default: []
+          selector:
+            action:
+        config_x3_action:
+          name: Press config 3 Times Action
+          description: Action to perform when pressing config 3 times
+          default: []
+          selector:
+            action:
+        config_x4_action:
+          name: Press config 4 Times Action
+          description: Action to perform when pressing config 4 times
+          default: []
+          selector:
+            action:
+        config_x5_action:
+          name: Press config 5 Times Action
+          description: Action to perform when pressing config 5 times
+          default: []
+          selector:
+            action:
+        config_hold_action:
+          name: Hold Config Action
+          description: Action to perform when holding the Config button
+          default: []
+          selector:
+            action:
+        config_release_action:
+          name: Release Config Action
+          description: Action to perform when releasing the Config button
+          default: []
+          selector:
+            action:
+    aux_up_actions:
+      name: Actions aux up press
+      description: Action to perform when pressing aux up
+      collapsed: true
+      input:
+        aux_up_action:
+          name: Press Up Once Action on Aux Switch
+          description: Action to perform when pressing up once
+          default: []
+          selector:
+            action:
+        aux_up_x2_action:
+          name: Press Up Twice Action on Aux Switch
+          description: Action to perform when pressing up twice
+          default: []
+          selector:
+            action:
+        aux_up_x3_action:
+          name: Press Up 3 Times Action on Aux Switch
+          description: Action to perform on when pressing up 3 times
+          default: []
+          selector:
+            action:
+        aux_up_x4_action:
+          name: Press Up 4 Times Action on Aux Switch
+          description: Action to perform when pressing up 4 times
+          default: []
+          selector:
+            action:
+        aux_up_x5_action:
+          name: Press Up 5 Times Action on Aux Switch
+          description: Action to perform when pressing up 5 times
+          default: []
+          selector:
+            action:
+        aux_up_hold_action:
+          name: Hold Up Action on Aux Switch
+          description: Action to perform when holding the up button
+          default: []
+          selector:
+            action:
+        aux_up_release_action:
+          name: Aux Up Release Action
+          description: Action to perform when releasing the up button
+          default: []
+          selector:
+            action:
+    aux_down_actons:
+      name: Actions aux down press
+      description: Action to perform when pressing aux down
+      collapsed: true
+      input:
+        aux_down_action:
+          name: Press Down Once Action on Aux Switch
+          description: Action to perform when pressing down once
+          default: []
+          selector:
+            action:
+        aux_down_x2_action:
+          name: Press Down Twice Action on Aux Switch
+          description: Action to perform when pressing down twice
+          default: []
+          selector:
+            action:
+        aux_down_x3_action:
+          name: Press Down 3 Times Action on Aux Switch
+          description: Action to perform when pressing down 3 times
+          default: []
+          selector:
+            action:
+        aux_down_x4_action:
+          name: Press Down 4 Times Action on Aux Switch
+          description: Action to perform when pressing down 4 times
+          default: []
+          selector:
+            action:
+        aux_down_x5_action:
+          name: Press Down 5 Times Action on Aux Switch
+          description: Action to perform when pressing down 5 times
+          default: []
+          selector:
+            action:
+        aux_down_hold_action:
+          name: Hold Down Action on Aux Switch
+          description: Action to perform when holding the down button
+          default: []
+          selector:
+            action:
+        aux_down_release_action:
+          name: Aux Down Release Action
+          description: Action to perform when releasing the down button
+          default: []
+          selector:
+            action:
     aux_config_action:
-      name: Config Button Action on Aux Switch
-      description: The action to perform when the config button is pressed once
-      default: []
-      selector:
-        action:
-    aux_up_x2_action:
-      name: Press Up Twice Action on Aux Switch
-      description: Action to perform when pressing up twice
-      default: []
-      selector:
-        action:
-    aux_down_x2_action:
-      name: Press Down Twice Action on Aux Switch
-      description: Action to perform when pressing down twice
-      default: []
-      selector:
-        action:
-    aux_config_x2_action:
-      name: Press Config Twice Times Action on Aux Switch
-      description: Action to perform when pressing config twice
-      default: []
-      selector:
-        action:
-    aux_up_x3_action:
-      name: Press Up 3 Times Action on Aux Switch
-      description: Action to perform on when pressing up 3 times
-      default: []
-      selector:
-        action:
-    aux_down_x3_action:
-      name: Press Down 3 Times Action on Aux Switch
-      description: Action to perform when pressing down 3 times
-      default: []
-      selector:
-        action:
-    aux_config_x3_action:
-      name: Press config 3 Times Action on Aux Switch
-      description: Action to perform when pressing config 3 times
-      default: []
-      selector:
-        action:
-    aux_up_x4_action:
-      name: Press Up 4 Times Action on Aux Switch
-      description: Action to perform when pressing up 4 times
-      default: []
-      selector:
-        action:
-    aux_down_x4_action:
-      name: Press Down 4 Times Action on Aux Switch
-      description: Action to perform when pressing down 4 times
-      default: []
-      selector:
-        action:
-    aux_config_x4_action:
-      name: Press config 4 Times Action on Aux Switch
-      description: Action to perform when pressing config 4 times
-      default: []
-      selector:
-        action:
-    aux_up_x5_action:
-      name: Press Up 5 Times Action on Aux Switch
-      description: Action to perform when pressing up 5 times
-      default: []
-      selector:
-        action:
-    aux_down_x5_action:
-      name: Press Down 5 Times Action on Aux Switch
-      description: Action to perform when pressing down 5 times
-      default: []
-      selector:
-        action:
-    aux_config_x5_action:
-      name: Press config 5 Times Action on Aux Switch
-      description: Action to perform when pressing config 5 times
-      default: []
-      selector:
-        action:
-    aux_up_hold_action:
-      name: Hold Up Action on Aux Switch
-      description: Action to perform when holding the up button
-      default: []
-      selector:
-        action:
-    aux_up_release_action:
-      name: Release Up Action on Aux Switch
-      description: Action to perform when releasing the up button
-      default: []
-      selector:
-        action:
-    aux_down_hold_action:
-      name: Hold Down Action on Aux Switch
-      description: Action to perform when holding the down button
-      default: []
-      selector:
-        action:
-    aux_down_release_action:
-      name: Release Down Action on Aux Switch
-      description: Action to perform when releasing the down button
-      default: []
-      selector:
-        action:
-    aux_config_hold_action:
-      name: Hold Config Action on Aux Switch
-      description: Action to perform when holding the Config button
-      default: []
-      selector:
-        action:
-    aux_config_release_action:
-      name: Release Config Action on Aux Switch
-      description: Action to perform when releasing the Config button
-      default: []
-      selector:
-        action:
+      name: Actions Aux config press
+      description: Action to perform when pressing aux config
+      collapsed: true
+      input:
+        aux_config_action:
+          name: Config Button Action on Aux Switch
+          description: The action to perform when the config button is pressed once
+          default: []
+          selector:
+            action:
+        aux_config_x2_action:
+          name: Press Config Twice Times Action on Aux Switch
+          description: Action to perform when pressing config twice
+          default: []
+          selector:
+            action:
+        aux_config_x3_action:
+          name: Press config 3 Times Action on Aux Switch
+          description: Action to perform when pressing config 3 times
+          default: []
+          selector:
+            action:
+        aux_config_x4_action:
+          name: Press config 4 Times Action on Aux Switch
+          description: Action to perform when pressing config 4 times
+          default: []
+          selector:
+            action:
+        aux_config_x5_action:
+          name: Press config 5 Times Action on Aux Switch
+          description: Action to perform when pressing config 5 times
+          default: []
+          selector:
+            action:
+        aux_config_hold_action:
+          name: Hold Config Action on Aux Switch
+          description: Action to perform when holding the Config button
+          default: []
+          selector:
+            action:
+        aux_config_release_action:
+          name: Release Config Action on Aux Switch
+          description: Action to perform when releasing the Config button
+          default: []
+          selector:
+            action:
 
 variables:
   down_button: "001"
@@ -499,4 +534,3 @@ action:
                 sequence: !input aux_config_release_action
 
 mode: single
-max_exceeded: silent
