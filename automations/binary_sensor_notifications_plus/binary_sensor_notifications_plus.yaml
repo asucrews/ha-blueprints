@@ -1,5 +1,5 @@
 blueprint:
-  name: "Binary Sensor Notification (0.2.5)"
+  name: "Binary Sensor Notification (0.2.6)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
@@ -92,7 +92,7 @@ trigger:
 
 condition:
   - condition: template
-    value_template:
+    value_template: >
       {
         {
           iif(this.attributes.last_triggered == None,
