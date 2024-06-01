@@ -23,7 +23,7 @@
                 # If there's only one feature enabled
                 - conditions:
                     - condition: template
-                      value_template: "{{ len(light_control_features) == 1 }}"
+                      value_template: "{{ light_control_features | list | length  == 1 }}"
                   sequence:
                     # Turn on the light with specific settings based on the enabled feature
                     - choose:
@@ -60,7 +60,7 @@
                 # If there are two features enabled
                 - conditions:
                     - condition: template
-                      value_template: "{{ len(light_control_features) == 2 }}"
+                      value_template: "{{ light_control_features | list | length  == 2 }}"
                   sequence:
                     # Execute different sequences based on the combination of enabled features
                     - choose:
@@ -100,7 +100,7 @@
                 # If all three features are enabled
                 - conditions:
                     - condition: template
-                      value_template: "{{ len(light_control_features) == 3 }}"
+                      value_template: "{{ light_control_features | list | length  == 3 }}"
                   sequence:
                     # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
                     - service: light.turn_on
