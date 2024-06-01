@@ -1,5 +1,5 @@
 blueprint:
-  name: "Binary Sensor Notification (0.2.4)"
+  name: "Binary Sensor Notification (0.2.5)"
   description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
@@ -91,9 +91,16 @@ trigger:
     id: Timer Finished
 
 condition:
-  condition: template
-  value_template: >-
-    {{ iif(this.attributes.last_triggered == None, 9999, as_timestamp(now()) - as_timestamp(this.attributes.last_triggered, default=0) ) >= (debounce_duration | int) }}
+  - condition: template
+    value_template:
+      {
+        {
+          iif(this.attributes.last_triggered == None,
+          9999,
+          as_timestamp(now()) - as_timestamp(this.attributes.last_triggered,
+          default=0) ) >= (debounce_duration | int),
+        },
+      }
 
 action:
   - choose:
@@ -149,6 +156,9 @@ action:
                   - Timer Finished
               - condition: template
                 value_template: "{{ message_left  != 'None' }}"
+              - condition: state
+                entity_id: !input sensor_entity
+                state: "on"
         sequence:
           - service: "notify.{{ notify_group }}"
             data:
@@ -158,3 +168,8 @@ action:
                 ttl: 0
                 priority: high
                 tag: "tag-binary-sensor-notification"
+          - service: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input left_open_timer_helper
