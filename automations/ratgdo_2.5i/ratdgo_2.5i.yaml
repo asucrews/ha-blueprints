@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.5.0rc5)
+  name: Ratdgo 2.5i Stable (0.5.0rc6)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -246,9 +246,13 @@ action:
                     state: "off"
             then:
               - if:
-                  - condition: state
-                    entity_id: !input venting_helper
-                    state: "on"
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity_id: !input venting_helper
+                        state: "on"
+                      - condition: template
+                        value_template: "{{ venting_helper != 'input_boolean.none' }}"
                 then:
                   - if:
                       - condition: template
@@ -259,12 +263,22 @@ action:
                           entity_id: !input ratdgo_device
                         data:
                           position: 10
-                  - stop: Venting
-              - service: cover.close_cover
+                else:
+                  - service: cover.close_cover
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input ratdgo_device
+            else:
+              - service: timer.cancel
+                target:
+                  entity_id: !input garage_door_timer_helper
+                data: {}
+              - service: timer.start
                 metadata: {}
                 data: {}
                 target:
-                  entity_id: !input ratdgo_device
+                  entity_id: !input garage_door_timer_helper
       - conditions:
           - condition: and
             conditions:
