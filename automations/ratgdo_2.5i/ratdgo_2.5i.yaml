@@ -1,7 +1,7 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.5.0rc3)
+  name: Ratdgo 2.5i Stable (0.5.0rc4)
   homeassistant:
-    min_version: 2024.6.0b1
+    min_version: 2024.5.0
   description: Ratdgo Notification and auto close
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
