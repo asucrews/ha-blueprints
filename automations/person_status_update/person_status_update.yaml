@@ -90,17 +90,21 @@ trigger:
     for:
       hours: !input time_till_marked_extended_away
     id: input_select_wait_away
+
+variables:
+  person_input_select: !input person_input_select
+
 condition:
   - condition: template
     value_template: "{{ trigger.to_state.state != trigger.from_state.state }}"
+
 action:
   - choose:
       - conditions:
           - condition: trigger
             id: person_home
-          - condition: state
-            entity_id: !input person_input_select
-            state: Just Left
+          - condition: template
+            value_template: "{{ state_attr(person_input_select, 'friendly_name') in ['Leaving', 'Just Left'] }}"
         sequence:
           - service: input_select.select_option
             target:
