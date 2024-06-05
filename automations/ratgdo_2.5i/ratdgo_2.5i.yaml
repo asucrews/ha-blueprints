@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.5.0rc6)
+  name: Ratdgo 2.5i Stable (0.5.0rc7)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -262,7 +262,7 @@ action:
                         target:
                           entity_id: !input ratdgo_device
                         data:
-                          position: 10
+                          position: 20
                 else:
                   - service: cover.close_cover
                     metadata: {}

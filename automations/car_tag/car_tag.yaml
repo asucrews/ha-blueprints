@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag Stable (0.2.0)
+  name: Car Tag Stable (0.2.1rc1)
   homeassistant:
     min_version: 2024.6.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
@@ -47,6 +47,15 @@ blueprint:
               domain:
                 - timer
               multiple: false
+        venting_helper:
+          name: Garage Venting Helper
+          description: Garage Venting Toggle Helper
+          default: input_boolean.none
+          selector:
+            entity:
+              domain:
+                - input_boolean
+              multiple: false
 
 variables:
   esphome_ble: !input esphome_ble
@@ -86,6 +95,19 @@ action:
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
+          - if:
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: !input venting_helper
+                    state: "on"
+                  - condition: template
+                    value_template: "{{ venting_helper != 'input_boolean.none' }}"
+            then:
+              - service: cover.close_cover
+                data: {}
+                target:
+                  entity_id: !input garage_door_cover
           - service: cover.open_cover
             data: {}
             target:
@@ -128,6 +150,19 @@ action:
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
+          - if:
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: !input venting_helper
+                    state: "on"
+                  - condition: template
+                    value_template: "{{ venting_helper != 'input_boolean.none' }}"
+            then:
+              - service: cover.close_cover
+                data: {}
+                target:
+                  entity_id: !input garage_door_cover
           - service: cover.open_cover
             data: {}
             target:
