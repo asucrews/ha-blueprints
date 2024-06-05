@@ -1,0 +1,120 @@
+alias: Garage Venting
+description: ""
+trigger:
+  - platform: time
+    at: "07:00:00"
+    id: morning start
+  - platform: time
+    at: "09:00:00"
+    id: morning end
+  - platform: time
+    at: "20:00:00"
+    id: evening start
+  - platform: time
+    at: "00:00:00"
+    id: evening end
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: timer
+    id: timer finished
+    enabled: true
+condition:
+  - condition: and
+    conditions:
+      - condition: state
+        entity_id: hot_season
+        state: "on"
+      - condition: state
+        entity_id: alarm_control_panel
+        state: disarmed
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id:
+              - morning start
+              - evening start
+        sequence:
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ states('garage_temperature') >=
+                      states('outside_temperature') }}
+                  - condition: template
+                    value_template: "{{ is_state('cover', 'closed') }}"
+            then:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: input_boolean
+                data: {}
+              - service: cover.set_cover_position
+                target:
+                  entity_id:
+                    - cover
+                data:
+                  position: 15
+          - service: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: timer
+      - conditions:
+          - condition: trigger
+            id:
+              - morning end
+              - evening end
+        sequence:
+          - service: input_boolean.turn_off
+            metadata: {}
+            data: {}
+            target:
+              entity_id: input_boolean
+          - if:
+              - condition: state
+                entity_id: cover
+                attribute: current_position
+                state: "15"
+            then:
+              - service: cover.close_cover
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: cover
+          - service: timer.cancel
+            metadata: {}
+            data: {}
+            target:
+              entity_id: timer
+      - conditions:
+          - condition: trigger
+            id:
+              - timer finished
+        sequence:
+          - if:
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: input_boolean
+                    state: "on"
+                  - condition: template
+                    value_template: >-
+                      {{ states('garage_temperature') >=
+                      states('outside_temperature') }}
+                  - condition: template
+                    value_template: "{{ is_state('cover', 'closed') }}"
+            then:
+              - service: cover.set_cover_position
+                target:
+                  entity_id:
+                    - cover
+                data:
+                  position: 15
+          - service: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: timer
+mode: single
