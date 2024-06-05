@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.5.0rc8)
+  name: Ratdgo 2.5i Stable (0.5.1)
   homeassistant:
     min_version: 2024.5.0
   description: Ratdgo Notification and auto close
@@ -256,13 +256,13 @@ action:
                 then:
                   - if:
                       - condition: template
-                        value_template: "{{ state_attr(ratdgo_device,'current_position') != 20 }}"
+                        value_template: "{{ state_attr(ratdgo_device,'current_position') != 15 }}"
                     then:
                       - service: cover.set_cover_position
                         target:
                           entity_id: !input ratdgo_device
                         data:
-                          position: 20
+                          position: 15
                 else:
                   - service: cover.close_cover
                     metadata: {}
