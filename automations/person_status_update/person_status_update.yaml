@@ -60,9 +60,9 @@ blueprint:
 
 trigger:
   - platform: state
-    entity_id: !input person_entity
+    entity_id: !input person_device_tracker
     to: home
-    id: person_home
+    id: device_tracker_home
   - platform: state
     entity_id: !input person_input_select
     for:
@@ -75,9 +75,9 @@ trigger:
     to: Just Arrived
     id: input_select_debounce
   - platform: state
-    entity_id: !input person_entity
+    entity_id: !input person_device_tracker
     from: home
-    id: person_not_home
+    id: device_tracker_not_home
   - platform: state
     entity_id: !input person_input_select
     to: Just Left
@@ -90,21 +90,17 @@ trigger:
     for:
       hours: !input time_till_marked_extended_away
     id: input_select_wait_away
-
-variables:
-  person_input_select: !input person_input_select
-
 condition:
   - condition: template
-    value_template: "{{ trigger.to_state.state != trigger.from_state.state }}"
-
+    value_template: '{{ trigger.to_state.state != trigger.from_state.state }}'
 action:
   - choose:
       - conditions:
           - condition: trigger
-            id: person_home
-          - condition: template
-            value_template: "{{ state_attr(person_input_select, 'friendly_name') in ['Leaving', 'Just Left'] }}"
+            id: device_tracker_home # enter home zone within X minutes 
+          - condition: state
+            entity_id: !input person_input_select
+            state: Just Left
         sequence:
           - service: input_select.select_option
             target:
@@ -113,7 +109,7 @@ action:
               option: Home
       - conditions:
           - condition: trigger
-            id: person_home
+            id: device_tracker_home # enter home zone
         sequence:
           - service: input_select.select_option
             target:
@@ -135,7 +131,7 @@ action:
               option: Home
       - conditions:
           - condition: trigger
-            id: person_not_home
+            id: device_tracker_not_home # left the home zone
         sequence:
           - service: input_select.select_option
             target:
@@ -144,7 +140,7 @@ action:
               option: Just Left
       - conditions:
           - condition: trigger
-            id: input_select_wait_left
+            id: input_select_wait_left # away after X minutes
         sequence:
           - service: input_select.select_option
             target:
@@ -153,7 +149,7 @@ action:
               option: Away
     default:
       - condition: trigger
-        id: input_select_wait_away
+        id: input_select_wait_away # extended away
       - service: input_select.select_option
         target:
           entity_id: !input person_input_select
