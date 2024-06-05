@@ -90,14 +90,16 @@ trigger:
     for:
       hours: !input time_till_marked_extended_away
     id: input_select_wait_away
+
 condition:
   - condition: template
-    value_template: '{{ trigger.to_state.state != trigger.from_state.state }}'
+    value_template: "{{ trigger.to_state.state != trigger.from_state.state }}"
+
 action:
   - choose:
       - conditions:
           - condition: trigger
-            id: device_tracker_home # enter home zone within X minutes 
+            id: device_tracker_home # enter home zone within X minutes
           - condition: state
             entity_id: !input person_input_select
             state: Just Left
@@ -155,4 +157,6 @@ action:
           entity_id: !input person_input_select
         data:
           option: Extended Away
+
 mode: queued
+max: 5

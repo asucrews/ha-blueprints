@@ -99,21 +99,11 @@ variables:
   bypass_helper: !input bypass_helper
 
 trigger:
-  # - platform: state
-  #   entity_id: !input ratdgo_device
-  #   from: closed
-  #   to: opening
-  #   id: Garage Door is Opening
   - platform: state
     entity_id: !input ratdgo_device
     from: opening
     to: open
     id: Garage Door is Open
-  # - platform: state
-  #   entity_id: !input ratdgo_device
-  #   from: open
-  #   to: closing
-  #   id: Garage Door is Closing
   - platform: state
     entity_id: !input ratdgo_device
     from: closing
@@ -129,11 +119,6 @@ trigger:
     from: "off"
     to: "on"
     id: Obstruction Found
-  # - platform: state
-  #   entity_id: !input obstruction_entity
-  #   from: "on"
-  #   to: "off"
-  #   id: Obstruction Not Found
 
 action:
   - choose:

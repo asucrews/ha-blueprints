@@ -47,15 +47,6 @@ blueprint:
               domain:
                 - timer
               multiple: false
-        venting_helper:
-          name: Garage Venting Helper
-          description: Garage Venting Toggle Helper
-          default: input_boolean.none
-          selector:
-            entity:
-              domain:
-                - input_boolean
-              multiple: false
 
 variables:
   esphome_ble: !input esphome_ble
