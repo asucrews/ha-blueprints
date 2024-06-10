@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor Stable (0.2.0)
+  name: LUX Sensor Stable (0.3.0)
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -95,74 +95,59 @@ variables:
   night_below_lux_level: !input night_below_lux_level
 
 trigger:
-  - platform: numeric_state
-    entity_id: !input lux_sensor
-    above: !input day_above_lux_level
-    id: Light is on at day
-  - platform: numeric_state
-    entity_id: !input lux_sensor
-    below: !input day_below_lux_level
-    id: Light is off at day
-  - platform: numeric_state
-    entity_id: !input lux_sensor
-    above: !input day_above_lux_level
-    id: Light is on at night
-  - platform: numeric_state
-    entity_id: !input lux_sensor
-    below: !input day_below_lux_level
-    id: Light is off at night
+  - platform: event
+    event_type: state_changed
+    event_data:
+      entity_id: !input lux_sensor
 
 action:
-  - choose:
-      - conditions:
-          - condition: sun
-            before: sunset
-            after: sunrise
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: trigger
-                    id:
-                      - Light is on at day
-                sequence:
-                  - service: input_boolean.turn_on
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input status_boolean
-              - conditions:
-                  - condition: trigger
-                    id:
-                      - Light is off at day
-                sequence:
-                  - service: input_boolean.turn_off
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input status_boolean
-      - conditions:
-          - condition: sun
-            before: sunrise
-            after: sunset
-        sequence:
-          - choose:
-              - conditions:
-                  - condition: trigger
-                    id:
-                      - Light is on at night
-                sequence:
-                  - service: input_boolean.turn_on
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input status_boolean
-              - conditions:
-                  - condition: trigger
-                    id:
-                      - Light is off at night
-                sequence:
-                  - service: input_boolean.turn_off
-                    metadata: {}
-                    data: {}
-                    target:
-                      entity_id: !input status_boolean
+  - variables:
+      new_state: "{{ trigger.event.data.new_state.state }}"
+      old_state: "{{ trigger.event.data.old_state.state }}"
+  - if:
+      - condition: state
+        entity_id: binary_sensor.night
+        state: "on"
+    then:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ new_state | float > night_above_lux_level | float }}"
+            sequence:
+              - service: input_boolean.turn_on
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input status_boolean
+          - conditions:
+              - condition: template
+                value_template: "{{ new_state | float < night_below_lux_level | float }}"
+            sequence:
+              - service: input_boolean.turn_off
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input status_boolean
+    else:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ new_state | float > day_above_lux_level | float }}"
+            sequence:
+              - service: input_boolean.turn_on
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input status_boolean
+          - conditions:
+              - condition: template
+                value_template: "{{ new_state | float < day_below_lux_level | float }}"
+            sequence:
+              - service: input_boolean.turn_off
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input status_boolean
+
+mode: queued
+max: 5
