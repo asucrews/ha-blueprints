@@ -150,4 +150,4 @@ action:
                   entity_id: !input status_boolean
 
 mode: single
-max: silent
+max_exceeded: silent

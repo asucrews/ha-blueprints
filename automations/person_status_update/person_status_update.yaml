@@ -159,4 +159,4 @@ action:
           option: Extended Away
 
 mode: single
-max: silent
+max_exceeded: silent

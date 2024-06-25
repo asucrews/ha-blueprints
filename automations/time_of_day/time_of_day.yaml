@@ -42,4 +42,4 @@ action:
           -
 
 mode: single
-max: silent
+max_exceeded: silent

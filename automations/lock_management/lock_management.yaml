@@ -199,4 +199,4 @@ action:
                   entity_id: !input lock
 
 mode: single
-max: silent
+max_exceeded: silent

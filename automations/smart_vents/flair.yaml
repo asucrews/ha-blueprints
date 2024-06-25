@@ -192,4 +192,4 @@ action:
               entity_id: !input flair_clear_hold
 
 mode: single
-max: silent
+max_exceeded: silent

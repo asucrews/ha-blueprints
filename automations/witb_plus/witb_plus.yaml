@@ -1190,4 +1190,4 @@ action:
                   entity_id: !input idle_timer
 
 mode: single
-max: silent
+max_exceeded: silent

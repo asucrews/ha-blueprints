@@ -257,4 +257,4 @@ action:
               entity_id: !input garage_door_timer_helper
 
 mode: single
-max: silent
+max_exceeded: silent

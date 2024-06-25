@@ -534,4 +534,4 @@ action:
                 sequence: !input aux_config_release_action
 
 mode: single
-max: silent
+max_exceeded: silent
