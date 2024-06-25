@@ -190,3 +190,6 @@ action:
             data: {}
             target:
               entity_id: !input flair_clear_hold
+
+mode: single
+max: silent

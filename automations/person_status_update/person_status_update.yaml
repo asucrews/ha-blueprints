@@ -158,5 +158,5 @@ action:
         data:
           option: Extended Away
 
-mode: queued
-max: 5
+mode: single
+max: silent

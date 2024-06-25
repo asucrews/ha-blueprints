@@ -40,3 +40,6 @@ action:
               - time_1
         sequence:
           -
+
+mode: single
+max: silent

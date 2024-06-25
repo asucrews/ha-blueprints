@@ -195,5 +195,6 @@ action:
                 data: {}
                 target:
                   entity_id: !input lock
-mode: queued
-max: 5
+
+mode: single
+max: silent

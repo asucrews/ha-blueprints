@@ -173,3 +173,6 @@ action:
             data: {}
             target:
               entity_id: !input left_open_timer_helper
+
+mode: single
+max: silent
