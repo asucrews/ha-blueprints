@@ -1,0 +1,174 @@
+blueprint:
+  name: Dinning Room Ceiling Fan Remote
+  description: Blueprint for controlling the dinning room ceiling fan with RF remote
+  domain: automation
+  input:
+    rf_event:
+      name: RF Event
+      description: Event for the RF remote
+      selector:
+        event:
+          platform: esphome.rf_code_received
+    protocol:
+      name: Protocol
+      description: Protocol number to match for RF codes
+      default: 4
+      selector:
+        number:
+          min: 1
+          max: 12
+          step: 1
+    light_state:
+      name: Ceiling Fan Light State
+      description: Input boolean for the ceiling fan light state
+      selector:
+        entity:
+          domain: input_boolean
+    fan_state:
+      name: Ceiling Fan State
+      description: Input boolean for the ceiling fan state
+      selector:
+        entity:
+          domain: input_boolean
+    preset_mode:
+      name: Ceiling Fan Preset Mode
+      description: Input select for the ceiling fan preset mode
+      selector:
+        entity:
+          domain: input_select
+    direction:
+      name: Ceiling Fan Direction
+      description: Input select for the ceiling fan direction
+      selector:
+        entity:
+          domain: input_select
+
+trigger:
+  platform: event
+  event_type: !input rf_event
+
+variables:
+  event_protocol: "{{ trigger.event.data.protocol }}"
+  event_code: "{{ trigger.event.data.code }}"
+  protocol: !input protocol
+  light_state: !input light_state
+  fan_state: !input fan_state
+  preset_mode: !input preset_mode
+  direction: !input direction
+
+condition: []
+
+action:
+  - variables:
+      protocol: "{{ trigger.event.data.protocol }}"
+      code: "{{ trigger.event.data.code }}"
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833496100 }}"
+        sequence:
+          - if:
+              - condition: state
+                entity_id: !input light_state
+                state: "off"
+            then:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: !input light_state
+            else:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: !input light_state
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833496871 }}"
+        sequence:
+          - if:
+              - condition: state
+                entity_id: !input fan_state
+                state: "off"
+            then:
+              - service: input_boolean.turn_on
+                target:
+                  entity_id: !input fan_state
+            else:
+              - service: input_boolean.turn_off
+                target:
+                  entity_id: !input fan_state
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833497642 }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input preset_mode
+            data:
+              option: "1"
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833501754 }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input preset_mode
+            data:
+              option: "2"
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833505866 }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input preset_mode
+            data:
+              option: "3"
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833509978 }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input preset_mode
+            data:
+              option: "4"
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833514090 }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input preset_mode
+            data:
+              option: "5"
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833493530 }}"
+        sequence:
+          - service: input_select.select_option
+            target:
+              entity_id: !input preset_mode
+            data:
+              option: "6"
+      - conditions:
+          - condition: template
+            value_template: "{{ event_protocol == 4 and event_code == 833495843 }}"
+        sequence:
+          - if:
+              - condition: state
+                entity_id: !input direction
+                state: forward
+            then:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input direction
+                data:
+                  option: reverse
+            else:
+              - service: input_select.select_option
+                target:
+                  entity_id: !input direction
+                data:
+                  option: forward
+mode: single
+max_exceeded: silent
+
