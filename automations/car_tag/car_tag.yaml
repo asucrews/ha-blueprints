@@ -4,7 +4,7 @@ blueprint:
     min_version: 2024.6.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
-  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag.yaml
   input:
     required_entities:
       name: Required Entities
