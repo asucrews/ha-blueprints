@@ -1,10 +1,10 @@
 blueprint:
-  name: 6 Speed Ceiling Fan Remote (v0.1.0rc2)
+  name: 6 Speed Ceiling Fan Remote (v0.1.0)
   description: Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
   homeassistant:
     min_version: 2024.6.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/esp360_remote.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan.yaml
   input:
     rf_event:
       name: RF Event
