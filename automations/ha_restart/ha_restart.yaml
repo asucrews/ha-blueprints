@@ -1,0 +1,26 @@
+blueprint:
+  name: Home Assistant Restart Trigger (1.0.0)
+  homeassistant:
+    min_version: 2024.6.0
+  description: Blueprint for triggering actions on Home Assistant restart
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart.yaml
+  input:
+    user_actions:
+      name: Actions to Run
+      description: Actions to run when Home Assistant restarts
+      selector:
+        action:
+
+trigger:
+  - platform: homeassistant
+    event: start
+
+condition: []
+
+action:
+  - choose:
+      - conditions: []
+        sequence: !input user_actions
+
+mode: single

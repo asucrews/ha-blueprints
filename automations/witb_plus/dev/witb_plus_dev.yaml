@@ -379,6 +379,15 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled 
           # Check for bedtime, if so then stop
           - if:
               - condition: or
@@ -571,15 +580,6 @@ action:
                 state: "off"
                 entity_id: !input motion_sensor
         sequence:
-          # Enables bypass if configured
-          - if:
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-            then:
-              - condition: state
-                state: "on"
-                entity_id: !input bypass_helper
-              - stop: Bypass Enabled
           # Turns off occupancy helper if configured
           - if:
               - condition: template
@@ -589,6 +589,15 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           # Check for bedtime, if so then stop
           - if:
               - condition: or
@@ -727,6 +736,15 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           # Check for bedtime, if so then stop
           - if:
               - condition: or
@@ -938,15 +956,6 @@ action:
                 state: "on"
                 entity_id: !input door_sensor
         sequence:
-          # Enables bypass if configured
-          - if:
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-            then:
-              - condition: state
-                state: "on"
-                entity_id: !input bypass_helper
-              - stop: Bypass Enabled
           # Turns off occupancy helper if configured
           - if:
               - condition: template
@@ -956,6 +965,15 @@ action:
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
           # Check for bedtime, if so then stop
           - if:
               - condition: or
