@@ -1,5 +1,5 @@
 blueprint:
-  name: 6 Speed Ceiling Fan Remote (v0.1.09rc1)
+  name: 6 Speed Ceiling Fan Remote (v0.1.0rc2)
   description: Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
   homeassistant:
     min_version: 2024.6.0
@@ -9,9 +9,7 @@ blueprint:
     rf_event:
       name: RF Event
       description: Event for the RF remote
-      selector:
-        event:
-          platform: esphome.rf_code_received
+      default: "esphome.rf_code_received"
     protocol:
       name: Protocol
       description: Protocol number to match for RF codes
