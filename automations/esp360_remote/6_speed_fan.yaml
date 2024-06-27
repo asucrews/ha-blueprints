@@ -198,19 +198,20 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: !input code_direction
+                entity_id: !input direction
                 state: "forward"
             then:
               - service: input_select.select_option
                 target:
-                  entity_id: !input code_direction
+                  entity_id: !input direction
                 data:
                   option: "reverse"
             else:
               - service: input_select.select_option
                 target:
-                  entity_id: !input code_direction
+                  entity_id: !input direction
                 data:
                   option: "forward"
+
 mode: single
 max_exceeded: silent
