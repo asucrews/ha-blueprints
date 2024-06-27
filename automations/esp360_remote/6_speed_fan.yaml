@@ -1,5 +1,5 @@
 blueprint:
-  name: 6 Speed Ceiling Fan Remote (v0.1.0)
+  name: 6 Speed Ceiling Fan Remote (v0.1.1)
   description: Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
   homeassistant:
     min_version: 2024.6.0
@@ -112,39 +112,39 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: "{{ light_state }}"
+                entity_id: !input light_state
                 state: "off"
             then:
               - service: input_boolean.turn_on
                 target:
-                  entity_id: "{{ light_state }}"
+                  entity_id: !input light_state
             else:
               - service: input_boolean.turn_off
                 target:
-                  entity_id: "{{ light_state }}"
+                  entity_id: !input light_state
       - conditions:
           - condition: template
             value_template: "{{ event_protocol == protocol and event_code == code_fan }}"
         sequence:
           - if:
               - condition: state
-                entity_id: "{{ fan_state }}"
+                entity_id: !input fan_state
                 state: "off"
             then:
               - service: input_boolean.turn_on
                 target:
-                  entity_id: "{{ fan_state }}"
+                  entity_id: !input fan_state
             else:
               - service: input_boolean.turn_off
                 target:
-                  entity_id: "{{ fan_state }}"
+                  entity_id: !input fan_state
       - conditions:
           - condition: template
             value_template: "{{ event_protocol == protocol and event_code == code_preset_1 }}"
         sequence:
           - service: input_select.select_option
             target:
-              entity_id: "{{ preset_mode }}"
+              entity_id: !input preset_mode
             data:
               option: "1"
       - conditions:
@@ -153,7 +153,7 @@ action:
         sequence:
           - service: input_select.select_option
             target:
-              entity_id: "{{ preset_mode }}"
+              entity_id: !input preset_mode
             data:
               option: "2"
       - conditions:
@@ -162,7 +162,7 @@ action:
         sequence:
           - service: input_select.select_option
             target:
-              entity_id: "{{ preset_mode }}"
+              entity_id: !input preset_mode
             data:
               option: "3"
       - conditions:
@@ -171,7 +171,7 @@ action:
         sequence:
           - service: input_select.select_option
             target:
-              entity_id: "{{ preset_mode }}"
+              entity_id: !input preset_mode
             data:
               option: "4"
       - conditions:
@@ -180,7 +180,7 @@ action:
         sequence:
           - service: input_select.select_option
             target:
-              entity_id: "{{ preset_mode }}"
+              entity_id: !input preset_mode
             data:
               option: "5"
       - conditions:
@@ -189,7 +189,7 @@ action:
         sequence:
           - service: input_select.select_option
             target:
-              entity_id: "{{ preset_mode }}"
+              entity_id: !input preset_mode
             data:
               option: "6"
       - conditions:
@@ -198,18 +198,18 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: "{{ direction }}"
+                entity_id: !input code_direction
                 state: "forward"
             then:
               - service: input_select.select_option
                 target:
-                  entity_id: "{{ direction }}"
+                  entity_id: !input code_direction
                 data:
                   option: "reverse"
             else:
               - service: input_select.select_option
                 target:
-                  entity_id: "{{ direction }}"
+                  entity_id: !input code_direction
                 data:
                   option: "forward"
 mode: single
