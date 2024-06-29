@@ -110,12 +110,12 @@ action:
                     then:
                       - service: "notify.{{ notify_group }}"
                         data:
-                          title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
+                          title: "{{ states[lock].name }} | {{ states('sensor.time') }}"
                           message: >
                             {% if code_slot > 0 %}
-                              {{ device_attr(lock, 'name') }} was locked by {{ code_slot_name }}
+                              {{ states[lock].name }} was locked by {{ code_slot_name }}
                             {% else %}
-                              {{ device_attr(lock, 'name') }} was locked
+                              {{ states[lock].name }} was locked
                             {% endif %}
                           data:
                             ttl: 0
@@ -156,12 +156,12 @@ action:
                     then:
                       - service: "notify.{{ notify_group }}"
                         data:
-                          title: "{{ device_attr(lock, 'name') }} | {{ states('sensor.time') }}"
+                          title: "{{ states[lock].name }} | {{ states('sensor.time') }}"
                           message: >
                             {% if code_slot > 0 %}
-                              {{ device_attr(lock, 'name') }} was unlocked by {{ code_slot_name }}
+                              {{ states[lock].name }} was unlocked by {{ code_slot_name }}
                             {% else %}
-                              {{ device_attr(lock, 'name') }} was unlocked
+                              {{ states[lock].name }} was unlocked
                             {% endif %}
                           data:
                             ttl: 0
