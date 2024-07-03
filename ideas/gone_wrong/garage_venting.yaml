@@ -118,4 +118,3 @@ action:
             target:
               entity_id: timer
 mode: single
-
