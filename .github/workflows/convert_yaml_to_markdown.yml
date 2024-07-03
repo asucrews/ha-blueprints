@@ -11,10 +11,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3 # Updated to v3
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4 # Updated to v4
       with:
         python-version: '3.x'
 
@@ -28,18 +28,18 @@ jobs:
         files=$(git diff --name-only HEAD^ HEAD | grep '.yaml' || true)
         echo "found files: $files"
         echo "##[endgroup]"
-        echo "::set-output name=files::$files"
-      
+        echo "files=$files" >> $GITHUB_ENV
+
     - name: Convert YAML to Markdown
-      if: steps.find_files.outputs.files != ''
+      if: env.files != ''
       run: |
-        for file in ${{ steps.find_files.outputs.files }}; do
+        for file in ${{ env.files }}; do
           echo "Processing $file..."
           python scripts/yaml_to_markdown.py $file
         done
 
     - name: Commit and push changes
-      if: steps.find_files.outputs.files != ''
+      if: env.files != ''
       run: |
         git config --global user.name 'github-actions[bot]'
         git config --global user.email 'github-actions[bot]@users.noreply.github.com'
