@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write  # Grant write permissions
+  pull-requests: write  # Grant permissions to create pull requests
 
 jobs:
   convert:
@@ -59,3 +60,8 @@ jobs:
         branch: 'yaml-to-markdown-conversion'
         title: 'Convert YAML to Markdown'
         body: 'This pull request converts updated YAML files to Markdown format.'
+        committer: GitHub <noreply@github.com>
+        author: asucrews <asucrews@users.noreply.github.com>
+        signoff: false
+        delete-branch: false
+        draft: false
