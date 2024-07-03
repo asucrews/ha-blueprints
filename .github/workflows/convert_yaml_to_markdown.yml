@@ -35,7 +35,7 @@ jobs:
       run: |
         for file in ${{ steps.find_files.outputs.files }}; do
           echo "Processing $file..."
-          python scripts/yaml_to_markdown.py $file ${file%.yaml}.md
+          python scripts/yaml_to_markdown.py $file
         done
 
     - name: Commit and push changes

@@ -48,5 +48,6 @@ def yaml_to_markdown(yaml_file, markdown_file):
 
 if __name__ == "__main__":
     yaml_file = sys.argv[1]
-    markdown_file = sys.argv[2]
+    output_dir = os.path.dirname(yaml_file)
+    markdown_file = os.path.join(output_dir, 'README.md')
     yaml_to_markdown(yaml_file, markdown_file)
