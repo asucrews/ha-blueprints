@@ -40,11 +40,11 @@ def yaml_to_markdown(yaml_file, markdown_file):
                     f.write("\n")
 
         f.write("## Variables\n")
-        for key, value in data['variables'].items():
+        for key, value in data.get('variables', {}).items():
             f.write(f"- `{key}`: {value}\n")
 
         f.write("\n## Triggers\n")
-        for trigger in data['trigger']:
+        for trigger in data.get('trigger', []):
             trigger_id = trigger.get('id', 'Unknown')
             platform = trigger.get('platform', 'Unknown')
             from_state = trigger.get('from', 'Unknown')
@@ -52,11 +52,11 @@ def yaml_to_markdown(yaml_file, markdown_file):
             f.write(f"- **{trigger_id}**: Triggered when the {platform} changes from `{from_state}` to `{to_state}`.\n")
 
         f.write("\n## Conditions\n")
-        for condition in data['condition']:
+        for condition in data.get('condition', []):
             f.write(f"- **{condition.get('condition', 'Unknown Condition')}**: {condition.get('value_template', 'No value template')}\n")
 
         f.write("\n## Actions\n")
-        for action in data['action']:
+        for action in data.get('action', []):
             if 'choose' in action:
                 for choice in action['choose']:
                     conditions = choice.get('conditions', [])
@@ -68,8 +68,16 @@ def yaml_to_markdown(yaml_file, markdown_file):
                         data = step.get('data', 'No data')
                         f.write(f"- **{service}**: {data}\n")
             else:
-                # Handle other types of actions if necessary
-                pass
+                if 'service' in action:
+                    service = action.get('service', 'Unknown service')
+                    data = action.get('data', 'No data')
+                    f.write(f"- **{service}**: {data}\n")
+                if 'delay' in action:
+                    delay = action.get('delay', 'No delay specified')
+                    f.write(f"- **Delay**: {delay}\n")
+                if 'wait_template' in action:
+                    wait_template = action.get('wait_template', 'No wait template specified')
+                    f.write(f"- **Wait Template**: {wait_template}\n")
 
         # Make mode optional
         mode = data.get('mode', 'Not specified')
