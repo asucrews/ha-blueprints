@@ -6,7 +6,7 @@ on:
       - '**.yaml'
 
 permissions:
-  contents: write  # Add this line to grant write permissions
+  contents: write  # Grant write permissions
 
 jobs:
   convert:
@@ -51,13 +51,11 @@ jobs:
           fi
         done
 
-    - name: Commit and push changes
-      if: env.files != ''
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add .
-        git commit -m 'Convert YAML to Markdown'
-        git push
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'Convert YAML to Markdown'
+        branch: 'yaml-to-markdown-conversion'
+        title: 'Convert YAML to Markdown'
+        body: 'This pull request converts updated YAML files to Markdown format.'
