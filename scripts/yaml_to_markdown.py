@@ -5,6 +5,10 @@ import os
 def yaml_to_markdown(yaml_file, markdown_file):
     with open(yaml_file, 'r') as f:
         data = yaml.safe_load(f)
+    
+    if 'blueprint' not in data:
+        print(f"Skipping {yaml_file}: 'blueprint' key not found.")
+        return
 
     with open(markdown_file, 'w') as f:
         f.write(f"# {data['blueprint']['name']}\n\n")
