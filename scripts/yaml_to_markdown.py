@@ -2,6 +2,13 @@ import yaml
 import sys
 import os
 
+# Define a constructor to handle the '!input' tag
+def input_constructor(loader, node):
+    return node.value
+
+# Add the constructor to the SafeLoader
+yaml.SafeLoader.add_constructor('!input', input_constructor)
+
 def yaml_to_markdown(yaml_file, markdown_file):
     with open(yaml_file, 'r') as f:
         data = yaml.safe_load(f)
