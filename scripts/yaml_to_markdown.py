@@ -67,9 +67,14 @@ def yaml_to_markdown(yaml_file, markdown_file):
                 # Handle other types of actions if necessary
                 pass
 
-        f.write("\n## Mode\n")
-        f.write(f"- **Mode**: {data['mode']}\n")
-        f.write(f"- **Max Exceeded**: {data['max_exceeded']}\n")
+        # Make mode optional
+        mode = data.get('mode', 'Not specified')
+        f.write(f"\n## Mode\n")
+        f.write(f"- **Mode**: {mode}\n")
+
+        # Handle max_exceeded if present
+        max_exceeded = data.get('max_exceeded', 'Not specified')
+        f.write(f"- **Max Exceeded**: {max_exceeded}\n")
 
 if __name__ == "__main__":
     yaml_file = sys.argv[1]
