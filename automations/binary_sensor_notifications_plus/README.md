@@ -69,6 +69,17 @@ The optional entities for this automation
 - **Closed**: Triggered when the state changes from `off` to `on`.
 - **Timer Finished**: Triggered when the event changes from `Unknown` to `Unknown`.
 
+## Conditions
+- **template**: {
+  {
+    iif(this.attributes.last_triggered == None,
+    9999,
+    as_timestamp(now()) - as_timestamp(this.attributes.last_triggered,
+    default=0) ) >= (debounce_duration | int),
+  },
+}
+
+
 ## Actions
 ### Unknown
 - **notify.{{ notify_group }}**: {'title': "{{ title }} | {{ states('sensor.time') }}", 'message': '{{ message_open }}', 'data': {'ttl': 0, 'priority': 'high', 'tag': 't"tag-binary-sensor-notification"'}}
@@ -81,5 +92,5 @@ The optional entities for this automation
 - **timer.start**: {}
 
 ## Mode
-- **Mode**: Not specified
-- **Max Exceeded**: Not specified
+- **Mode**: single
+- **Max Exceeded**: silent
