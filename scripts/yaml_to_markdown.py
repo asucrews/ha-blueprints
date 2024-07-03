@@ -53,11 +53,19 @@ def yaml_to_markdown(yaml_file, markdown_file):
 
         f.write("\n## Actions\n")
         for action in data['action']:
-            f.write(f"### {action['choose']['conditions'][0]['id']}\n")
-            for step in action['sequence']:
-                service = step.get('service', 'Unknown service')
-                data = step.get('data', 'No data')
-                f.write(f"- **{service}**: {data}\n")
+            if 'choose' in action:
+                for choice in action['choose']:
+                    conditions = choice.get('conditions', [])
+                    if conditions:
+                        condition_id = conditions[0].get('id', 'Unknown')
+                        f.write(f"### {condition_id}\n")
+                    for step in choice.get('sequence', []):
+                        service = step.get('service', 'Unknown service')
+                        data = step.get('data', 'No data')
+                        f.write(f"- **{service}**: {data}\n")
+            else:
+                # Handle other types of actions if necessary
+                pass
 
         f.write("\n## Mode\n")
         f.write(f"- **Mode**: {data['mode']}\n")
