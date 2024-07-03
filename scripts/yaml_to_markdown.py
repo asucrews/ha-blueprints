@@ -18,21 +18,21 @@ def yaml_to_markdown(yaml_file, markdown_file):
         return
 
     with open(markdown_file, 'w') as f:
-        f.write(f"# {data['blueprint']['name']}\n\n")
-        f.write(f"## Description\n{data['blueprint']['description']}\n\n")
-        f.write(f"## Source\n[{data['blueprint']['source_url']}]({data['blueprint']['source_url']})\n\n")
-        f.write(f"## Domain\n{data['blueprint']['domain']}\n\n")
-        f.write(f"## Home Assistant Minimum Version\n{data['blueprint']['homeassistant']['min_version']}\n\n")
+        f.write(f"# {data['blueprint'].get('name', 'Unnamed Blueprint')}\n\n")
+        f.write(f"## Description\n{data['blueprint'].get('description', 'No description')}\n\n")
+        f.write(f"## Source\n[{data['blueprint'].get('source_url', 'No source URL')}]({data['blueprint'].get('source_url', 'No source URL')})\n\n")
+        f.write(f"## Domain\n{data['blueprint'].get('domain', 'No domain')}\n\n")
+        f.write(f"## Home Assistant Minimum Version\n{data['blueprint'].get('homeassistant', {}).get('min_version', 'No version specified')}\n\n")
         
         f.write(f"## Inputs\n\n")
         
         for section in ['required_entities', 'optional_entities']:
             if section in data['blueprint']['input']:
-                f.write(f"### {data['blueprint']['input'][section]['name']}\n")
-                f.write(f"{data['blueprint']['input'][section]['description']}\n\n")
+                f.write(f"### {data['blueprint']['input'][section].get('name', 'Unnamed Section')}\n")
+                f.write(f"{data['blueprint']['input'][section].get('description', 'No description')}\n\n")
                 for key, value in data['blueprint']['input'][section]['input'].items():
-                    f.write(f"- **{value['name']}**\n")
-                    f.write(f"  - **Description**: {value['description']}\n")
+                    f.write(f"- **{value.get('name', 'Unnamed Input')}**\n")
+                    f.write(f"  - **Description**: {value.get('description', 'No description')}\n")
                     if 'default' in value:
                         f.write(f"  - **Default**: {value['default']}\n")
                     if 'selector' in value:
@@ -50,6 +50,10 @@ def yaml_to_markdown(yaml_file, markdown_file):
             from_state = trigger.get('from', 'Unknown')
             to_state = trigger.get('to', 'Unknown')
             f.write(f"- **{trigger_id}**: Triggered when the {platform} changes from `{from_state}` to `{to_state}`.\n")
+
+        f.write("\n## Conditions\n")
+        for condition in data['condition']:
+            f.write(f"- **{condition.get('condition', 'Unknown Condition')}**: {condition.get('value_template', 'No value template')}\n")
 
         f.write("\n## Actions\n")
         for action in data['action']:
