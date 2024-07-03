@@ -27,14 +27,14 @@ jobs:
       id: find_files
       run: |
         echo "##[group]Detecting changed YAML files"
-        if git rev-parse HEAD^2>/dev/null; then
+        if git rev-parse HEAD^ >/dev/null 2>&1; then
           files=$(git diff --name-only HEAD^ HEAD | grep '.yaml' || true)
         else
           files=$(git ls-files '*.yaml' || true)
         fi
         echo "found files: $files"
         echo "##[endgroup]"
-        echo "files=$files" >> $GITHUB_ENV
+        echo "files=$(echo $files | tr '\n' ' ')" >> $GITHUB_ENV
 
     - name: Convert YAML to Markdown
       if: env.files != ''
