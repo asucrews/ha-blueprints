@@ -40,8 +40,12 @@ jobs:
       if: env.files != ''
       run: |
         for file in ${{ env.files }}; do
-          echo "Processing $file..."
-          python scripts/yaml_to_markdown.py $file
+          if [[ $file == *.yaml ]]; then
+            echo "Processing $file..."
+            python scripts/yaml_to_markdown.py $file
+          else
+            echo "Skipping non-YAML file: $file"
+          fi
         done
 
     - name: Commit and push changes
