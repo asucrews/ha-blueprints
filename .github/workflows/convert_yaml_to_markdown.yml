@@ -1,0 +1,50 @@
+name: Convert YAML to Markdown
+
+on:
+  push:
+    paths:
+      - '**.yaml'
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Install PyYAML
+      run: pip install pyyaml
+
+    - name: Find changed YAML files
+      id: find_files
+      run: |
+        echo "##[group]Detecting changed YAML files"
+        files=$(git diff --name-only HEAD^ HEAD | grep '.yaml' || true)
+        echo "found files: $files"
+        echo "##[endgroup]"
+        echo "::set-output name=files::$files"
+      
+    - name: Convert YAML to Markdown
+      if: steps.find_files.outputs.files != ''
+      run: |
+        for file in ${{ steps.find_files.outputs.files }}; do
+          echo "Processing $file..."
+          python scripts/yaml_to_markdown.py $file ${file%.yaml}.md
+        done
+
+    - name: Commit and push changes
+      if: steps.find_files.outputs.files != ''
+      run: |
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add .
+        git commit -m 'Convert YAML to Markdown'
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
