@@ -5,6 +5,9 @@ on:
     paths:
       - '**.yaml'
 
+permissions:
+  contents: write  # Add this line to grant write permissions
+
 jobs:
   convert:
     runs-on: ubuntu-latest
