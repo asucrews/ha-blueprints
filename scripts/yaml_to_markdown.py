@@ -2,12 +2,12 @@ import yaml
 import sys
 import os
 
-# Define a constructor to handle the '!input' tag
-def input_constructor(loader, node):
-    return node.value
+# Define a custom constructor to handle unknown tags
+def construct_ignore(loader, node):
+    return None
 
-# Add the constructor to the SafeLoader
-yaml.SafeLoader.add_constructor('!input', input_constructor)
+# Register the custom constructor for the '!input' tag
+yaml.add_constructor('!input', construct_ignore, Loader=yaml.SafeLoader)
 
 def yaml_to_markdown(yaml_file, markdown_file):
     with open(yaml_file, 'r') as f:
@@ -45,13 +45,19 @@ def yaml_to_markdown(yaml_file, markdown_file):
 
         f.write("\n## Triggers\n")
         for trigger in data['trigger']:
-            f.write(f"- **{trigger['id']}**: Triggered when the {trigger['platform']} changes from `{trigger['from']}` to `{trigger['to']}`.\n")
+            trigger_id = trigger.get('id', 'Unknown')
+            platform = trigger.get('platform', 'Unknown')
+            from_state = trigger.get('from', 'Unknown')
+            to_state = trigger.get('to', 'Unknown')
+            f.write(f"- **{trigger_id}**: Triggered when the {platform} changes from `{from_state}` to `{to_state}`.\n")
 
         f.write("\n## Actions\n")
         for action in data['action']:
             f.write(f"### {action['choose']['conditions'][0]['id']}\n")
             for step in action['sequence']:
-                f.write(f"- **{step['service']}**: {step['data']}\n")
+                service = step.get('service', 'Unknown service')
+                data = step.get('data', 'No data')
+                f.write(f"- **{service}**: {data}\n")
 
         f.write("\n## Mode\n")
         f.write(f"- **Mode**: {data['mode']}\n")
