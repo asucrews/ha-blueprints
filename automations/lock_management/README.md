@@ -1,82 +1,107 @@
-# Lock Management Stable
+```markdown
+# Lock Management Stable (0.4.1)
 
-**Warning**: AI was used to write and format this readme.
+Lock Management is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
 
-## Overview
+## Blueprint Details
 
-Lock Management Stable is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
-
-## Assumptions
-
-- User must have Lock Code Manager configured and working by [Raman325](https://github.com/raman325/lock_code_manager).
-- It is assumed that users have configured their door locks and timers correctly within their home automation system.
-- Users are expected to ensure that the necessary triggers and conditions are met for the automation to function as intended.
+- **Name:** Lock Management Stable (0.4.1)
+- **Description:** 
+    Lock Management is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
+    Requires Lock Code Manager by Raman325 ([GitHub](https://github.com/raman325/lock_code_manager)).
+- **Home Assistant Minimum Version:** 2024.6.0
+- **Domain:** automation
+- **Source URL:** [GitHub](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
 
 ## Inputs
 
 ### Required Entities
 
-- **Lock:**
-  - **Description:** Lock entity to be controlled.
-  - **Selector:** Allows selecting a lock entity. Only one lock can be selected.
+#### Lock
+
+- **Name:** Lock
+- **Description:** Lock entity to manage
+- **Selector:** entity (domain: lock, multiple: false)
 
 ### Optional Entities
 
-- **Door Sensor or Door Sensor Group:**
-  - **Description:** Select the door sensor or group of door sensors where occupancy is detected.
-  - **Default:** `binary_sensor.none`
-  - **Selector:** Allows selecting a door sensor entity. Only one door sensor or group can be selected.
+#### Door Sensor or Door Sensor Group
 
-- **Auto Lock Timer:**
-  - **Description:** Timer entity for auto-lock functionality.
-  - **Default:** `timer.none`
-  - **Selector:** Allows selecting a timer entity. Only one timer can be selected.
+- **Name:** Door Sensor or Door Sensor Group
+- **Description:** 
+    Select the door sensor or group of door sensors where occupancy is detected.
+    Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection. This field and this input is optional.
+- **Default:** binary_sensor.none
+- **Selector:** entity (domain: binary_sensor, multiple: false)
 
-### Notification Entities
+#### Auto Lock Timer
 
-- **Easy Notify Group - Devices Notified:**
-  - **Description:** Select devices to receive notifications if enabled.
-  - **Default:** ""
-  - **Selector:** Allows selecting devices for notification. Only entity IDs after `notify.` should be provided.
+- **Name:** Auto Lock Timer
+- **Description:** 
+    Set the duration, in seconds, for the automatic lock. After the specified time elapses, it will automatically lock; if the door sensor is enabled then the timer will reset if the door sensor shows open.
+    To utilize this function, create a timer helper entity in your Home Assistant configuration or UI ([Timer Integration](https://www.home-assistant.io/integrations/timer/)).
+    Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.
+- **Default:** timer.none
+- **Selector:** entity (domain: timer, multiple: false)
+
+#### Easy Notify Group - Devices Notified
+
+- **Name:** Easy Notify Group - Devices Notified
+- **Description:** 
+    If you've enabled device notifications above, please select the devices to receive the notifications. Enter only entity_id, the part after notify.
+    This is only for notifications group, see [Home Assistant Notify Groups](https://www.home-assistant.io/integrations/group/#notify-groups).
+    Default value: "". Only change if you intend to use notifications and this input is optional.
+- **Default:** ""
 
 ## Variables
 
-- **lock:** Input variable representing the selected lock entity.
-- **auto_lock_timer:** Input variable representing the selected auto-lock timer entity.
-- **door_sensor:** Input variable representing the selected door sensor entity or group.
+- **lock:** !input lock
+- **door_sensor:** !input door_sensor
+- **auto_lock_timer:** !input auto_lock_timer
+- **notify_group:** !input notify_group
 
 ## Triggers
 
-- **LCM Event:**
-  - Triggered by the event type `lock_code_manager_lock_state_changed` with specific entity ID.
-- **Timer Finished:**
-  - Triggered when the selected auto-lock timer transitions from active to idle state.
+1. **Lock Code Manager Lock State Changed**
+   - **Platform:** event
+   - **Event Type:** lock_code_manager_lock_state_changed
+   - **Event Data:**
+     - **Entity ID:** !input lock
+   - **ID:** LCM Event
 
-## Action
+2. **Timer Finished**
+   - **Platform:** event
+   - **Event Type:** timer.finished
+   - **Event Data:**
+     - **Entity ID:** !input auto_lock_timer
+   - **ID:** Timer Finished
 
-The action section defines sequences of actions to be executed based on the triggers and conditions:
+## Actions
 
-- If the lock state changes to locked, and an auto-lock timer is set, cancel the timer if it's active.
-- If the lock state changes to unlocked, and an auto-lock timer is set:
-  - Cancel the timer if it's active.
-  - Start the auto-lock timer.
-- If the auto-lock timer finishes and the door is closed, it triggers the lock to be locked
+### On Lock State Change (LCM Event)
+
+- **Conditions:** Trigger ID is LCM Event
+- **Sequence:**
+  - Set lock_state, code_slot, code_slot_name, action_text from trigger event data.
+  - **If locked:**
+    - **If auto_lock_timer is set:** Cancel active auto_lock_timer if it is active.
+    - **If notify_group is defined:** Send notification with lock state and user info (if applicable).
+  - **If unlocked:**
+    - **If auto_lock_timer is set:** 
+      - Cancel active auto_lock_timer if it is active.
+      - Start the auto_lock_timer.
+
+### On Timer Finished
+
+- **Conditions:**
+  - auto_lock_timer is set
+  - Trigger ID is Timer Finished
+- **Sequence:**
+  - **If door_sensor is on and defined:** Restart auto_lock_timer.
+  - **Else:** Lock the lock.
 
 ## Mode
 
-- **Queued:** Ensures that no more than 5 instances of this automation can run simultaneously.
-
-## Source Code
-
-The source code for Lock Management Blueprint can be found on GitHub:
-
-- [View Source Code - Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
-- [View Source Code - Dev](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/dev/lock_management_dev.yaml)
-
-## Future Enhancements
-
-## Feedback
-
-We value your input and welcome any feedback or suggestions you may have regarding the Lock Management Blueprint. Whether you have ideas for improvements, encountered issues during implementation, or simply want to share your experience using the blueprint, your feedback is invaluable to us.
-
-Please feel free to leave your comments below or reach out to us on the Home Assistant forum. Your feedback helps us continually improve and refine our offerings for the community. Thank you for your support!
+- **Mode:** single
+- **Max Exceeded:** silent
+```
