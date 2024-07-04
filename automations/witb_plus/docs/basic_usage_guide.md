@@ -11,7 +11,7 @@ Before you start, make sure you have the following sensors and entities set up i
 
 ## Things to Think About
 
-1. Keep in mind the principle behind the "wasp in the box".  With this in mind, you're using door sensor(s) and motion sensor(s) to control light source(s); meaning, turning on, turning off, and keeping on if there's motion and the door is closed.
+1. Keep in mind the principle behind the "wasp in the box".  With this in mind, you're using door sensor(s) and motion sensor(s) to control light source(s); meaning, turning on, turning off, and keeping on if there's motion or the door is closed.
 2. What light source are you using?
    - If it is a smart bulb, use **Smart Light Bulb** or **Smart Light Bulb Group**.
    - If it is a light switch, use **Light**, **Light Group**, **Switch**, or **Switch Group**.
