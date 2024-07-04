@@ -17,20 +17,20 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- Time Of Day (Last updated: 2024-07-04 23:29:30)
-- Smart Dimmer (Last updated: 2024-07-04 23:29:30)
-- Person Status Update (Last updated: 2024-07-04 23:29:30)
-- Ha Restart (Last updated: 2024-07-04 23:29:30)
-- Lock Management (Last updated: 2024-07-04 23:29:30)
-- Car Tag (Last updated: 2024-07-04 23:29:30)
-- On Off Plus (Last updated: 2024-07-04 23:29:30)
-- Witb Plus (Last updated: 2024-07-04 23:29:30)
-- Flair (Last updated: 2024-07-04 23:29:30)
-- 6 Speed Fan (Last updated: 2024-07-04 23:29:30)
-- Ratdgo 2.5i (Last updated: 2024-07-04 23:29:30)
-- Motion Plus (Last updated: 2024-07-04 23:29:30)
-- Lux Sensor (Last updated: 2024-07-04 23:29:30)
-- Binary Sensor Notifications Plus (Last updated: 2024-07-04 23:29:30)
+- Time Of Day (Last updated: 2024-07-04 23:35:17)
+- Smart Dimmer (Last updated: 2024-07-04 23:35:17)
+- Person Status Update (Last updated: 2024-07-04 23:35:17)
+- Ha Restart (Last updated: 2024-07-04 23:35:17)
+- Lock Management (Last updated: 2024-07-04 23:35:17)
+- Car Tag (Last updated: 2024-07-04 23:35:17)
+- On Off Plus (Last updated: 2024-07-04 23:35:17)
+- Witb Plus (Last updated: 2024-07-04 23:35:17)
+- Flair (Last updated: 2024-07-04 23:35:17)
+- 6 Speed Fan (Last updated: 2024-07-04 23:35:17)
+- Ratdgo 2.5i (Last updated: 2024-07-04 23:35:17)
+- Motion Plus (Last updated: 2024-07-04 23:35:17)
+- Lux Sensor (Last updated: 2024-07-04 23:35:17)
+- Binary Sensor Notifications Plus (Last updated: 2024-07-04 23:35:17)
 ## Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the Blueprints. Your feedback helps us continually improve and refine our offerings for the community.
