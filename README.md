@@ -2,7 +2,7 @@
 
 Blueprints for Home Assistant
 
-[![License](https://img.shields.io/github/license/custom-components/places?color=blue&style=for-the-badge)](LICENSE)
+[![GitHub License](https://img.shields.io/github/license/asucrews/ha-blueprints)](LICENSE.md)
 
 ## Ready For Use (Stable)
 
