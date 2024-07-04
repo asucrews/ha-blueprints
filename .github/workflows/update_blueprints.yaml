@@ -14,17 +14,27 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
 
       - name: Run update script
-        run: python scripts/update_blueprints.py
+        run: python update_blueprints.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "::set-output name=changes::false"
+          else
+            echo "::set-output name=changes::true"
+          fi
 
       - name: Commit changes
+        if: steps.changes.outputs.changes == 'true'
         env:
           GIT_AUTHOR_EMAIL: action@github.com
           GIT_AUTHOR_NAME: GitHub Action
