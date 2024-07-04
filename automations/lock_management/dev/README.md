@@ -1,4 +1,3 @@
-```markdown
 # Lock Management Stable (0.4.1)
 
 Lock Management is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.
@@ -104,4 +103,3 @@ Lock Management is an automation blueprint designed for managing door locks with
 
 - **Mode:** single
 - **Max Exceeded:** silent
-```
