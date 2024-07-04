@@ -44,8 +44,8 @@ def update_readme(blueprints, readme_path):
 
     # Generate the new content
     doc_link = "Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.\n\n"
-    blueprint_lines = [f"- {blueprint}\n" for blueprint in blueprints]
-    new_content = lines[:start_line] + [doc_link] + blueprint_lines + lines[end_line:]
+    blueprint_lines = [f"- {blueprint}\n" for blueprint in blueprints] + "\n"
+    new_content = lines[:start_line] + [doc_link] + blueprint_lines + lines[end_line:] 
 
     # Write the updated content back to the file
     with open(readme_path, 'w') as file:
