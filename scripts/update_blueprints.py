@@ -14,7 +14,9 @@ def get_blueprints(directory, ignore_folder):
         if ignore_folder not in root.split(os.sep):
             for filename in files:
                 if filename.endswith('.yaml'):
-                    blueprints.append(os.path.relpath(os.path.join(root, filename), directory))
+                    name = os.path.splitext(filename)[0]
+                    formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
+                    blueprints.append(formatted_name)
     return blueprints
 
 def update_readme(blueprints, readme_path):
@@ -37,8 +39,9 @@ def update_readme(blueprints, readme_path):
         return
 
     # Generate the new content
+    doc_link = "Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.\n"
     blueprint_lines = [f"- {blueprint}\n" for blueprint in blueprints]
-    new_content = lines[:start_line] + blueprint_lines + lines[end_line:]
+    new_content = lines[:start_line] + [doc_link] + blueprint_lines + lines[end_line:]
 
     # Write the updated content back to the file
     with open(readme_path, 'w') as file:
