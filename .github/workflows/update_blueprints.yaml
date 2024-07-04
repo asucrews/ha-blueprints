@@ -25,7 +25,7 @@ jobs:
           python-version: '3.x'
 
       - name: Run update script
-        run: python update_blueprints.py
+        run: python scripts/update_blueprints.py
 
       - name: Commit changes
         env:
