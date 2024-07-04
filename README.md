@@ -17,7 +17,21 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- Time Of Day (Last updated: Wed Jul 3 17:12:12 2024 -0700)- Smart Dimmer (Last updated: Mon Jun 24 23:14:31 2024 -0700)- Person Status Update (Last updated: Mon Jun 24 23:14:31 2024 -0700)- Ha Restart (Last updated: Wed Jun 26 20:58:12 2024 -0700)- Lock Management (Last updated: Wed Jul 3 17:03:28 2024 -0700)- Car Tag (Last updated: Wed Jul 3 14:28:26 2024 -0700)- On Off Plus (Last updated: Thu Jul 4 15:48:55 2024 -0700)- Witb Plus (Last updated: Thu Jul 4 14:33:34 2024 -0700)- Flair (Last updated: Mon Jun 24 23:14:31 2024 -0700)- 6 Speed Fan (Last updated: Wed Jun 26 20:51:56 2024 -0700)- Ratdgo 2.5i (Last updated: Thu Jul 4 15:48:55 2024 -0700)- Motion Plus (Last updated: Mon Jun 24 23:14:31 2024 -0700)- Lux Sensor (Last updated: Mon Jun 24 23:14:31 2024 -0700)- Binary Sensor Notifications Plus (Last updated: Wed Jul 3 14:28:26 2024 -0700)
+- Time Of Day (Last updated: Wed Jul 3 17:12:12 2024 -0700)
+- Smart Dimmer (Last updated: Mon Jun 24 23:14:31 2024 -0700)
+- Person Status Update (Last updated: Mon Jun 24 23:14:31 2024 -0700)
+- Ha Restart (Last updated: Wed Jun 26 20:58:12 2024 -0700)
+- Lock Management (Last updated: Wed Jul 3 17:03:28 2024 -0700)
+- Car Tag (Last updated: Wed Jul 3 14:28:26 2024 -0700)
+- On Off Plus (Last updated: Thu Jul 4 15:48:55 2024 -0700)
+- Witb Plus (Last updated: Thu Jul 4 14:33:34 2024 -0700)
+- Flair (Last updated: Mon Jun 24 23:14:31 2024 -0700)
+- 6 Speed Fan (Last updated: Wed Jun 26 20:51:56 2024 -0700)
+- Ratdgo 2.5i (Last updated: Thu Jul 4 15:48:55 2024 -0700)
+- Motion Plus (Last updated: Mon Jun 24 23:14:31 2024 -0700)
+- Lux Sensor (Last updated: Mon Jun 24 23:14:31 2024 -0700)
+- Binary Sensor Notifications Plus (Last updated: Wed Jul 3 14:28:26 2024 -0700)
+
 ## Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the Blueprints. Your feedback helps us continually improve and refine our offerings for the community.
