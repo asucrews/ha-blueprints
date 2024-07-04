@@ -2,6 +2,8 @@
 
 Blueprints for Home Assistant
 
+[![License](https://img.shields.io/github/license/custom-components/places?color=blue&style=for-the-badge)](LICENSE)
+
 ## Ready For Use (Stable)
 
 ### Lock Management Stable
