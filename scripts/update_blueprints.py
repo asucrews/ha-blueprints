@@ -1,10 +1,11 @@
 import os
 import subprocess
 from datetime import datetime
+import urllib.parse
 
 # Directory containing blueprint files
 blueprint_directory = 'automations'
-# Path to the README.md file
+# Path to the main README.md file
 readme_path = 'README.md'
 # Directory name to ignore
 ignore_folder = 'dev'
@@ -14,6 +15,13 @@ def get_last_commit_date(file_path):
     result = subprocess.run(['git', 'log', '-1', '--format=%cd', '--', file_path],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     return result.stdout.strip()
+
+def generate_shield_url(label, message, color):
+    """Generate a shields.io URL for a custom badge."""
+    label = urllib.parse.quote(label)
+    message = urllib.parse.quote(message)
+    color = urllib.parse.quote(color)
+    return f"https://img.shields.io/badge/{label}-{message}-{color}"
 
 def get_blueprints(directory, ignore_folder):
     """Retrieve the list of blueprint files in the directory, ignoring specified folders."""
@@ -26,8 +34,10 @@ def get_blueprints(directory, ignore_folder):
                     name = os.path.splitext(filename)[0]
                     formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
                     last_commit_date = get_last_commit_date(filepath)
-                    print(f"File: {filename}, Last Commit Date: {last_commit_date}")  # Debug print statement
-                    blueprints.append(f"{formatted_name} (Last updated: {last_commit_date})")
+                    shield_url = generate_shield_url("Last updated", last_commit_date, "blue")
+                    readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/{name}/README.md"
+                    print(f"File: {filename}, Last Commit Date: {last_commit_date}, Shield URL: {shield_url}, README URL: {readme_url}")  # Debug print statement
+                    blueprints.append(f"- [![{formatted_name}]({shield_url})]({readme_url})")
     return blueprints
 
 def update_readme(blueprints, readme_path):
@@ -51,7 +61,7 @@ def update_readme(blueprints, readme_path):
 
     # Generate the new content
     doc_link = "Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.\n\n"
-    blueprint_lines = [f"- {blueprint}\n" for blueprint in blueprints]
+    blueprint_lines = [f"{blueprint}\n" for blueprint in blueprints]
     new_content = lines[:start_line] + [doc_link] + blueprint_lines + ["\n"] + lines[end_line:]
 
     # Write the updated content back to the file
