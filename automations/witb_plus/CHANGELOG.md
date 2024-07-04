@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.4.0] - 2024-07-04
+
+### Changes
+
+- Moved inputs in to groups
+
 ## [0.3.1] - 2024-05-16
 
 ### Changes
