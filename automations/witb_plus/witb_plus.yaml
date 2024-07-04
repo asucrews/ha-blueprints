@@ -1,7 +1,7 @@
 blueprint:
-  name: WITB+ Stable (0.3.3)
+  name: WITB+ Stable (0.4.0)
   homeassistant:
-    min_version: 2024.4.0
+    min_version: 2024.6.0
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -14,61 +14,71 @@ blueprint:
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus.yaml
   input:
-    door_sensor:
-      name: Door Sensor or Door Sensor Group
-      description: >
-        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected.  In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.<br/>
-        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
-      selector:
-        entity:
-          domain:
-            - binary_sensor
-          multiple: false
-    motion_sensor:
-      name: Motion Sensor or Motion Sensor Group
-      description: >
-        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
-        <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
-      selector:
-        entity:
-          domain:
-            - binary_sensor
-          multiple: false
-    light_bulbs:
-      name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
-      description: >
-        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
-        <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
-      default: "light.none"
-      selector:
-        entity:
-          domain:
-            - light
-          multiple: false
-    light_switch:
-      name: Light, Light Group, Switch, or Switch Group (Optional)
-      description: >
-        Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
-        <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
-      default: "light.none"
-      selector:
-        entity:
-          domain:
-            - light
-            - switch
-          multiple: false
-    fan_switch:
-      name: Fan or Fan Group (Optional)
-      description: >
-        Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
-        <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
-      default: "fan.none"
-      selector:
-        entity:
-          domain:
-            - fan
-            - light
-          multiple: false
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        door_sensor:
+          name: Door Sensor or Door Sensor Group
+          description: >
+            Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected.  In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.<br/>
+            <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+        motion_sensor:
+          name: Motion Sensor or Motion Sensor Group
+          description: >
+            Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
+            <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+    bulb_switch_fan_entities:
+      name: Bulb, Swith, or Fan
+      description: The entities to automate.
+      collapsed: false
+      input:
+        light_bulbs:
+          name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
+          description: >
+            Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+            <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "light.none"
+          selector:
+            entity:
+              domain:
+                - light
+              multiple: false
+        light_switch:
+          name: Light, Light Group, Switch, or Switch Group (Optional)
+          description: >
+            Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+            <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "light.none"
+          selector:
+            entity:
+              domain:
+                - light
+                - switch
+              multiple: false
+        fan_switch:
+          name: Fan or Fan Group (Optional)
+          description: >
+            Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+            <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "fan.none"
+          selector:
+            entity:
+              domain:
+                - fan
+                - light
+              multiple: false
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
       description: >
