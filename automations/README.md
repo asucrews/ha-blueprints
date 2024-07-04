@@ -4,73 +4,97 @@ Welcome to the **Home Assistant Blueprints** repository! This collection of auto
 
 ## Available Blueprints
 
-### 1. [Binary Sensor Notification](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml)
+### [Binary Sensor Notification Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml)
 
 Send a notification or trigger a custom action based on the state of a binary sensor.
 
 ---
 
-### 2. [Car Tag Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag.yaml)
+### [Car Tag Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag.yaml)
 
 Automate your garage door with the Car ESPHome Tag.
 
 ---
 
-### 3. [Home Assistant Start and Stop Trigger](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart.yaml)
+### [ESP360 Remote - 6 Speed Fan Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan.yaml)
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan.yaml)
+
+Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
+
+---
+
+### [Home Assistant Start and Stop Trigger Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart.yaml)
 
 Trigger actions when Home Assistant starts or stops.
 
 ---
 
-### 4. [Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml)
+### [Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml)
 
 Create automations using scenes from the Inovelli Smart Dimmer Switch.
 
 ---
 
-### 5. [Lock Management Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
+### [Lock Management Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml)
 
 Manage door locks with additional auto-lock functionality.
 
 ---
 
-### 6. [Motion+ Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus.yaml)
+### [LUX Sensor](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml)
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml)
+
+---
+
+### [Motion+ Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus.yaml)
 
 Automate actions based on motion detection.
 
 ---
 
-### 7. [Person: Status Update Fork](https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update.yaml)
+### [On/Off+ Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus.yaml)
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus.yaml)
+
+---
+
+### [Person: Status Update Fork Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update.yaml)
 
 Enhance presence detection for a person.
 
 ---
 
-### 8. [Ratdgo 2.5i Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml)
+### [Ratdgo 2.5i Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml)
 
 Notification and auto-close for Ratdgo devices.
 
 ---
 
-### 9. [Smart Vents - Flair](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml)
+### [Smart Vents - Flair Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair.yaml)
 
 Manage smart vents using Flair.
 
 ---
 
-### 10. [Time of Day Trigger](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day.yaml)
+### [Time of Day Trigger Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day.yaml)
 
 Trigger actions at a specific time of day.
+
+---
+
+### [WITB+ Stable](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/witb_plus.yaml)
+[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/witb_plus.yaml)
+
+
 
 ---
 
