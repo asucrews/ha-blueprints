@@ -33,11 +33,10 @@ jobs:
           GIT_AUTHOR_NAME: GitHub Action
           GIT_COMMITTER_EMAIL: action@github.com
           GIT_COMMITTER_NAME: GitHub Action
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.email "action@github.com"
           git config --global user.name "GitHub Action"
           git add README.md
           git commit -m "Update blueprint list"
           git push
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
