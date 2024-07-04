@@ -1,9 +1,6 @@
 name: Update Blueprints
 
 on:
-  push:
-    branches:
-      - main
   schedule:
     - cron: '0 0 * * *'  # Every day at midnight
   workflow_dispatch:  # Allow manual triggering of the workflow
@@ -17,7 +14,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v2
@@ -25,7 +22,7 @@ jobs:
           python-version: '3.x'
 
       - name: Run update script
-        run: python scripts/update_blueprints.py
+        run: python update_blueprints.py
 
       - name: Commit changes
         env:

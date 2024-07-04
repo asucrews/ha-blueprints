@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 
 # Directory containing blueprint files
 blueprint_directory = 'automations'
@@ -14,9 +15,12 @@ def get_blueprints(directory, ignore_folder):
         if ignore_folder not in root.split(os.sep):
             for filename in files:
                 if filename.endswith('.yaml'):
+                    filepath = os.path.join(root, filename)
                     name = os.path.splitext(filename)[0]
                     formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
-                    blueprints.append(formatted_name)
+                    last_modified = os.path.getmtime(filepath)
+                    last_modified_date = datetime.fromtimestamp(last_modified).strftime('%Y-%m-%d %H:%M:%S')
+                    blueprints.append(f"{formatted_name} (Last updated: {last_modified_date})")
     return blueprints
 
 def update_readme(blueprints, readme_path):
@@ -39,7 +43,7 @@ def update_readme(blueprints, readme_path):
         return
 
     # Generate the new content
-    doc_link = "Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.\n"
+    doc_link = "Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.\n\n"
     blueprint_lines = [f"- {blueprint}\n" for blueprint in blueprints]
     new_content = lines[:start_line] + [doc_link] + blueprint_lines + lines[end_line:]
 
