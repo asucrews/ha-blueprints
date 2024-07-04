@@ -15,8 +15,20 @@ Blueprints for Home Assistant
 
 ## Automation Blueprints
 
-Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
-
+- time_of_day/time_of_day.yaml
+- inovelli/red/smart_dimmer/smart_dimmer.yaml
+- person_status_update/person_status_update.yaml
+- ha_restart/ha_restart.yaml
+- lock_management/lock_management.yaml
+- car_tag/car_tag.yaml
+- on_off_plus/on_off_plus.yaml
+- witb_plus/witb_plus.yaml
+- smart_vents/flair.yaml
+- esp360_remote/6_speed_fan.yaml
+- ratgdo_2.5i/ratdgo_2.5i.yaml
+- motion_plus/motion_plus.yaml
+- lux_sensor/lux_sensor.yaml
+- binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
 ## Feedback
 
 We value your input and welcome any feedback or suggestions you may have regarding the Blueprints. Your feedback helps us continually improve and refine our offerings for the community.
