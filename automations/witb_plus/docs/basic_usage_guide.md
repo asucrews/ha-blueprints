@@ -13,7 +13,7 @@ Before you start, make sure you have the following sensors and entities set up i
 
 1. Keep in mind the principle behind the "wasp in the box".  With this in mind, you're using door sensor(s) and motion sensor(s) to control light source(s); meaning, turning on, turning off, and keeping on if there's motion or the door is closed.
 2. What light source are you using?
-   - If it is a smart bulb, use "**Smart Light Bulb** or **Smart Light Bulb Group** Field".
+   - If it is a smart bulb, use "**Smart Light Bulb** or **Smart Light Bulb Group**" Field.
    - If it is a light switch, use "**Light**, **Light Group**, **Switch**, or **Switch Group**" Field.
 3. Leave all other fields as defult settings.
 
@@ -41,7 +41,7 @@ Before you start, make sure you have the following sensors and entities set up i
 
 Here is an example configuration for the automation:
 
-\`\`\`yaml
+```yaml
 alias: Occupancy Detection
 description: Automation for detecting occupancy using WITB+ blueprint.
 use_blueprint:
@@ -50,7 +50,7 @@ use_blueprint:
     door_sensor: binary_sensor.door
     motion_sensor: binary_sensor.motion
     light_switch: light.living_room
-\`\`\`
+```
 
 ## Monitoring and Adjusting the Automation
 
