@@ -21,7 +21,7 @@ Automate your garage door with the Car ESPHome Tag.
 ### [ESP360 Remote - 6 Speed Fan Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan.yaml)
 
-Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
+Blueprint for controlling the 6-speed ceiling fan with RF remote using ESP360 Remote.
 
 ---
 
@@ -49,6 +49,8 @@ Manage door locks with additional auto-lock functionality.
 ### [LUX Sensor](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml)
 
+Automate actions based on light intensity.
+
 ---
 
 ### [Motion+ Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus.yaml)
@@ -60,6 +62,8 @@ Automate actions based on motion detection.
 
 ### [On/Off+ Stable](https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus.yaml)
+
+Automate actions based on switching devices on or off.
 
 ---
 
@@ -94,7 +98,7 @@ Trigger actions at a specific time of day.
 ### [WITB+ Stable](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/witb_plus.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/witb_plus.yaml)
 
-
+Automate actions based on WITB (What's in the box) status.
 
 ---
 
@@ -105,12 +109,8 @@ Trigger actions at a specific time of day.
 3. **Import into Home Assistant:** In Home Assistant, navigate to `Configuration > Blueprints` and click on "Import Blueprint". Paste the YAML content and save.
 4. **Create Automation:** Use the imported blueprint to create a new automation and configure it as needed.
 
+---
+
 ## Contributions
 
 We welcome contributions to this repository! If you would like to add new blueprints or improve existing ones, please follow the guidelines provided in the [repository](https://github.com/asucrews/ha-blueprints).
-
-## License
-
-This repository is licensed under the [MIT License](https://opensource.org/licenses/MIT).
-
-For more information and to explore the blueprints, visit the [GitHub Repository](https://github.com/asucrews/ha-blueprints).
