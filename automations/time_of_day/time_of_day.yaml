@@ -29,3 +29,4 @@ action:
         sequence: !input actions
 
 mode: single
+max_exceeded: silent
