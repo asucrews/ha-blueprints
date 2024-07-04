@@ -1,4 +1,5 @@
 import os
+import subprocess
 from datetime import datetime
 
 # Directory containing blueprint files
@@ -7,6 +8,12 @@ blueprint_directory = 'automations'
 readme_path = 'README.md'
 # Directory name to ignore
 ignore_folder = 'dev'
+
+def get_last_commit_date(file_path):
+    """Get the last commit date for a given file."""
+    result = subprocess.run(['git', 'log', '-1', '--format=%cd', '--', file_path],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    return result.stdout.strip()
 
 def get_blueprints(directory, ignore_folder):
     """Retrieve the list of blueprint files in the directory, ignoring specified folders."""
@@ -18,10 +25,9 @@ def get_blueprints(directory, ignore_folder):
                     filepath = os.path.join(root, filename)
                     name = os.path.splitext(filename)[0]
                     formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
-                    last_modified = os.path.getmtime(filepath)
-                    last_modified_date = datetime.fromtimestamp(last_modified).strftime('%Y-%m-%d %H:%M:%S')
-                    print(f"File: {filename}, Last Modified: {last_modified_date}")  # Debug print statement
-                    blueprints.append(f"{formatted_name} (Last updated: {last_modified_date})")
+                    last_commit_date = get_last_commit_date(filepath)
+                    print(f"File: {filename}, Last Commit Date: {last_commit_date}")  # Debug print statement
+                    blueprints.append(f"{formatted_name} (Last updated: {last_commit_date})")
     return blueprints
 
 def update_readme(blueprints, readme_path):
