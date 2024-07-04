@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Stable (0.4.0)
+  name: WITB+ Stable (0.4.1)
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -40,8 +40,8 @@ blueprint:
                 - binary_sensor
               multiple: false
     bulb_switch_fan_entities:
-      name: Bulb, Swith, or Fan
-      description: The entities to automate.
+      name: Bulb, Switch, Fan, or related groups
+      description: The entities or gorups to automate.
       collapsed: false
       input:
         light_bulbs:
@@ -79,45 +79,53 @@ blueprint:
                 - fan
                 - light
               multiple: false
-    door_sensor_open_delay:
-      name: Door Sensor Open Delay (Optional)
+    sensor_options:
+      name: Sensor Options
       description: >
-        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
-        <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
-      default: 0
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 60.0
-          unit_of_measurement: seconds
-          step: 1.0
-    door_sensor_close_delay:
-      name: Door Sensor Close Delay (Optional)
-      description: >
-        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
-        <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
-      default: 0
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 60.0
-          unit_of_measurement: seconds
-          step: 1.0
-    motion_sensor_delay:
-      name: Motion off delay (Optional)
-      description: >
-        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
-        <br/>Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
-      default: 30
-      selector:
-        number:
-          mode: box
-          min: 0.0
-          max: 3600.0
-          unit_of_measurement: seconds
-          step: 1.0
+        Options to set if you need to add delays to when sensors take actions. Not all sensors are created the same; some might need delays while others don't.
+        Some sensors fire clear signals right away, while others wait a configurable time. The type that waits might need delays to prevent false positives, whereas the other type does not.
+        You might need to adjust these settings to best fit your sensors or groups.
+      collapsed: false
+      input:
+        door_sensor_open_delay:
+          name: Door Sensor Open Delay (Optional)
+          description: >
+            Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
+          default: 0
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: seconds
+              step: 1.0
+        door_sensor_close_delay:
+          name: Door Sensor Close Delay (Optional)
+          description: >
+            Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
+          default: 0
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: seconds
+              step: 1.0
+        motion_sensor_delay:
+          name: Motion off delay (Optional)
+          description: >
+            Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
+          default: 30
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 3600.0
+              unit_of_measurement: seconds
+              step: 1.0
     occupancy_helper:
       name: Occupancy Helper (Optional)
       description: >
@@ -129,6 +137,18 @@ blueprint:
         entity:
           domain:
             - input_boolean
+          multiple: false
+    idle_timer:
+      name: Idle Timer (Optional)
+      description: >
+        Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+        To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
+        <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+      default: "timer.none"
+      selector:
+        entity:
+          domain:
+            - timer
           multiple: false
     bypass_mode:
       name: Bypass Mode (Optional)
@@ -199,18 +219,6 @@ blueprint:
           custom_value: false
           multiple: false
           sort: false
-    idle_timer:
-      name: Idle Timer (Optional)
-      description: >
-        Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
-        To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
-        <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
-      default: "timer.none"
-      selector:
-        entity:
-          domain:
-            - timer
-          multiple: false
     light_control:
       name: Light Control
       description: >
