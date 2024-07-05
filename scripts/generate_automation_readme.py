@@ -17,6 +17,18 @@ def get_last_commit_date(file_path):
     date = datetime.strptime(result.stdout.strip(), '%a %b %d %H:%M:%S %Y %z')
     return date.strftime('%Y-%m-%d')
 
+def get_blueprint_description(directory):
+    """Retrieve the first few lines of the README.md file for the blueprint description."""
+    readme_path = os.path.join(directory, 'README.md')
+    if os.path.exists(readme_path):
+        with open(readme_path, 'r') as readme_file:
+            lines = readme_file.readlines()
+            # Get the first few lines as the description
+            description_lines = lines[:5]
+            description = ''.join(description_lines).strip()
+            return description
+    return "No description available."
+
 def get_blueprints(directory, ignore_folder):
     """Retrieve the list of blueprint files in the directory, ignoring specified folders."""
     blueprints = []
@@ -33,11 +45,13 @@ def get_blueprints(directory, ignore_folder):
                     last_commit_date = get_last_commit_date(filepath)
                     blueprint_url = f"{base_url}{filepath.replace(os.sep, '/')}"
                     import_url = f"{import_base_url}{blueprint_url}"
+                    description = get_blueprint_description(root)
                     blueprints.append({
                         "name": formatted_name,
                         "blueprint_url": blueprint_url,
                         "import_url": import_url,
-                        "last_commit_date": last_commit_date
+                        "last_commit_date": last_commit_date,
+                        "description": description
                     })
     return blueprints
 
@@ -64,8 +78,7 @@ def update_readme(blueprints, readme_path):
     blueprint_lines = [
         f"### [{blueprint['name']}]({blueprint['blueprint_url']})\n"
         f"[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)]({blueprint['import_url']})\n\n"
-        f"Description for {blueprint['name']} blueprint. (Last updated: {blueprint['last_commit_date']})\n"
-        "---\n"
+        f"{blueprint['description']} (Last updated: {blueprint['last_commit_date']})\n"
         for blueprint in blueprints
     ]
     new_content = lines[:start_line] + blueprint_lines + ["\n"] + lines[end_line:]
