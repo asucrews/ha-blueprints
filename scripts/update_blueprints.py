@@ -64,6 +64,7 @@ def generate_readme(blueprints, readme_path):
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
+    blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
     generate_readme(blueprints, readme_path)
     print("README.md generated successfully")
 
