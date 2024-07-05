@@ -17,9 +17,10 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- [![Light Control](https://img.shields.io/badge/Last%20updated-2024--07--01%2010%3A00%3A00-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/light_control/README.md)
-- [![Motion Detection](https://img.shields.io/badge/Last%20updated-2024--07--02%2012%3A00%3A00-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_detection/README.md)
-- [![Doorbell Notification](https://img.shields.io/badge/Last%20updated-2024--07--03%2014%3A00%3A00-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/doorbell_notification/README.md)
+- Light Control [![Last updated](https://img.shields.io/badge/Last%20updated-2024--07--01-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/light_control/README.md)
+- Motion Detection [![Last updated](https://img.shields.io/badge/Last%20updated-2024--07--02-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_detection/README.md)
+- Doorbell Notification [![Last updated](https://img.shields.io/badge/Last%20updated-2024--07--03-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/doorbell_notification/README.md)
+
 
 
 ## Feedback
