@@ -1,7 +1,7 @@
 import os
 
 def update_readme():
-    blueprint_dir = 'automation'
+    blueprint_dir = 'automations'
     readme_file = os.path.join(blueprint_dir, 'README.md')
     blueprints = []
 
