@@ -1,43 +1,74 @@
 import os
+import subprocess
+from datetime import datetime
 
-def update_readme():
-    blueprint_dir = 'automations'
-    readme_file = os.path.join(blueprint_dir, 'README.md')
+# Directory containing blueprint files
+blueprint_directory = 'automations'
+# Path to the main README.md file
+readme_path = 'README.md'
+# Directory name to ignore
+ignore_folder = 'dev'
+
+def get_last_commit_date(file_path):
+    """Get the last commit date for a given file."""
+    result = subprocess.run(['git', 'log', '-1', '--format=%cd', '--', file_path],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    # Parse the date to remove time information
+    date = datetime.strptime(result.stdout.strip(), '%a %b %d %H:%M:%S %Y %z')
+    return date.strftime('%Y-%m-%d')
+
+def get_blueprints(directory, ignore_folder):
+    """Retrieve the list of blueprint files in the directory, ignoring specified folders."""
     blueprints = []
+    for root, dirs, files in os.walk(directory):
+        if ignore_folder not in root.split(os.sep):
+            for dir_name in dirs:
+                readme_path = os.path.join(root, dir_name, 'README.md')
+                if os.path.isfile(readme_path):
+                    blueprint_path = os.path.relpath(readme_path, directory)
+                    blueprint_name = dir_name
+                    last_commit_date = get_last_commit_date(readme_path)
+                    import_url = f"https://my.home-assistant.io/redirect/blueprint_import/?url=https://github.com/asucrews/ha-blueprints/blob/main/{directory}/{dir_name}/README.md"
+                    shield_url = f"https://img.shields.io/badge/Import%20Blueprint-blue?logo=home-assistant&style=flat-square"
+                    blueprints.append((blueprint_name, blueprint_path, last_commit_date, import_url, shield_url))
+    return blueprints
 
-    # Traverse the directory and gather blueprint directories containing README.md
-    for root, dirs, files in os.walk(blueprint_dir):
-        # Skip 'dev' folder
-        dirs[:] = [d for d in dirs if d != 'dev']
+def update_readme(blueprints, readme_path):
+    """Update the README.md file with the list of blueprints."""
+    with open(readme_path, 'r') as file:
+        lines = file.readlines()
 
-        for dir_name in dirs:
-            readme_path = os.path.join(root, dir_name, 'README.md')
-            if os.path.isfile(readme_path):
-                blueprint_path = os.path.relpath(readme_path, blueprint_dir)
-                blueprint_name = dir_name
-                blueprints.append((blueprint_name, blueprint_path))
+    # Find the section to update
+    start_line = None
+    end_line = None
+    for i, line in enumerate(lines):
+        if line.strip() == "## Available Blueprints":
+            start_line = i + 1  # Assume the list starts 1 line after the header
+        elif start_line and (line.strip().startswith("## ") or i == len(lines) - 1):
+            end_line = i
+            break
 
-    # Read the current README.md file
-    with open(readme_file, 'r') as file:
-        readme_lines = file.readlines()
+    if start_line is None or end_line is None:
+        print("Could not find the Available Blueprints section in README.md")
+        return
 
-    # Find the start and end indices of the Available Blueprints section
-    start_index = readme_lines.index('## Available Blueprints\n') + 1
-    end_index = start_index
-    while end_index < len(readme_lines) and (readme_lines[end_index].startswith('-') or readme_lines[end_index].strip() == ''):
-        end_index += 1
-
-    # Generate the new content for the Available Blueprints section
+    # Generate the new content
     blueprint_lines = ['\n']
-    for name, path in blueprints:
-        blueprint_lines.append(f'- [{name}](./{path})\n')
+    for name, path, date, import_url, shield_url in blueprints:
+        blueprint_lines.append(f'- [{name}](./{path}) (Last updated: {date}) [![Import Blueprint]({shield_url})]({import_url})\n')
+    blueprint_lines.append('\n')
 
-    # Replace the old Available Blueprints section with the new content
-    new_readme_lines = readme_lines[:start_index] + blueprint_lines + ['\n'] + readme_lines[end_index:]
+    new_content = lines[:start_line] + blueprint_lines + lines[end_line:]
 
-    # Write the updated content back to the README.md file
-    with open(readme_file, 'w') as file:
-        file.writelines(new_readme_lines)
+    # Write the updated content back to the file
+    with open(readme_path, 'w') as file:
+        file.writelines(new_content)
+
+def main():
+    blueprints = get_blueprints(blueprint_directory, ignore_folder)
+    blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
+    update_readme(blueprints, readme_path)
+    print("README.md updated successfully")
 
 if __name__ == "__main__":
-    update_readme()
+    main()
