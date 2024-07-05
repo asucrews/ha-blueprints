@@ -17,20 +17,20 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- Time Of Day [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-03-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day/README.md)
-- Smart Dimmer [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-24-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer/README.md)
-- Person Status Update [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-24-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update/README.md)
-- Ha Restart [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-26-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart/README.md)
-- Lock Management [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-03-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management/README.md)
-- Car Tag [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-03-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag/README.md)
-- On Off Plus [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-04-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus/README.md)
-- Witb Plus [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-04-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus/README.md)
-- Flair [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-24-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair/README.md)
-- 6 Speed Fan [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-26-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan/README.md)
-- Ratdgo 2.5i [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-04-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md)
-- Motion Plus [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-24-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus/README.md)
-- Lux Sensor [![Last updated](https://img.shields.io/badge/Last%20updated-2024-06-24-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor/README.md)
-- Binary Sensor Notifications Plus [![Last updated](https://img.shields.io/badge/Last%20updated-2024-07-03-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus/README.md)
+- [Time Of Day](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day/README.md) (Last updated: 2024-07-03)
+- [Smart Dimmer](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer/README.md) (Last updated: 2024-06-24)
+- [Person Status Update](https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update/README.md) (Last updated: 2024-06-24)
+- [Ha Restart](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart/README.md) (Last updated: 2024-06-26)
+- [Lock Management](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management/README.md) (Last updated: 2024-07-03)
+- [Car Tag](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag/README.md) (Last updated: 2024-07-03)
+- [On Off Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus/README.md) (Last updated: 2024-07-04)
+- [Witb Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus/README.md) (Last updated: 2024-07-04)
+- [Flair](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair/README.md) (Last updated: 2024-06-24)
+- [6 Speed Fan](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan/README.md) (Last updated: 2024-06-26)
+- [Ratdgo 2.5i](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md) (Last updated: 2024-07-04)
+- [Motion Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus/README.md) (Last updated: 2024-06-24)
+- [Lux Sensor](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor/README.md) (Last updated: 2024-06-24)
+- [Binary Sensor Notifications Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus/README.md) (Last updated: 2024-07-03)
 
 ## Feedback
 
