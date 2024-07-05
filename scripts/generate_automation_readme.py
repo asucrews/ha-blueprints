@@ -50,11 +50,13 @@ def update_readme(blueprints, readme_path):
     for i, line in enumerate(lines):
         if line.strip() == "## Available Blueprints":
             start_line = i + 1  # Assume the list starts 1 line after the header
-        elif start_line and (line.strip().startswith("## ") or i == len(lines) - 1):
+        elif start_line and line.strip().startswith("## "):
             end_line = i
             break
+    if end_line is None:
+        end_line = len(lines)
 
-    if start_line is None or end_line is None:
+    if start_line is None:
         print("Could not find the Available Blueprints section in README.md")
         return
 
@@ -72,11 +74,9 @@ def update_readme(blueprints, readme_path):
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
-    print(blueprints)
     blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
-    print(blueprints)
-    # update_readme(blueprints, readme_path)
-    # print("README.md updated successfully")
+    update_readme(blueprints, readme_path)
+    print("README.md updated successfully")
 
 if __name__ == "__main__":
     main()
