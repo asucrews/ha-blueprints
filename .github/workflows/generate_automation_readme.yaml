@@ -5,6 +5,9 @@ on:
     - cron: '0 0 * * *' # This runs every day at midnight
   workflow_dispatch: # Allows manual triggering
 
+permissions:
+  contents: write  # Grant write permissions
+
 jobs:
   update-readme:
     runs-on: ubuntu-latest
