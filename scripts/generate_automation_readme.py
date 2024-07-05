@@ -10,10 +10,11 @@ def update_readme():
         # Skip 'dev' folder
         dirs[:] = [d for d in dirs if d != 'dev']
 
-        for file in files:
-            if file == 'README.md':
-                blueprint_path = os.path.relpath(os.path.join(root, file), blueprint_dir)
-                blueprint_name = os.path.basename(os.path.dirname(blueprint_path))
+        for dir_name in dirs:
+            readme_path = os.path.join(root, dir_name, 'README.md')
+            if os.path.isfile(readme_path):
+                blueprint_path = os.path.relpath(readme_path, blueprint_dir)
+                blueprint_name = dir_name
                 blueprints.append((blueprint_name, blueprint_path))
 
     # Read the current README.md file
@@ -23,18 +24,13 @@ def update_readme():
     # Find the index where the Available Blueprints section starts
     start_index = readme_lines.index('## Available Blueprints\n') + 1
 
-    # Find the index where the Available Blueprints section ends
-    end_index = start_index
-    while end_index < len(readme_lines) and readme_lines[end_index].startswith('-'):
-        end_index += 1
-
     # Generate the new content for the Available Blueprints section
     blueprint_lines = ['\n']
     for name, path in blueprints:
         blueprint_lines.append(f'- [{name}](./{path})\n')
 
     # Replace the old Available Blueprints section with the new content
-    new_readme_lines = readme_lines[:start_index] + blueprint_lines + readme_lines[end_index:]
+    new_readme_lines = readme_lines[:start_index] + blueprint_lines
 
     # Write the updated content back to the README.md file
     with open(readme_file, 'w') as file:
