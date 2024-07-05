@@ -1,7 +1,7 @@
 import os
 
 def update_readme():
-    blueprint_dir = 'automations'
+    blueprint_dir = 'automation'
     readme_file = os.path.join(blueprint_dir, 'README.md')
     blueprints = []
 
@@ -21,8 +21,11 @@ def update_readme():
     with open(readme_file, 'r') as file:
         readme_lines = file.readlines()
 
-    # Find the index where the Available Blueprints section starts
+    # Find the start and end indices of the Available Blueprints section
     start_index = readme_lines.index('## Available Blueprints\n') + 1
+    end_index = start_index
+    while end_index < len(readme_lines) and (readme_lines[end_index].startswith('-') or readme_lines[end_index].strip() == ''):
+        end_index += 1
 
     # Generate the new content for the Available Blueprints section
     blueprint_lines = ['\n']
@@ -30,7 +33,7 @@ def update_readme():
         blueprint_lines.append(f'- [{name}](./{path})\n')
 
     # Replace the old Available Blueprints section with the new content
-    new_readme_lines = readme_lines[:start_index] + blueprint_lines
+    new_readme_lines = readme_lines[:start_index] + blueprint_lines + ['\n'] + readme_lines[end_index:]
 
     # Write the updated content back to the README.md file
     with open(readme_file, 'w') as file:
