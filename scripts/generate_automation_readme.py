@@ -1,11 +1,14 @@
 import os
 import subprocess
 from datetime import datetime
+import filecmp
 
 # Directory containing blueprint files
 blueprint_directory = 'automations'
 # Path to the main README.md file
 readme_path = 'automations/README.md'
+# Path to the temporary README.md file
+temp_readme_path = 'automations/README_new.md'
 # Directory name to ignore
 ignore_folder = 'dev'
 
@@ -68,19 +71,26 @@ def generate_readme_content(blueprints):
     
     return readme_lines
 
-def update_readme(blueprints, readme_path):
-    """Update the README.md file with the new content."""
+def update_readme(blueprints, readme_path, temp_readme_path):
+    """Update the README.md file with the new content if it differs from the current content."""
     readme_content = generate_readme_content(blueprints)
 
-    # Write the updated content back to the file
-    with open(readme_path, 'w') as file:
+    # Write the new content to the temporary README.md file
+    with open(temp_readme_path, 'w') as file:
         file.writelines(readme_content)
+
+    # Compare the new README.md with the current one
+    if not os.path.exists(readme_path) or not filecmp.cmp(readme_path, temp_readme_path):
+        os.replace(temp_readme_path, readme_path)
+        print("README.md updated successfully")
+    else:
+        print("No changes detected, README.md not updated")
+        os.remove(temp_readme_path)
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
     blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
-    update_readme(blueprints, readme_path)
-    print("README.md updated successfully")
+    update_readme(blueprints, readme_path, temp_readme_path)
 
 if __name__ == "__main__":
     main()
