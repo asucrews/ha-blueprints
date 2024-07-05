@@ -1,6 +1,7 @@
 import os
 import subprocess
 from datetime import datetime
+import filecmp
 
 # Directory containing blueprint files
 blueprint_directory = 'automations'
@@ -34,7 +35,7 @@ def get_blueprints(directory, ignore_folder):
                     blueprints.append(f"- [{formatted_name}]({readme_url}) (Last updated: {last_commit_date})")
     return blueprints
 
-def generate_readme(blueprints, readme_path):
+def generate_readme(blueprints, output_path):
     """Generate the entire README.md file with the list of blueprints."""
     header = "# ha-blueprints\n\nBlueprints for Home Assistant\n\n"
     stats = (
@@ -61,7 +62,7 @@ def generate_readme(blueprints, readme_path):
     content = header + stats + intro + doc_link + ''.join(blueprint_lines) + "\n" + feedback
 
     # Write the generated content to the temporary README.md file
-    with open(temp_readme_path, 'w') as file:
+    with open(output_path, 'w') as file:
         file.write(content)
 
 def main():
@@ -73,6 +74,7 @@ def main():
         print("README.md updated successfully")
     else:
         print("No changes detected, README.md not updated")
+        os.remove(temp_readme_path)
 
 if __name__ == "__main__":
     main()

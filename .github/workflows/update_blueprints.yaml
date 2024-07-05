@@ -26,7 +26,19 @@ jobs:
       - name: Run update script
         run: python scripts/update_blueprints.py
 
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "no changes"
+            echo "changes=false" >> $GITHUB_ENV
+          else
+            echo "changes"
+            echo "changes=true" >> $GITHUB_ENV
+          fi
+
       - name: Commit changes
+        if: env.changes == 'true'
         env:
           GIT_AUTHOR_EMAIL: action@github.com
           GIT_AUTHOR_NAME: GitHub Action
