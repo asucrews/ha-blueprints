@@ -22,15 +22,17 @@ def get_blueprints(directory, ignore_folder):
     blueprints = []
     for root, dirs, files in os.walk(directory):
         if ignore_folder not in root.split(os.sep):
-            for filename in files:
-                if filename.endswith('.yaml'):
-                    filepath = os.path.join(root, filename)
-                    name = os.path.splitext(filename)[0]
-                    formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
-                    last_commit_date = get_last_commit_date(filepath)
-                    import_url = f"https://my.home-assistant.io/redirect/blueprint_import/?url=https://github.com/asucrews/ha-blueprints/blob/main/{filepath.replace(os.sep, '/')}"
-                    shield_url = f"https://img.shields.io/badge/Import%20Blueprint-blue?logo=home-assistant&style=flat-square"
-                    blueprints.append((formatted_name, filepath, last_commit_date, import_url, shield_url))
+            for dir_name in dirs:
+                readme_path = os.path.join(root, dir_name, 'README.md')
+                if os.path.isfile(readme_path):
+                    yaml_files = [f for f in os.listdir(os.path.join(root, dir_name)) if f.endswith('.yaml')]
+                    if yaml_files:
+                        yaml_file = yaml_files[0]  # Assuming there is only one YAML file per blueprint directory
+                        yaml_path = os.path.join(root, dir_name, yaml_file)
+                        last_commit_date = get_last_commit_date(readme_path)
+                        import_url = f"https://my.home-assistant.io/redirect/blueprint_import/?url=https://github.com/asucrews/ha-blueprints/blob/main/{yaml_path.replace(os.sep, '/')}"
+                        shield_url = f"https://img.shields.io/badge/Import%20Blueprint-blue?logo=home-assistant&style=flat-square"
+                        blueprints.append((dir_name, readme_path, last_commit_date, import_url, shield_url))
     return blueprints
 
 def update_readme(blueprints, readme_path):
