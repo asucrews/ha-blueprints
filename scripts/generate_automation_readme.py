@@ -5,7 +5,7 @@ from datetime import datetime
 # Directory containing blueprint files
 blueprint_directory = 'automations'
 # Path to the main README.md file
-readme_path = 'README.md'
+readme_path = 'automations/README.md'
 # Directory name to ignore
 ignore_folder = 'dev'
 
