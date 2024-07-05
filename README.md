@@ -17,20 +17,10 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- [![Time Of Day](https://img.shields.io/badge/Last%20updated-Wed%20Jul%203%2017%3A12%3A12%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day/README.md)
-- [![Smart Dimmer](https://img.shields.io/badge/Last%20updated-Mon%20Jun%2024%2023%3A14%3A31%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer/README.md)
-- [![Person Status Update](https://img.shields.io/badge/Last%20updated-Mon%20Jun%2024%2023%3A14%3A31%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/person_status_update/person_status_update/README.md)
-- [![Ha Restart](https://img.shields.io/badge/Last%20updated-Wed%20Jun%2026%2020%3A58%3A12%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart/README.md)
-- [![Lock Management](https://img.shields.io/badge/Last%20updated-Wed%20Jul%203%2017%3A03%3A28%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management/README.md)
-- [![Car Tag](https://img.shields.io/badge/Last%20updated-Wed%20Jul%203%2014%3A28%3A26%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag/README.md)
-- [![On Off Plus](https://img.shields.io/badge/Last%20updated-Thu%20Jul%204%2015%3A48%3A55%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus/README.md)
-- [![Witb Plus](https://img.shields.io/badge/Last%20updated-Thu%20Jul%204%2014%3A33%3A34%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus/README.md)
-- [![Flair](https://img.shields.io/badge/Last%20updated-Mon%20Jun%2024%2023%3A14%3A31%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair/README.md)
-- [![6 Speed Fan](https://img.shields.io/badge/Last%20updated-Wed%20Jun%2026%2020%3A51%3A56%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan/README.md)
-- [![Ratdgo 2.5i](https://img.shields.io/badge/Last%20updated-Thu%20Jul%204%2015%3A48%3A55%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md)
-- [![Motion Plus](https://img.shields.io/badge/Last%20updated-Mon%20Jun%2024%2023%3A14%3A31%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus/README.md)
-- [![Lux Sensor](https://img.shields.io/badge/Last%20updated-Mon%20Jun%2024%2023%3A14%3A31%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor/README.md)
-- [![Binary Sensor Notifications Plus](https://img.shields.io/badge/Last%20updated-Wed%20Jul%203%2014%3A28%3A26%202024%20-0700-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus/README.md)
+- [![Light Control](https://img.shields.io/badge/Last%20updated-2024--07--01%2010%3A00%3A00-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/light_control/README.md)
+- [![Motion Detection](https://img.shields.io/badge/Last%20updated-2024--07--02%2012%3A00%3A00-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_detection/README.md)
+- [![Doorbell Notification](https://img.shields.io/badge/Last%20updated-2024--07--03%2014%3A00%3A00-blue)](https://github.com/asucrews/ha-blueprints/blob/main/automations/doorbell_notification/README.md)
+
 
 ## Feedback
 
