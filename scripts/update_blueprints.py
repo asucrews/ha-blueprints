@@ -6,6 +6,8 @@ from datetime import datetime
 blueprint_directory = 'automations'
 # Path to the main README.md file
 readme_path = 'README.md'
+# Path to the temporary README.md file
+temp_readme_path = 'README_new.md'
 # Directory name to ignore
 ignore_folder = 'dev'
 
@@ -28,7 +30,7 @@ def get_blueprints(directory, ignore_folder):
                     name = os.path.splitext(filename)[0]
                     formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
                     last_commit_date = get_last_commit_date(filepath)
-                    readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/README.md"
+                    readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/{name}/README.md"
                     blueprints.append(f"- [{formatted_name}]({readme_url}) (Last updated: {last_commit_date})")
     return blueprints
 
@@ -58,15 +60,19 @@ def generate_readme(blueprints, readme_path):
     blueprint_lines = [f"{blueprint}\n" for blueprint in blueprints]
     content = header + stats + intro + doc_link + ''.join(blueprint_lines) + "\n" + feedback
 
-    # Write the generated content to the README.md file
-    with open(readme_path, 'w') as file:
+    # Write the generated content to the temporary README.md file
+    with open(temp_readme_path, 'w') as file:
         file.write(content)
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
-    blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
-    generate_readme(blueprints, readme_path)
-    print("README.md generated successfully")
+    generate_readme(blueprints, temp_readme_path)
+    
+    if not os.path.exists(readme_path) or not filecmp.cmp(readme_path, temp_readme_path):
+        os.replace(temp_readme_path, readme_path)
+        print("README.md updated successfully")
+    else:
+        print("No changes detected, README.md not updated")
 
 if __name__ == "__main__":
     main()
