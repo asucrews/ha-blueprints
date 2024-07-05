@@ -28,43 +28,44 @@ def get_blueprints(directory, ignore_folder):
                     name = os.path.splitext(filename)[0]
                     formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
                     last_commit_date = get_last_commit_date(filepath)
-                    readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/{name}/README.md"
-                    print(f"File: {filename}, Last Commit Date: {last_commit_date}, README URL: {readme_url}")  # Debug print statement
+                    readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/{filename}"
                     blueprints.append(f"- [{formatted_name}]({readme_url}) (Last updated: {last_commit_date})")
     return blueprints
 
-def update_readme(blueprints, readme_path):
-    """Update the README.md file with the list of blueprints."""
-    with open(readme_path, 'r') as file:
-        lines = file.readlines()
-
-    # Find the section to update
-    start_line = None
-    end_line = None
-    for i, line in enumerate(lines):
-        if line.strip() == "## Automation Blueprints":
-            start_line = i + 2  # Assume the list starts 2 lines after the header
-        elif start_line and line.strip() == "## Feedback":
-            end_line = i
-            break
-
-    if start_line is None or end_line is None:
-        print("Could not find the automation blueprints section in README.md")
-        return
-
-    # Generate the new content
+def generate_readme(blueprints, readme_path):
+    """Generate the entire README.md file with the list of blueprints."""
+    header = "# ha-blueprints\n\nBlueprints for Home Assistant\n\n"
+    stats = (
+        "## Stats\n\n"
+        "![Min HA Version](https://img.shields.io/badge/Min%20HA%20Version-2024.6.0-blue?style=flat&logo=home-assistant&color=blue)\n"
+        "[![HA Blueprint Exchange](https://img.shields.io/badge/HA%20Blueprint%20Exchange-Topics-blue?style=flat&logo=home-assistant&color=blue)](https://community.home-assistant.io/c/blueprints-exchange/53)\n\n"
+        "[![GitHub License](https://img.shields.io/github/license/asucrews/ha-blueprints?style=flat&logo=github&color=blue)](LICENSE.md)\n"
+        "[![GitHub Discussions](https://img.shields.io/github/discussions/asucrews/ha-blueprints?style=flat&logo=github&color=blue)](https://github.com/asucrews/ha-blueprints/discussions)\n"
+        "![GitHub last commit](https://img.shields.io/github/last-commit/asucrews/ha-blueprints?style=flat&logo=github&color=blue)\n"
+        "![GitHub commit activity](https://img.shields.io/github/commit-activity/m/asucrews/ha-blueprints?style=flat&logo=github&color=blue)\n"
+        "![GitHub commit activity](https://img.shields.io/github/commit-activity/y/asucrews/ha-blueprints?style=flat&logo=github&color=blue)\n\n"
+    )
+    intro = "## Automation Blueprints\n\n"
     doc_link = "Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.\n\n"
-    blueprint_lines = [f"{blueprint}\n" for blueprint in blueprints]
-    new_content = lines[:start_line] + [doc_link] + blueprint_lines + ["\n"] + lines[end_line:]
+    feedback = (
+        "## Feedback\n\n"
+        "We value your input and welcome any feedback or suggestions you may have regarding the Blueprints. "
+        "Your feedback helps us continually improve and refine our offerings for the community.\n\n"
+        "Please feel free to leave your comments below or reach out to us on the [Home Assistant forum](https://community.home-assistant.io/). "
+        "Thank you for your support!\n"
+    )
 
-    # Write the updated content back to the file
+    blueprint_lines = [f"{blueprint}\n" for blueprint in blueprints]
+    content = header + stats + intro + doc_link + ''.join(blueprint_lines) + "\n" + feedback
+
+    # Write the generated content to the README.md file
     with open(readme_path, 'w') as file:
-        file.writelines(new_content)
+        file.write(content)
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
-    update_readme(blueprints, readme_path)
-    print("README.md updated successfully")
+    generate_readme(blueprints, readme_path)
+    print("README.md generated successfully")
 
 if __name__ == "__main__":
     main()
