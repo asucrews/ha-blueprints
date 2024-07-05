@@ -1,4 +1,4 @@
-name: Update Blueprints
+name: Update Main README.md
 
 on:
   schedule:
