@@ -73,8 +73,8 @@ def update_readme(blueprints, readme_path):
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
     print(blueprints)
-
-    # blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
+    blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
+    print(blueprints)
     # update_readme(blueprints, readme_path)
     # print("README.md updated successfully")
 
