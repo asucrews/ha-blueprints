@@ -72,6 +72,8 @@ def update_readme(blueprints, readme_path):
     with open(readme_path, 'w') as file:
         file.writelines(new_content)
 
+    print(new_content)
+
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
     blueprints.sort(key=lambda x: x[0])  # Sort blueprints alphabetically
