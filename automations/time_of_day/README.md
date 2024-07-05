@@ -1,4 +1,3 @@
-```markdown
 # Time of Day Trigger (1.0.0)
 
 Blueprint for triggering actions at a specific time of day.
