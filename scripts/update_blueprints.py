@@ -14,7 +14,9 @@ def get_last_commit_date(file_path):
     """Get the last commit date for a given file."""
     result = subprocess.run(['git', 'log', '-1', '--format=%cd', '--', file_path],
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    return result.stdout.strip()
+    # Parse the date to remove time information
+    date = datetime.strptime(result.stdout.strip(), '%a %b %d %H:%M:%S %Y %z')
+    return date.strftime('%Y-%m-%d')
 
 def generate_shield_url(label, message, color):
     """Generate a shields.io URL for a custom badge."""
@@ -37,7 +39,7 @@ def get_blueprints(directory, ignore_folder):
                     shield_url = generate_shield_url("Last updated", last_commit_date, "blue")
                     readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/{name}/README.md"
                     print(f"File: {filename}, Last Commit Date: {last_commit_date}, Shield URL: {shield_url}, README URL: {readme_url}")  # Debug print statement
-                    blueprints.append(f"- [![{formatted_name}]({shield_url})]({readme_url})")
+                    blueprints.append(f"- {formatted_name} [![Last updated]({shield_url})]({readme_url})")
     return blueprints
 
 def update_readme(blueprints, readme_path):
