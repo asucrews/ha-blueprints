@@ -7,7 +7,6 @@ Welcome to the **Home Assistant Blueprints** repository! This collection of auto
 ### [Time Of Day](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day.yaml)
 [![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day.yaml)
 
-```markdown
 # Time of Day Trigger (1.0.0)
 
 Blueprint for triggering actions at a specific time of day. (Last updated: 2024-07-04)
