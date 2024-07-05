@@ -39,38 +39,42 @@ def get_blueprints(directory, ignore_folder):
                     blueprints.append((dir_name, readme_path, last_commit_date, import_url, shield_url))
     return blueprints
 
-def update_readme(blueprints, readme_path):
-    """Update the README.md file with the list of blueprints."""
-    with open(readme_path, 'r') as file:
-        lines = file.readlines()
+def generate_readme_content(blueprints):
+    """Generate the full content for README.md."""
+    readme_lines = [
+        "# Home Assistant Blueprints\n",
+        "\n",
+        "Welcome to the **Home Assistant Blueprints** repository! This collection of automation blueprints is created by **asucrews** to help you set up automations for various Home Assistant setups. Each blueprint is designed to simplify and enhance your Home Assistant experience.\n",
+        "\n",
+        "## Available Blueprints\n",
+        "\n"
+    ]
 
-    # Find the section to update
-    start_line = None
-    end_line = None
-    for i, line in enumerate(lines):
-        if line.strip().lower() == "## available blueprints":
-            start_line = i + 1  # Assume the list starts 1 line after the header
-        elif start_line and line.strip().startswith("## "):
-            end_line = i
-            break
-    if end_line is None:
-        end_line = len(lines)
-
-    if start_line is None:
-        print("Could not find the Available Blueprints section in README.md")
-        return
-
-    # Generate the new content
-    blueprint_lines = ['\n']
     for name, path, date, import_url, shield_url in blueprints:
-        blueprint_lines.append(f'- [{name}](./{path}) (Last updated: {date}) [![Import Blueprint]({shield_url})]({import_url})\n')
-    blueprint_lines.append('\n')
+        readme_lines.append(f'- [{name}](./{path}) (Last updated: {date}) [![Import Blueprint]({shield_url})]({import_url})\n')
+    
+    readme_lines.extend([
+        "\n",
+        "## Usage\n",
+        "\n",
+        "1. **Select a Blueprint:** Browse the list of available blueprints and select the one that matches your needs.\n",
+        "2. **Copy the YAML:** Click on the blueprint link to view the YAML file. Copy the YAML content.\n",
+        "3. **Import into Home Assistant:** In Home Assistant, navigate to `Configuration > Blueprints` and click on \"Import Blueprint\". Paste the YAML content and save.\n",
+        "4. **Create Automation:** Use the imported blueprint to create a new automation and configure it as needed.\n",
+        "\n",
+        "## Contributions\n",
+        "We welcome contributions to this repository! If you would like to add new blueprints or improve existing ones, please follow the guidelines provided in the [repository](https://github.com/asucrews/ha-blueprints).\n"
+    ])
+    
+    return readme_lines
 
-    new_content = lines[:start_line] + blueprint_lines + lines[end_line:]
+def update_readme(blueprints, readme_path):
+    """Update the README.md file with the new content."""
+    readme_content = generate_readme_content(blueprints)
 
     # Write the updated content back to the file
     with open(readme_path, 'w') as file:
-        file.writelines(new_content)
+        file.writelines(readme_content)
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
