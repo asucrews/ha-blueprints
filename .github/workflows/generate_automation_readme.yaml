@@ -32,7 +32,7 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-          git add README.md
+          git add automations/README.md
           git diff-index --quiet HEAD || git commit -m 'Update Available Blueprints in README.md'
           git push
         env:
