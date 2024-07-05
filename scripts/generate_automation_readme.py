@@ -48,7 +48,7 @@ def update_readme(blueprints, readme_path):
     start_line = None
     end_line = None
     for i, line in enumerate(lines):
-        if line.strip() == "## Available Blueprints":
+        if line.strip().lower() == "## available blueprints":
             start_line = i + 1  # Assume the list starts 1 line after the header
         elif start_line and line.strip().startswith("## "):
             end_line = i
@@ -71,8 +71,6 @@ def update_readme(blueprints, readme_path):
     # Write the updated content back to the file
     with open(readme_path, 'w') as file:
         file.writelines(new_content)
-
-    print(new_content)
 
 def main():
     blueprints = get_blueprints(blueprint_directory, ignore_folder)
