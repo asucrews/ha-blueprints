@@ -24,14 +24,14 @@ jobs:
       - name: Run script
         run: python scripts/generate_automation_readme.py
 
-      - name: Check for changes
-        id: changes
-        run: |
-          git diff --quiet || echo "changes=1" >> $GITHUB_ENV
-          echo "changes=${{ env.changes || 0 }}" >> $GITHUB_ENV
+      # - name: Check for changes
+      #   id: changes
+      #   run: |
+      #     git diff --quiet || echo "changes=1" >> $GITHUB_ENV
+      #     echo "changes=${{ env.changes || 0 }}" >> $GITHUB_ENV
 
       - name: Commit and push changes
-        if: env.changes == '1'
+        # if: env.changes == '1'
         env:
           GIT_AUTHOR_EMAIL: action@github.com
           GIT_AUTHOR_NAME: GitHub Action
