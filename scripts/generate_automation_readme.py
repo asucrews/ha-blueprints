@@ -34,7 +34,7 @@ def get_blueprints(directory, ignore_folder):
                     yaml_file = yaml_files[0]  # Assuming there is only one YAML file per blueprint directory
                     yaml_path = os.path.join(blueprint_dir, yaml_file)
                     last_commit_date = get_last_commit_date(readme_path)
-                    import_url = f"https://my.home-assistant.io/redirect/blueprint_import/?url=https://github.com/asucrews/ha-blueprints/blob/main/{yaml_path.replace(os.sep, '/')}"
+                    import_url = f"https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/asucrews/ha-blueprints/blob/main/{yaml_path.replace(os.sep, '/')}"
                     shield_url = f"https://img.shields.io/badge/Import%20Blueprint-blue?logo=home-assistant&style=flat-square"
                     blueprints.append((dir_name, readme_path, last_commit_date, import_url, shield_url))
     return blueprints
