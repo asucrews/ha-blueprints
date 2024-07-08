@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.4.0rc7)
+  name: WITB+ Debug Bypass On
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -12,7 +12,7 @@ blueprint:
     - Users are expected to create input_boolean entities for occupancy tracking and bypass control if they choose to utilize these features.<br/>
     - For bypass functionality, users need to manually integrate call service actions into their automations or methods to control devices when bypassing occupancy detection is required.<br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/debugging/witb_plus_debug_bypass_on.yaml
   input:
     sensor_entities:
       name: Sensor Entities
