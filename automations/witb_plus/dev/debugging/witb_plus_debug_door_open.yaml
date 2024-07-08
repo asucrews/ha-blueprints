@@ -299,6 +299,29 @@ blueprint:
               max: 10
               unit_of_measurement: seconds
               step: 1
+    bedtime_options:
+      name: Bedtime Options
+      description: Bedtime Options and Settings
+      collapsed: true
+      inputs:
+        weekday_bedtime:
+          name: "Weekday Bedtime"
+          description: >
+            Set weekday bedtime schedule.  This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+          default: "schedule.none"
+          selector:
+            entity:
+              domain: schedule
+              multiple: false
+        weekend_bedtime:
+          name: "Weekdend Bedtime"
+          description: >
+            Set weekend bedtime schedule. This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+          default: "schedule.none"
+          selector:
+            entity:
+              domain: schedule
+              multiple: false
 
 variables:
   door_sensor: !input door_sensor
@@ -333,9 +356,7 @@ trigger:
     for: !input door_sensor_open_delay
 
 action:
-  # Actions to perform when the door is closed
   - choose:
-      # Actions to perform when the door is closed
       - conditions:
           - condition: and
             conditions:
@@ -360,172 +381,75 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled 
-          # Check for bedtime, if so then stop
+          # Check for weekday bedtime, if so then stop
           - if:
-              - condition: or
+              - condition: and
                 conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
+                  - condition: template
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
             then:
               - stop: Bedtime
           # Turns on light_bulbs if configured and the light is off
           - if:
-              # Check if both conditions are met
               - condition: and
                 conditions:
-                  # Check if light_bulbs is not equal to 'light.none'
                   - condition: template
                     value_template: "{{ light_bulbs != 'light.none' }}"
-                  # Check if the state of the light is "off"
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "off"
             then:
-              # Execute different sequences based on the value of light_control
               - choose:
-                  # If light_control is set to "bulb"
                   - conditions:
                       - condition: template
                         value_template: "{{ light_control == 'bulb' }}"
                     sequence:
-                      # Execute different sequences based on the number of light_control_features
-                      - choose:
-                          # If there's only one feature enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 1 }}"
-                            sequence:
-                              # Turn on the light with specific settings based on the enabled feature
-                              - choose:
-                                  # If brightness control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If color temperature control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_color_temperature' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          kelvin: !input light_temperature
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If transition control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                        target:
-                                          entity_id: !input light_bulbs
-                          # If there are two features enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 2 }}"
-                            sequence:
-                              # Execute different sequences based on the combination of enabled features
-                              - choose:
-                                  # If both brightness and color temperature control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          kelvin: !input light_temperature
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If brightness control and transition control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If color temperature control and transition control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                          kelvin: !input light_temperature
-                                        target:
-                                          entity_id: !input light_bulbs
-                          # If all three features are enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 3 }}"
-                            sequence:
-                              # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
-                              - service: light.turn_on
-                                data:
-                                  transition: !input light_transition
-                                  kelvin: !input light_temperature
-                                  brightness_pct: !input light_brightness_pct
-                                target:
-                                  entity_id: !input light_bulbs
-                # If light_control is not set to "bulb"
-                default:
-                  # Check if the light is still off
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "off"
-                  # Turn on the light using the default settings
-                  - service: homeassistant.turn_on
-                    target:
-                      entity_id: !input light_bulbs
+                      - service: light.turn_on
+                        data:
+                          {% if 'use_brightness' in light_control_features %}
+                            brightness_pct: !input light_brightness_pct
+                          {% endif %}
+                          {% if 'use_color_temperature' in light_control_features %}
+                            kelvin: !input light_temperature
+                          {% endif %}
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
+                  default:
+                    - service: homeassistant.turn_on
+                      target:
+                        entity_id: !input light_bulbs
           # Turns on light switch if configured and currently off
           - if:
               - condition: and
                 conditions:
                   - condition: template
                     value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "off"
             then:
-              - condition: state
-                entity_id: !input light_switch
-                state: "off"
               - service: homeassistant.turn_on
-                data: {}
                 target:
                   entity_id: !input light_switch
           # Turns on fan switch if configured and currently off
@@ -534,12 +458,11 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
             then:
-              - condition: state
-                entity_id: !input fan_switch
-                state: "off"
               - service: homeassistant.turn_on
-                data: {}
                 target:
                   entity_id: !input fan_switch
 

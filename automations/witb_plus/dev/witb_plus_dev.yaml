@@ -299,6 +299,29 @@ blueprint:
               max: 10
               unit_of_measurement: seconds
               step: 1
+    bedtime_options:
+      name: Bedtime Options
+      description: Bedtime Options and Settings
+      collapsed: true
+      inputs:
+        weekday_bedtime:
+          name: "Weekday Bedtime"
+          description: >
+            Set weekday bedtime schedule.  This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+          default: "schedule.none"
+          selector:
+            entity:
+              domain: schedule
+              multiple: false
+        weekend_bedtime:
+          name: "Weekdend Bedtime"
+          description: >
+            Set weekend bedtime schedule. This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+          default: "schedule.none"
+          selector:
+            entity:
+              domain: schedule
+              multiple: false
 
 variables:
   door_sensor: !input door_sensor
