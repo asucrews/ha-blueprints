@@ -423,7 +423,7 @@ action:
                         value_template: "{{ light_control == 'bulb' }}"
                     sequence:
                       - service: light.turn_on
-                        data_template:
+                        data_template: >
                           {% if 'use_brightness' in light_control_features %}
                             brightness_pct: !input light_brightness_pct
                           {% endif %}
