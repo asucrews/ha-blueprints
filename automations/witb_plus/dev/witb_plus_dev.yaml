@@ -3,7 +3,7 @@ blueprint:
   homeassistant:
     min_version: 2024.6.0
   description: >
-    WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
+    WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept. The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box"). If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
     - Motion sensors are typically positioned to detect movement when someone walks into the room, triggering occupancy detection.<br/>
     - It is assumed that as long as the door to the designated area ("box") is closed, the room is considered occupied, influencing the automation's behavior.<br/>
@@ -17,8 +17,8 @@ blueprint:
     door_sensor:
       name: Door Sensor or Door Sensor Group
       description: >
-        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected.  In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.<br/>
-        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+        Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected. In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.<br/>
+        <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection. This field and this input are required.<br/>
       selector:
         entity:
           domain: binary_sensor
@@ -26,8 +26,8 @@ blueprint:
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group
       description: >
-        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
-        <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+        Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box"). In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
+        <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection. This field and this input are required.<br/>
       selector:
         entity:
           domain: binary_sensor
@@ -35,8 +35,8 @@ blueprint:
     light_bulbs:
       name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
       description: >
-        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
-        <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+        Select a smart light bulb or group of smart light bulbs to control within the designated area ("box"). These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+        <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed. Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "light.none"
       selector:
         entity:
@@ -45,8 +45,8 @@ blueprint:
     light_switch:
       name: Light, Light Group, Switch, or Switch Group (Optional)
       description: >
-        Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
-        <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+        Choose a light, light group, switch, or switch group to control within the designated area ("box"). These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+        <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed. Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "light.none"
       selector:
         entity:
@@ -57,8 +57,8 @@ blueprint:
     fan_switch:
       name: Fan or Fan Group (Optional)
       description: >
-        Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
-        <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
+        Select a fan or group of fans to control within the designated area ("box"). These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+        <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed. Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "fan.none"
       selector:
         entity:
@@ -67,7 +67,7 @@ blueprint:
     door_sensor_open_delay:
       name: Door Sensor Open Delay (Optional)
       description: >
-        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement. This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
         <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
       default: 0
       selector:
@@ -80,7 +80,7 @@ blueprint:
     door_sensor_close_delay:
       name: Door Sensor Close Delay (Optional)
       description: >
-        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement. This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
         <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
       default: 0
       selector:
@@ -93,8 +93,8 @@ blueprint:
     motion_sensor_delay:
       name: Motion off delay (Optional)
       description: >
-        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
-        <br/>Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
+        Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement. This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+        <br/>Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not. Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
       default: 30
       selector:
         number:
@@ -106,8 +106,8 @@ blueprint:
     occupancy_helper:
       name: Occupancy Helper (Optional)
       description: >
-        Select an input boolean entity to serve as an occupancy helper within the designated area ("box").  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
-        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection.  Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
+        Select an input boolean entity to serve as an occupancy helper within the designated area ("box"). To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+        The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection. Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
         <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "input_boolean.none"
       selector:
@@ -117,8 +117,8 @@ blueprint:
     bypass_mode:
       name: Bypass Mode (Optional)
       description: >
-        Select the bypass mode to control how the automation handles bypass events.  This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
-        Bypass mode determines whether the automation should ignore occupancy detection temporarily.  Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
+        Select the bypass mode to control how the automation handles bypass events. This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
+        Bypass mode determines whether the automation should ignore occupancy detection temporarily. Depending on the option you select you need to create an input_boolean for bypass and timer helper.<br/>
         <br/>Options:<br/>
           - No Bypass: Automation operates normally without bypassing occupancy detection.<br/>
           - Bypass No Auto OFF: Automation temporarily ignores occupancy detection until manually turned off. To use this option, create an input_boolean helper entity for bypass control.<br/>
@@ -141,8 +141,8 @@ blueprint:
     bypass_helper:
       name: Bypass Helper (Optional)
       description: >
-        Select an input boolean entity to serve as a bypass helper within the designated area ("box").  The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
-        To enable bypass for a WIAB room, manually integrate call service actions into your automations or methods.  For instance, you might configure a double-tap action on the light switch to set the bypass helper.<br/>
+        Select an input boolean entity to serve as a bypass helper within the designated area ("box"). The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
+        To enable bypass for a WIAB room, manually integrate call service actions into your automations or methods. For instance, you might configure a double-tap action on the light switch to set the bypass helper.<br/>
         To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
         <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "input_boolean.none"
@@ -154,7 +154,7 @@ blueprint:
       name: Bypass Auto Off Timer (Optional)
       description: >
         Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
-        To utilize this function, create an timer helper entity in your Home Assistant configuration or UI.<br/>
+        To utilize this function, create a timer helper entity in your Home Assistant configuration or UI.<br/>
         <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
       default: "timer.none"
       selector:
@@ -164,7 +164,7 @@ blueprint:
     bypass_finished_action:
       name: Bypass Action After Timer Finished (Optional)
       description: >
-        Specify the action to be taken after the bypass auto-off timer finishes counting down.  This determines whether the automation should turn off lights or other devices when the bypass timer expires.<br/>
+        Specify the action to be taken after the bypass auto-off timer finishes counting down. This determines whether the automation should turn off lights or other devices when the bypass timer expires.<br/>
         <br/>Options:<br/>
         - Turn Off: Automatically turns off lights or devices when the bypass timer expires.<br/>
         - Do Nothing: Leaves lights or devices unchanged after the bypass timer expires.<br/>
@@ -195,7 +195,7 @@ blueprint:
     light_control:
       name: Light Control
       description: >
-        What is controls lighting effects? Is it a swith or bulb?<br/>
+        What controls lighting effects? Is it a switch or bulb?<br/>
         <br/>
       default: none
       selector:
@@ -213,7 +213,7 @@ blueprint:
           sort: false
     light_control_features:
       name: Light Control Features?
-      description: What light features to contorl?
+      description: What light features to control?
       default: []
       selector:
         select:
@@ -221,13 +221,13 @@ blueprint:
           options:
             - label: Use brightness
               value: "use_brightness"
-            - label: Use colour temperature
-              value: "use_colour_temperature"
+            - label: Use color temperature
+              value: "use_color_temperature"
             - label: Use transition
               value: "use_transition"
     light_brightness_pct:
-      name: Light brightness Percentage (Optional)
-      description: Light brightness Percentage 1 to 100%. 0 Turn off the light so we are ingoring that value.
+      name: Light Brightness Percentage (Optional)
+      description: Light brightness percentage 1 to 100%. 0 turns off the light, so we are ignoring that value.
       default: 1
       selector:
         number:
@@ -237,8 +237,8 @@ blueprint:
           unit_of_measurement: percentage
           step: 1
     light_temperature:
-      name: Light temperature (Optional)
-      description: Light temperature in Kelvin 2000 to 65000
+      name: Light Temperature (Optional)
+      description: Light temperature in Kelvin 2000 to 6500
       default: 2000
       selector:
         number:
@@ -249,7 +249,7 @@ blueprint:
           step: 1
     light_transition:
       name: Light Transition (Optional)
-      description: Light Transition 0 to 10 seconds
+      description: Light transition 0 to 10 seconds
       default: 0
       selector:
         number:
@@ -261,16 +261,16 @@ blueprint:
     weekday_bedtime:
       name: "Weekday Bedtime"
       description: >
-        Set weekday bedtime schedule.  This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+        Set weekday bedtime schedule. This is used to stop lights, fans, etc. from turning on when it is bedtime. To utilize this function, create a schedule in the helper section.<br/>
       default: "schedule.none"
       selector:
         entity:
           domain: schedule
           multiple: false
     weekend_bedtime:
-      name: "Weekdend Bedtime"
+      name: "Weekend Bedtime"
       description: >
-        Set weekend bedtime schedule. This is use to stop lights, fan, etc turn on when it is bedtime. To utilize this function, create a schedule in helper section.<br/>
+        Set weekend bedtime schedule. This is used to stop lights, fans, etc. from turning on when it is bedtime. To utilize this function, create a schedule in the helper section.<br/>
       default: "schedule.none"
       selector:
         entity:
@@ -340,13 +340,13 @@ trigger:
     entity_id: !input bypass_helper
     from: "off"
     to: "on"
-    id: Bypass Turn on
+    id: Bypass Turn On
   # If bypass is disabled
   - platform: state
     entity_id: !input bypass_helper
     from: "on"
     to: "off"
-    id: Bypass Turn off
+    id: Bypass Turn Off
   # If bypass auto off timer ends
   - platform: event
     event_type: timer.finished
@@ -363,7 +363,7 @@ trigger:
 action:
   # Actions to perform when the door is closed
   - choose:
-      # Actions to perfrom when the door is closed
+      # Actions to perform when the door is closed
       - conditions:
           - condition: and
             conditions:
@@ -408,7 +408,7 @@ action:
                   - condition: and
                     conditions:
                       - condition: template
-                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, 'on') }}"
                       - condition: state
@@ -420,7 +420,7 @@ action:
                           seconds: 10
             then:
               - stop: Bedtime
-          # Truns on light_bulbs if configured and the light is off
+          # Turns on light_bulbs if configured and the light is off
           - if:
               # Check if both conditions are met
               - condition: and
@@ -462,7 +462,7 @@ action:
                                   # If color temperature control is enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ 'use_colour_temperature' in light_control_features }}"
+                                        value_template: "{{ 'use_color_temperature' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -489,7 +489,7 @@ action:
                                   # If both brightness and color temperature control are enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
+                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -500,7 +500,7 @@ action:
                                   # If brightness control and transition control are enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
+                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -511,7 +511,7 @@ action:
                                   # If color temperature control and transition control are enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
+                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -618,7 +618,7 @@ action:
                   - condition: and
                     conditions:
                       - condition: template
-                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, 'on') }}"
                       - condition: state
@@ -720,7 +720,7 @@ action:
                 data: {}
                 target:
                   entity_id: !input idle_timer
-      # Actions to perform when motion is detected.
+      # Actions to perform when motion is detected
       - conditions:
           - condition: and
             conditions:
@@ -765,7 +765,7 @@ action:
                   - condition: and
                     conditions:
                       - condition: template
-                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
+                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
                       - condition: template
                         value_template: "{{ is_state(weekend_bedtime, 'on') }}"
                       - condition: state
@@ -777,7 +777,7 @@ action:
                           seconds: 10
             then:
               - stop: Bedtime
-          # Truns on light_bulbs if configured and the light is off
+          # Turns on light_bulbs if configured and the light is off
           - if:
               # Check if both conditions are met
               - condition: and
@@ -819,7 +819,7 @@ action:
                                   # If color temperature control is enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ 'use_colour_temperature' in light_control_features }}"
+                                        value_template: "{{ 'use_color_temperature' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -846,7 +846,7 @@ action:
                                   # If both brightness and color temperature control are enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
+                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -857,7 +857,7 @@ action:
                                   # If brightness control and transition control are enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
+                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
@@ -868,7 +868,7 @@ action:
                                   # If color temperature control and transition control are enabled
                                   - conditions:
                                       - condition: template
-                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
+                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
                                       - service: light.turn_on
                                         data:
