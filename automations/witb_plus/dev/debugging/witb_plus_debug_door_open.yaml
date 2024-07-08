@@ -303,7 +303,7 @@ blueprint:
       name: Bedtime Options
       description: Bedtime Options and Settings
       collapsed: true
-      inputs:
+      input:
         weekday_bedtime:
           name: "Weekday Bedtime"
           description: >
