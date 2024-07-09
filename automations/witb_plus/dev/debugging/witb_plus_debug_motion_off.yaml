@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -386,36 +386,30 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled
-          # Check for bedtime, if so then stop
+          # Check for weekday bedtime, if so then stop
           - if:
-              - condition: or
+              - condition: and
                 conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
+                  - condition: template
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
@@ -489,6 +483,22 @@ action:
                 data: {}
                 target:
                   entity_id: !input fan_switch
+          # Restart idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+                  - condition: state
+                    entity_id: !input idle_timer
+                    state: active
+            then:
+              - service: timer.cancel
+                target:
+                  entity_id: !input idle_timer
+              - service: timer.start
+                target:
+                  entity_id: !input idle_timer
 
 mode: single
 max_exceeded: silent
