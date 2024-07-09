@@ -372,6 +372,10 @@ action:
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Open"
+                  action: "Turn Off Occupancy Helper"
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -422,10 +426,18 @@ action:
             then:
               - choose:
                   - conditions:
-                      - condition: template
-                        value_template: "{{ light_control == 'bulb' }}"
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_control == 'bulb' }}"
+                          - condition: template
+                            value_template: "{{ light_control_features | list | length  > 0 }}"
                     sequence:
                       - service: light.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Door Open"
+                          action: "Turn Off Light Bulb With Light Contorl"
                         data: >
                           {% if 'use_transition' in light_control_features %}
                             transition: !input light_transition
@@ -434,6 +446,11 @@ action:
                           entity_id: !input light_bulbs
                 default:
                   - service: light.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Turn Off Light Bulb"
+                    data: {}
                     target:
                       entity_id: !input light_bulbs
           # Turns off light switch if configured and currently on
@@ -447,6 +464,11 @@ action:
                     state: "on"
             then:
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Open"
+                  action: "Turn Off Light Switch"
+                data: {}
                 target:
                   entity_id: !input light_switch
           # Turns off fan switch if configured and currently on
@@ -460,6 +482,11 @@ action:
                     state: "on"
             then:
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Open"
+                  action: "Turn Off Fan Switch"
+                data: {}
                 target:
                   entity_id: !input fan_switch
           # Restarts idle timer if configured
@@ -468,16 +495,39 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ idle_timer != 'timer.none' }}"
-                  - condition: state
-                    entity_id: !input idle_timer
-                    state: active
             then:
-              - service: timer.cancel
-                target:
-                  entity_id: !input idle_timer
-              - service: timer.start
-                target:
-                  entity_id: !input idle_timer
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity_id: !input idle_timer
+                        state: active
+                then:
+                  - service: timer.cancel
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Stop Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Restart Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                else:
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Start Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
 
 mode: single
 max_exceeded: silent

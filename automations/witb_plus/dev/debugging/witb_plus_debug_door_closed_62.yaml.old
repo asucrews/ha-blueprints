@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Debug Door Closed 62
+  name: WITB+ Debug Idle Timer
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -352,7 +352,7 @@ trigger:
     entity_id: !input door_sensor
     from: "on"
     to: "off"
-    id: Door Closed For Seconds
+    id: Idle Timer
     for: 62
 
 action:
@@ -362,7 +362,7 @@ action:
           - condition: and
             conditions:
               - condition: trigger
-                id: Door Closed For Seconds
+                id: Idle Timer
               - condition: template
                 value_template: "{{ idle_timer != 'timer.none' }}"
         sequence:
@@ -385,11 +385,21 @@ action:
                 target:
                   entity_id: !input idle_timer
               - service: timer.start
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Idle Timer"
+                  action: "Restart Idle Timer"
+                data: {}
                 target:
                   entity_id: !input idle_timer
             # Starts idle timer if configured and conditions are not met
             else:
               - service: timer.start
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Idle Timer"
+                  action: "Start Idle Timer"
+                data: {}
                 target:
                   entity_id: !input idle_timer
 

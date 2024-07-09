@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -392,6 +392,10 @@ action:
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Idle Timer Finish"
+                      action: "Turn Off Occupancy Helper"
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
@@ -424,6 +428,10 @@ action:
                                 sequence:
                                   # Turn off the light with specific settings
                                   - service: light.turn_off
+                                    metadata:
+                                      timestamp: "{{ now().isoformat() }}"
+                                      source: "WITB+ Debug Idle Timer Finish"
+                                      action: "Turn Off Light Bulb With Light Control"
                                     data:
                                       transition: !input light_transition
                                     target:
@@ -431,11 +439,21 @@ action:
                             default:
                               # If conditions are not met, turn off the light without considering light_control or selected features
                               - service: light.turn_off
+                                metadata:
+                                  timestamp: "{{ now().isoformat() }}"
+                                  source: "WITB+ Debug Idle Timer Finish"
+                                  action: "Turn Off Light Bulb"
+                                data: {}
                                 target:
                                   entity_id: !input light_bulbs
                     default:
                       # If conditions are not met, turn off the light without considering light_control or selected features
                       - service: light.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Idle Timer Finish"
+                          action: "Turn Off Light Bulb"
+                        data: {}
                         target:
                           entity_id: !input light_bulbs
               # Turns off light switch if configured and currently on
@@ -449,6 +467,10 @@ action:
                     entity_id: !input light_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Idle Timer Finish"
+                      action: "Turn Off Light Switch"
                     data: {}
                     target:
                       entity_id: !input light_switch
@@ -463,6 +485,10 @@ action:
                     entity_id: !input fan_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Idle Timer Finish"
+                      action: "Turn Off Fan Switch"
                     data: {}
                     target:
                       entity_id: !input fan_switch

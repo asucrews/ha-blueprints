@@ -385,23 +385,47 @@ action:
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Bypass Off"
+                      action: "Turn Off Occupancy Helper"
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
-              # Turns off light bulbs if configured and currently on
+              # Turns off light_bulbs if configured and the light is on
               - if:
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ light_bulbs != 'light.none' }}"
+                      - condition: state
+                        entity_id: !input light_bulbs
+                        state: "on"
                 then:
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: !input light_bulbs
+                  - choose:
+                      - conditions:
+                          - condition: and
+                            conditions:
+                              - condition: template
+                                value_template: "{{ light_control == 'bulb' }}"
+                              - condition: template
+                                value_template: "{{ light_control_features | list | length  > 0 }}"
+                        sequence:
+                          - service: light.turn_off
+                            metadata:
+                              timestamp: "{{ now().isoformat() }}"
+                              source: "WITB+ Debug Bypass Off"
+                              action: "Turn Off Light Bulb With Light Control"
+                            data: >
+                              {% if 'use_transition' in light_control_features %}
+                                transition: !input light_transition
+                              {% endif %}
+                            target:
+                              entity_id: !input light_bulbs
+                    default:
+                      - service: light.turn_off
+                        target:
+                          entity_id: !input light_bulbs
               # Turns off light switch if configured and currently on
               - if:
                   - condition: and
@@ -413,6 +437,10 @@ action:
                     entity_id: !input light_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Bypass Off"
+                      action: "Turn Off Light Switch"
                     data: {}
                     target:
                       entity_id: !input light_switch
@@ -427,6 +455,10 @@ action:
                     entity_id: !input fan_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Bypass Off"
+                      action: "Turn Off Fan Switch"
                     data: {}
                     target:
                       entity_id: !input fan_switch

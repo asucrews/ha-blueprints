@@ -374,6 +374,10 @@ action:
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion Off"
+                  action: "Turn Off Occupancy Helper"
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -414,45 +418,41 @@ action:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
           - if:
-              # Check if both conditions are met
               - condition: and
                 conditions:
-                  # Check if light_bulbs is not equal to 'light.none'
                   - condition: template
                     value_template: "{{ light_bulbs != 'light.none' }}"
-                  # Check if the state of the light is "on"
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "on"
             then:
-              # If light_control is set to "bulb" and transition feature is selected, turn off the light with transition
               - choose:
                   - conditions:
-                      # Check if light_control is set to "bulb"
-                      - condition: template
-                        value_template: "{{ light_control == 'bulb' }}"
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_control == 'bulb' }}"
+                          - condition: template
+                            value_template: "{{ light_control_features | list | length  > 0 }}"
                     sequence:
-                      # Turn off the light with transition if transition feature is selected
-                      - choose:
-                          - conditions:
-                              # Check if transition feature is selected
-                              - condition: template
-                                value_template: "{{ 'use_transition' in light_control_features }}"
-                            sequence:
-                              # Turn off the light with specific settings
-                              - service: light.turn_off
-                                data:
-                                  transition: !input light_transition
-                                target:
-                                  entity_id: !input light_bulbs
-                        default:
-                          # If conditions are not met, turn off the light without considering light_control or selected features
-                          - service: light.turn_off
-                            target:
-                              entity_id: !input light_bulbs
+                      - service: light.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Motion Off"
+                          action: "Turn Off Light Bulb With Light Contorl"
+                        data: >
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
                 default:
-                  # If conditions are not met, turn off the light without considering light_control or selected features
                   - service: light.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Turn Off Light Bulb"
+                    data: {}
                     target:
                       entity_id: !input light_bulbs
           # Turns off light switch if configured and currently on
@@ -480,25 +480,69 @@ action:
                 entity_id: !input fan_switch
                 state: "on"
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion Off"
+                  action: "Turn Off Light Switch"
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns on fan switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
+            then:
+              - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion Off"
+                  action: "Turn Off Fan Switch"
                 data: {}
                 target:
                   entity_id: !input fan_switch
-          # Restart idle timer if configured
+          # Restarts idle timer if configured
           - if:
               - condition: and
                 conditions:
                   - condition: template
                     value_template: "{{ idle_timer != 'timer.none' }}"
-                  - condition: state
-                    entity_id: !input idle_timer
-                    state: active
             then:
-              - service: timer.cancel
-                target:
-                  entity_id: !input idle_timer
-              - service: timer.start
-                target:
-                  entity_id: !input idle_timer
-
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity_id: !input idle_timer
+                        state: active
+                then:
+                  - service: timer.cancel
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Stop Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Restart Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                else:
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Start Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
 mode: single
 max_exceeded: silent
