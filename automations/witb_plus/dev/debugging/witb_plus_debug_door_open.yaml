@@ -426,7 +426,7 @@ action:
                     value_template: "{{ light_control == 'bulb' }}"
                 sequence:
                   - service: light.turn_off
-                    data_template: >
+                    data: >
                       {% if 'use_transition' in light_control_features %}
                         transition: !input light_transition
                       {% endif %}
