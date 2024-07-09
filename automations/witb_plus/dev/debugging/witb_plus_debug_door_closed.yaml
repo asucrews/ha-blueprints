@@ -465,6 +465,22 @@ action:
               - service: homeassistant.turn_on
                 target:
                   entity_id: !input fan_switch
+          # Restart idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+                  - condition: state
+                    entity_id: !input idle_timer
+                    state: active
+            then:
+              - service: timer.cancel
+                target:
+                  entity_id: !input idle_timer
+              - service: timer.start
+                target:
+                  entity_id: !input idle_timer
 
 mode: single
 max_exceeded: silent
