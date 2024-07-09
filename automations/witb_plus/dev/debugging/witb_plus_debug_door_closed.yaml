@@ -362,109 +362,109 @@ action:
             conditions:
               - condition: trigger
                 id: Door Closed
-    sequence:
-      # Turns on occupancy helper if it's configured
-      - if:
-          - condition: template
-            value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
-        then:
-          - service: homeassistant.turn_on
-            data: {}
-            target:
-              entity_id: !input occupancy_helper
-      # Enables bypass if configured
-      - if:
-          - condition: template
-            value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-        then:
-          - condition: state
-            state: "on"
-            entity_id: !input bypass_helper
-          - stop: Bypass Enabled
-      # Check for weekday bedtime, if so then stop
-      - if:
-          - condition: and
-            conditions:
+        sequence:
+          # Turns on occupancy helper if it's configured
+          - if:
               - condition: template
-                value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - service: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
               - condition: state
-                entity_id: !input occupancy_helper
                 state: "on"
-                for:
-                  seconds: 10
-        then:
-          - stop: Bedtime
-      # Check for weekend bedtime, if so then stop
-      - if:
-          - condition: and
-            conditions:
-              - condition: template
-                value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
-              - condition: state
-                entity_id: !input occupancy_helper
-                state: "on"
-                for:
-                  seconds: 10
-        then:
-          - stop: Bedtime
-      # Turns on light_bulbs if configured and the light is off
-      - if:
-          - condition: and
-            conditions:
-              - condition: template
-                value_template: "{{ light_bulbs != 'light.none' }}"
-              - condition: state
-                entity_id: !input light_bulbs
-                state: "off"
-        then:
-          - choose:
-              - conditions:
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Check for weekday bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
                   - condition: template
-                    value_template: "{{ light_control == 'bulb' }}"
-                sequence:
-                  - service: light.turn_on
-                    data: >
-                      {% if 'use_brightness' in light_control_features %}
-                        brightness_pct: !input light_brightness_pct
-                      {% endif %}
-                      {% if 'use_color_temperature' in light_control_features %}
-                        kelvin: !input light_temperature
-                      {% endif %}
-                      {% if 'use_transition' in light_control_features %}
-                        transition: !input light_transition
-                      {% endif %}
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Turns on light_bulbs if configured and the light is off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "off"
+            then:
+              - choose:
+                  - conditions:
+                      - condition: template
+                        value_template: "{{ light_control == 'bulb' }}"
+                    sequence:
+                      - service: light.turn_on
+                        data: >
+                          {% if 'use_brightness' in light_control_features %}
+                            brightness_pct: !input light_brightness_pct
+                          {% endif %}
+                          {% if 'use_color_temperature' in light_control_features %}
+                            kelvin: !input light_temperature
+                          {% endif %}
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
+                default:
+                  - service: homeassistant.turn_on
                     target:
                       entity_id: !input light_bulbs
-            default:
+          # Turns on light switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "off"
+            then:
               - service: homeassistant.turn_on
                 target:
-                  entity_id: !input light_bulbs
-      # Turns on light switch if configured and currently off
-      - if:
-          - condition: and
-            conditions:
-              - condition: template
-                value_template: "{{ light_switch != 'light.none' }}"
-              - condition: state
-                entity_id: !input light_switch
-                state: "off"
-        then:
-          - service: homeassistant.turn_on
-            target:
-              entity_id: !input light_switch
-      # Turns on fan switch if configured and currently off
-      - if:
-          - condition: and
-            conditions:
-              - condition: template
-                value_template: "{{ fan_switch != 'fan.none' }}"
-              - condition: state
-                entity_id: !input fan_switch
-                state: "off"
-        then:
-          - service: homeassistant.turn_on
-            target:
-              entity_id: !input fan_switch
+                  entity_id: !input light_switch
+          # Turns on fan switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
+            then:
+              - service: homeassistant.turn_on
+                target:
+                  entity_id: !input fan_switch
 
 mode: single
 max_exceeded: silent
