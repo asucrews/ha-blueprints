@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -357,14 +357,14 @@ trigger:
 
 action:
   - choose:
-    - conditions:
-      - condition: and
-        conditions:
-          - condition: trigger
-            id: Door Opened
-          - condition: state
-            state: "off"
-            entity_id: !input motion_sensor
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Opened
+              - condition: state
+                state: "off"
+                entity_id: !input motion_sensor
     sequence:
       # Turns off occupancy helper if configured
       - if:
@@ -478,10 +478,6 @@ action:
           - service: timer.start
             target:
               entity_id: !input idle_timer
-
-mode: single
-max_exceeded: silent
-
 
 mode: single
 max_exceeded: silent

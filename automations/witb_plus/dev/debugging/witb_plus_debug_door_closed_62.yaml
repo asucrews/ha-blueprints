@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -356,7 +356,6 @@ trigger:
     for: 62
 
 action:
-  # Actions to perform when the door is closed
   - choose:
       # Actions to perform when door has been closed for specified duration
       - conditions:
@@ -385,17 +384,12 @@ action:
               - service: timer.cancel
                 target:
                   entity_id: !input idle_timer
-                data: {}
               - service: timer.start
-                metadata: {}
-                data: {}
                 target:
                   entity_id: !input idle_timer
             # Starts idle timer if configured and conditions are not met
             else:
               - service: timer.start
-                metadata: {}
-                data: {}
                 target:
                   entity_id: !input idle_timer
 
