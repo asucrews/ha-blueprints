@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -362,7 +362,7 @@ action:
           - condition: and
             conditions:
               - condition: trigger
-                id: Bypass Turn off
+                id: Bypass Turn Off
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
               - condition: not

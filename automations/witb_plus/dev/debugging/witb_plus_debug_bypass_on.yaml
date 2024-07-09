@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -372,7 +372,10 @@ action:
                 value_template: "{{ bypass_timer != 'timer.none' }}"
             then:
               - service: timer.start
-                metadata: {}
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Bypass On"
+                  action: "Start Bypass Timer"
                 data: {}
                 target:
                   entity_id: !input bypass_timer
