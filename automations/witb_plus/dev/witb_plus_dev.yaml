@@ -677,10 +677,10 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
             then:
-              - condition: state
-                entity_id: !input light_switch
-                state: "on"
               - service: homeassistant.turn_off
                 data: {}
                 target:
@@ -691,10 +691,10 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
             then:
-              - condition: state
-                entity_id: !input fan_switch
-                state: "on"
               - service: homeassistant.turn_off
                 metadata:
                   timestamp: "{{ now().isoformat() }}"
@@ -703,7 +703,7 @@ action:
                 data: {}
                 target:
                   entity_id: !input light_switch
-          # Turns on fan switch if configured and currently off
+          # Turns on fan switch if configured and currently on
           - if:
               - condition: and
                 conditions:
@@ -711,9 +711,9 @@ action:
                     value_template: "{{ fan_switch != 'fan.none' }}"
                   - condition: state
                     entity_id: !input fan_switch
-                    state: "off"
+                    state: "on"
             then:
-              - service: homeassistant.turn_on
+              - service: homeassistant.turn_off
                 metadata:
                   timestamp: "{{ now().isoformat() }}"
                   source: "WITB+ Debug Motion Off"
@@ -1204,10 +1204,10 @@ action:
                     conditions:
                       - condition: template
                         value_template: "{{ light_switch != 'light.none' }}"
+                      - condition: state
+                        entity_id: !input light_switch
+                        state: "on"
                 then:
-                  - condition: state
-                    entity_id: !input light_switch
-                    state: "on"
                   - service: homeassistant.turn_off
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
@@ -1222,10 +1222,10 @@ action:
                     conditions:
                       - condition: template
                         value_template: "{{ fan_switch != 'fan.none' }}"
+                      - condition: state
+                        entity_id: !input fan_switch
+                        state: "on"
                 then:
-                  - condition: state
-                    entity_id: !input fan_switch
-                    state: "on"
                   - service: homeassistant.turn_off
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
@@ -1322,10 +1322,10 @@ action:
                         conditions:
                           - condition: template
                             value_template: "{{ light_switch != 'light.none' }}"
+                          - condition: state
+                            entity_id: !input light_switch
+                            state: "on"
                     then:
-                      - condition: state
-                        entity_id: !input light_switch
-                        state: "on"
                       - service: homeassistant.turn_off
                         metadata:
                           timestamp: "{{ now().isoformat() }}"
@@ -1340,10 +1340,10 @@ action:
                         conditions:
                           - condition: template
                             value_template: "{{ fan_switch != 'fan.none' }}"
+                          - condition: state
+                            entity_id: !input fan_switch
+                            state: "on"
                     then:
-                      - condition: state
-                        entity_id: !input fan_switch
-                        state: "on"
                       - service: homeassistant.turn_off
                         metadata:
                           timestamp: "{{ now().isoformat() }}"
