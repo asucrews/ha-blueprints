@@ -189,7 +189,7 @@ blueprint:
               sort: false
         light_control_features:
           name: Light Control Features?
-          description: What light features to contorl?
+          description: What light features to Control?
           default: []
           selector:
             select:

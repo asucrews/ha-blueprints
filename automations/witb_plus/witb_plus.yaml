@@ -230,7 +230,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and settings
       collapsed: true
       input:
@@ -255,7 +255,7 @@ blueprint:
               sort: false
         light_control_features:
           name: Light Control Features?
-          description: What light features to contorl?
+          description: What light features to Control?
           default: []
           selector:
             select:

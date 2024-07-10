@@ -437,7 +437,7 @@ action:
                         metadata:
                           timestamp: "{{ now().isoformat() }}"
                           source: "WITB+ Debug Door Open"
-                          action: "Turn Off Light Bulb With Light Contorl"
+                          action: "Turn Off Light Bulb With Light Control"
                         data: >
                           {% if 'use_transition' in light_control_features %}
                             transition: !input light_transition
