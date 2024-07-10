@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev (0.4.0rc7)
+  name: WITB+ Dev (v0.5.0)
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -12,7 +12,7 @@ blueprint:
     - Users are expected to create input_boolean entities for occupancy tracking and bypass control if they choose to utilize these features.<br/>
     - For bypass functionality, users need to manually integrate call service actions into their automations or methods to control devices when bypassing occupancy detection is required.<br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_dev.yaml
   input:
     sensor_entities:
       name: Sensor Entities
@@ -229,7 +229,7 @@ blueprint:
                 - timer
               multiple: false
     light_control_options:
-      name: Light Control 
+      name: Light Control
       description: Light Control Mode and Settings
       collapsed: true
       input:
@@ -303,7 +303,7 @@ blueprint:
       name: Bedtime Options
       description: Bedtime Options and Settings
       collapsed: true
-      inputs:
+      input:
         weekday_bedtime:
           name: "Weekday Bedtime"
           description: >
@@ -347,27 +347,6 @@ variables:
   weekend_bedtime: !input weekend_bedtime
 
 trigger:
-  # If door is opened
-  - platform: state
-    entity_id: !input door_sensor
-    from: "off"
-    to: "on"
-    id: Door Opened
-    for: !input door_sensor_open_delay
-  # If door is closed
-  - platform: state
-    entity_id: !input door_sensor
-    from: "on"
-    to: "off"
-    id: Door Closed
-    for: !input door_sensor_close_delay
-  # If door is closed for 62 seconds
-  - platform: state
-    entity_id: !input door_sensor
-    from: "on"
-    to: "off"
-    id: Door Closed For Seconds
-    for: 62
   # If motion is detected
   - platform: state
     entity_id: !input motion_sensor
@@ -381,6 +360,20 @@ trigger:
     to: "off"
     id: Motion Off
     for: !input motion_sensor_delay
+  # If door is closed
+  - platform: state
+    entity_id: !input door_sensor
+    from: "on"
+    to: "off"
+    id: Door Closed
+    for: !input door_sensor_close_delay
+  # If door is opened
+  - platform: state
+    entity_id: !input door_sensor
+    from: "off"
+    to: "on"
+    id: Door Opened
+    for: !input door_sensor_open_delay
   # If bypass is enabled
   - platform: state
     entity_id: !input bypass_helper
@@ -407,14 +400,11 @@ trigger:
     id: Idle Timer Finished
 
 action:
-  # Actions to perform when the door is closed
   - choose:
-      # Actions to perform when the door is closed
+      # Actions to perform when motion is detected
       - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id: Door Closed
+          - condition: trigger
+            id: Motion On
         sequence:
           # Turns on occupancy helper if it's configured
           - if:
@@ -422,6 +412,10 @@ action:
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion On"
+                  action: "Turn On Occupancy Helper"
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -431,161 +425,78 @@ action:
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
             then:
               - condition: state
-                state: "on"
                 entity_id: !input bypass_helper
-              - stop: Bypass Enabled 
-          # Check for bedtime, if so then stop
+                state: "on"
+              - stop: Bypass Enabled
+          # Check for weekday bedtime, if so then stop
           - if:
-              - condition: or
+              - condition: and
                 conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
+                  - condition: template
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
             then:
               - stop: Bedtime
           # Turns on light_bulbs if configured and the light is off
           - if:
-              # Check if both conditions are met
               - condition: and
                 conditions:
-                  # Check if light_bulbs is not equal to 'light.none'
                   - condition: template
                     value_template: "{{ light_bulbs != 'light.none' }}"
-                  # Check if the state of the light is "off"
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "off"
             then:
-              # Execute different sequences based on the value of light_control
               - choose:
-                  # If light_control is set to "bulb"
                   - conditions:
-                      - condition: template
-                        value_template: "{{ light_control == 'bulb' }}"
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_control == 'bulb' }}"
+                          - condition: template
+                            value_template: "{{ light_control_features | list | length  > 0 }}"
                     sequence:
-                      # Execute different sequences based on the number of light_control_features
-                      - choose:
-                          # If there's only one feature enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 1 }}"
-                            sequence:
-                              # Turn on the light with specific settings based on the enabled feature
-                              - choose:
-                                  # If brightness control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If color temperature control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_color_temperature' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          kelvin: !input light_temperature
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If transition control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                        target:
-                                          entity_id: !input light_bulbs
-                          # If there are two features enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 2 }}"
-                            sequence:
-                              # Execute different sequences based on the combination of enabled features
-                              - choose:
-                                  # If both brightness and color temperature control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          kelvin: !input light_temperature
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If brightness control and transition control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If color temperature control and transition control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                          kelvin: !input light_temperature
-                                        target:
-                                          entity_id: !input light_bulbs
-                          # If all three features are enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 3 }}"
-                            sequence:
-                              # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
-                              - service: light.turn_on
-                                data:
-                                  transition: !input light_transition
-                                  kelvin: !input light_temperature
-                                  brightness_pct: !input light_brightness_pct
-                                target:
-                                  entity_id: !input light_bulbs
-                # If light_control is not set to "bulb"
+                      - service: light.turn_on
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Motion On"
+                          action: "Turn On Light Bulb With Light Control"
+                        data: >
+                          {% if 'use_brightness' in light_control_features %}
+                            brightness_pct: !input light_brightness_pct
+                          {% endif %}
+                          {% if 'use_color_temperature' in light_control_features %}
+                            kelvin: !input light_temperature
+                          {% endif %}
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
                 default:
-                  # Check if the light is still off
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "off"
-                  # Turn on the light using the default settings
                   - service: homeassistant.turn_on
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion On"
+                      action: "Turn On Light Bulb"
+                    data: {}
                     target:
                       entity_id: !input light_bulbs
           # Turns on light switch if configured and currently off
@@ -594,142 +505,15 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ light_switch != 'light.none' }}"
-            then:
-              - condition: state
-                entity_id: !input light_switch
-                state: "off"
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input light_switch
-          # Turns on fan switch if configured and currently off
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ fan_switch != 'fan.none' }}"
-            then:
-              - condition: state
-                entity_id: !input fan_switch
-                state: "off"
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input fan_switch
-      # Actions to perform when the door is opened and motion is cleared
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id: Door Opened
-              - condition: state
-                state: "off"
-                entity_id: !input motion_sensor
-        sequence:
-          # Turns off occupancy helper if configured
-          - if:
-              - condition: template
-                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
-            then:
-              - service: homeassistant.turn_off
-                data: {}
-                target:
-                  entity_id: !input occupancy_helper
-          # Enables bypass if configured
-          - if:
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-            then:
-              - condition: state
-                state: "on"
-                entity_id: !input bypass_helper
-              - stop: Bypass Enabled
-          # Check for bedtime, if so then stop
-          - if:
-              - condition: or
-                conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-            then:
-              - stop: Bedtime
-          # Turns off light_bulbs if configured and the light is on
-          - if:
-              # Check if both conditions are met
-              - condition: and
-                conditions:
-                  # Check if light_bulbs is not equal to 'light.none'
-                  - condition: template
-                    value_template: "{{ light_bulbs != 'light.none' }}"
-                  # Check if the state of the light is "on"
                   - condition: state
-                    entity_id: !input light_bulbs
-                    state: "on"
+                    entity_id: !input light_switch
+                    state: "off"
             then:
-              # If light_control is set to "bulb" and transition feature is selected, turn off the light with transition
-              - choose:
-                  - conditions:
-                      # Check if light_control is set to "bulb"
-                      - condition: template
-                        value_template: "{{ light_control == 'bulb' }}"
-                    sequence:
-                      # Turn off the light with transition if transition feature is selected
-                      - choose:
-                          - conditions:
-                              # Check if transition feature is selected
-                              - condition: template
-                                value_template: "{{ 'use_transition' in light_control_features }}"
-                            sequence:
-                              # Turn off the light with specific settings
-                              - service: light.turn_off
-                                data:
-                                  transition: !input light_transition
-                                target:
-                                  entity_id: !input light_bulbs
-                        default:
-                          # If conditions are not met, turn off the light without considering light_control or selected features
-                          - service: light.turn_off
-                            target:
-                              entity_id: !input light_bulbs
-                default:
-                  # If conditions are not met, turn off the light without considering light_control or selected features
-                  - service: light.turn_off
-                    target:
-                      entity_id: !input light_bulbs
-          # Turns on light switch if configured and currently off
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ light_switch != 'light.none' }}"
-            then:
-              - condition: state
-                entity_id: !input light_switch
-                state: "off"
               - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion On"
+                  action: "Turn On Light Switch"
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -739,11 +523,15 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
             then:
-              - condition: state
-                entity_id: !input fan_switch
-                state: "off"
               - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion On"
+                  action: "Turn On Fan Switch"
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -753,245 +541,39 @@ action:
                 conditions:
                   - condition: template
                     value_template: "{{ idle_timer != 'timer.none' }}"
-                  - condition: state
-                    entity_id: !input idle_timer
-                    state: active
             then:
-              - service: timer.cancel
-                target:
-                  entity_id: !input idle_timer
-                data: {}
-              - service: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input idle_timer
-      # Actions to perform when motion is detected
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id: Motion On
-        sequence:
-          # Turns on occupancy helper if it's configured
-          - if:
-              - condition: template
-                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
-            then:
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input occupancy_helper
-          # Enables bypass if configured
-          - if:
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-            then:
-              - condition: state
-                state: "on"
-                entity_id: !input bypass_helper
-              - stop: Bypass Enabled
-          # Check for bedtime, if so then stop
-          - if:
-              - condition: or
-                conditions:
+              - if:
                   - condition: and
                     conditions:
-                      - condition: template
-                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
                       - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekend_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-            then:
-              - stop: Bedtime
-          # Turns on light_bulbs if configured and the light is off
-          - if:
-              # Check if both conditions are met
-              - condition: and
-                conditions:
-                  # Check if light_bulbs is not equal to 'light.none'
-                  - condition: template
-                    value_template: "{{ light_bulbs != 'light.none' }}"
-                  # Check if the state of the light is "off"
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "off"
-            then:
-              # Execute different sequences based on the value of light_control
-              - choose:
-                  # If light_control is set to "bulb"
-                  - conditions:
-                      - condition: template
-                        value_template: "{{ light_control == 'bulb' }}"
-                    sequence:
-                      # Execute different sequences based on the number of light_control_features
-                      - choose:
-                          # If there's only one feature enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 1 }}"
-                            sequence:
-                              # Turn on the light with specific settings based on the enabled feature
-                              - choose:
-                                  # If brightness control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If color temperature control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_color_temperature' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          kelvin: !input light_temperature
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If transition control is enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                        target:
-                                          entity_id: !input light_bulbs
-                          # If there are two features enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 2 }}"
-                            sequence:
-                              # Execute different sequences based on the combination of enabled features
-                              - choose:
-                                  # If both brightness and color temperature control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          kelvin: !input light_temperature
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If brightness control and transition control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ 'use_brightness' in light_control_features and not 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                          brightness_pct: !input light_brightness_pct
-                                        target:
-                                          entity_id: !input light_bulbs
-                                  # If color temperature control and transition control are enabled
-                                  - conditions:
-                                      - condition: template
-                                        value_template: "{{ not 'use_brightness' in light_control_features and 'use_color_temperature' in light_control_features and 'use_transition' in light_control_features }}"
-                                    sequence:
-                                      - service: light.turn_on
-                                        data:
-                                          transition: !input light_transition
-                                          kelvin: !input light_temperature
-                                        target:
-                                          entity_id: !input light_bulbs
-                          # If all three features are enabled
-                          - conditions:
-                              - condition: template
-                                value_template: "{{ light_control_features | list | length  == 3 }}"
-                            sequence:
-                              # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
-                              - service: light.turn_on
-                                data:
-                                  transition: !input light_transition
-                                  kelvin: !input light_temperature
-                                  brightness_pct: !input light_brightness_pct
-                                target:
-                                  entity_id: !input light_bulbs
-                # If light_control is not set to "bulb"
-                default:
-                  # Check if the light is still off
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "off"
-                  # Turn on the light using the default settings
-                  - service: homeassistant.turn_on
+                        entity_id: !input idle_timer
+                        state: active
+                then:
+                  - service: timer.cancel
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion On"
+                      action: "Stop Idle Timer"
+                    data: {}
                     target:
-                      entity_id: !input light_bulbs
-          # Turns on light switch if configured and currently off
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ light_switch != 'light.none' }}"
-            then:
-              - condition: state
-                entity_id: !input light_switch
-                state: "off"
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input light_switch
-          # Turns on fan switch if configured and currently off
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ fan_switch != 'fan.none' }}"
-            then:
-              - condition: state
-                entity_id: !input fan_switch
-                state: "off"
-              - service: homeassistant.turn_on
-                data: {}
-                target:
-                  entity_id: !input fan_switch
-          # Restart idle timer if configured
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ idle_timer != 'timer.none' }}"
-                  - condition: state
-                    entity_id: !input idle_timer
-                    state: active
-            then:
-              - service: timer.cancel
-                target:
-                  entity_id: !input idle_timer
-                data: {}
-              - service: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input idle_timer
+                      entity_id: !input idle_timer
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion On"
+                      action: "Restart Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                else:
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion On"
+                      action: "Start Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
       # Actions to perform when motion is cleared
       - conditions:
           - condition: and
@@ -1008,6 +590,10 @@ action:
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion Off"
+                  action: "Turn Off Occupancy Helper"
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -1020,79 +606,69 @@ action:
                 state: "on"
                 entity_id: !input bypass_helper
               - stop: Bypass Enabled
-          # Check for bedtime, if so then stop
+          # Check for weekday bedtime, if so then stop
           - if:
-              - condition: or
+              - condition: and
                 conditions:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekday_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekday_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ weekdend_bedtime != 'schedule.none' }}"
-                      - condition: template
-                        value_template: "{{ is_state(weekend_bedtime, 'on') }}"
-                      - condition: state
-                        entity_id: !input occupancy_helper
-                        state: "on"
-                        for:
-                          hours: 0
-                          minutes: 0
-                          seconds: 10
+                  - condition: template
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
             then:
               - stop: Bedtime
           # Turns off light_bulbs if configured and the light is on
           - if:
-              # Check if both conditions are met
               - condition: and
                 conditions:
-                  # Check if light_bulbs is not equal to 'light.none'
                   - condition: template
                     value_template: "{{ light_bulbs != 'light.none' }}"
-                  # Check if the state of the light is "on"
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "on"
             then:
-              # If light_control is set to "bulb" and transition feature is selected, turn off the light with transition
               - choose:
                   - conditions:
-                      # Check if light_control is set to "bulb"
-                      - condition: template
-                        value_template: "{{ light_control == 'bulb' }}"
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_control == 'bulb' }}"
+                          - condition: template
+                            value_template: "{{ light_control_features | list | length  > 0 }}"
                     sequence:
-                      # Turn off the light with transition if transition feature is selected
-                      - choose:
-                          - conditions:
-                              # Check if transition feature is selected
-                              - condition: template
-                                value_template: "{{ 'use_transition' in light_control_features }}"
-                            sequence:
-                              # Turn off the light with specific settings
-                              - service: light.turn_off
-                                data:
-                                  transition: !input light_transition
-                                target:
-                                  entity_id: !input light_bulbs
-                        default:
-                          # If conditions are not met, turn off the light without considering light_control or selected features
-                          - service: light.turn_off
-                            target:
-                              entity_id: !input light_bulbs
+                      - service: light.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Motion Off"
+                          action: "Turn Off Light Bulb With Light Contorl"
+                        data: >
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
                 default:
-                  # If conditions are not met, turn off the light without considering light_control or selected features
                   - service: light.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Turn Off Light Bulb"
+                    data: {}
                     target:
                       entity_id: !input light_bulbs
           # Turns off light switch if configured and currently on
@@ -1120,9 +696,417 @@ action:
                 entity_id: !input fan_switch
                 state: "on"
               - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion Off"
+                  action: "Turn Off Light Switch"
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns on fan switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
+            then:
+              - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Motion Off"
+                  action: "Turn Off Fan Switch"
                 data: {}
                 target:
                   entity_id: !input fan_switch
+          # Restarts idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+            then:
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity_id: !input idle_timer
+                        state: active
+                then:
+                  - service: timer.cancel
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Stop Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Restart Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                else:
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Motion Off"
+                      action: "Start Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+      # Actions to perform when door is closed
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Closed
+        sequence:
+          # Turns on occupancy helper if it's configured
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Closed"
+                  action: "Turn On Occupancy Helper"
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Check for weekday bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Turns on light_bulbs if configured and the light is off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "off"
+            then:
+              - choose:
+                  - conditions:
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_control == 'bulb' }}"
+                          - condition: template
+                            value_template: "{{ light_control_features | list | length  > 0 }}"
+                    sequence:
+                      - service: light.turn_on
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Door Closed"
+                          action: "Turn On Light Bulb With Light Control"
+                        data: >
+                          {% if 'use_brightness' in light_control_features %}
+                            brightness_pct: !input light_brightness_pct
+                          {% endif %}
+                          {% if 'use_color_temperature' in light_control_features %}
+                            kelvin: !input light_temperature
+                          {% endif %}
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
+                default:
+                  - service: homeassistant.turn_on
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Closed"
+                      action: "Turn On Light Bulb"
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
+          # Turns on light switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "off"
+            then:
+              - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Closed"
+                  action: "Turn On Light Switch"
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns on fan switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
+            then:
+              - service: homeassistant.turn_on
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Closed"
+                  action: "Turn On Fan Switch"
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+          # Restarts idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+            then:
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity_id: !input idle_timer
+                        state: active
+                then:
+                  - service: timer.cancel
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Closed"
+                      action: "Stop Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Closed"
+                      action: "Restart Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                else:
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Closed"
+                      action: "Start Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+      # Actions to perform when door is opened
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Opened
+              - condition: state
+                state: "off"
+                entity_id: !input motion_sensor
+        sequence:
+          # Turns off occupancy helper if configured
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Open"
+                  action: "Turn Off Occupancy Helper"
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Check for weekday bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekday_bedtime != 'schedule.none' and is_state(weekday_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Check for weekend bedtime, if so then stop
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ weekend_bedtime != 'schedule.none' and is_state(weekend_bedtime, 'on') }}"
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                    for:
+                      seconds: 10
+            then:
+              - stop: Bedtime
+          # Turns off light_bulbs if configured and the light is on
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "on"
+            then:
+              - choose:
+                  - conditions:
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_control == 'bulb' }}"
+                          - condition: template
+                            value_template: "{{ light_control_features | list | length  > 0 }}"
+                    sequence:
+                      - service: light.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Door Open"
+                          action: "Turn Off Light Bulb With Light Contorl"
+                        data: >
+                          {% if 'use_transition' in light_control_features %}
+                            transition: !input light_transition
+                          {% endif %}
+                        target:
+                          entity_id: !input light_bulbs
+                default:
+                  - service: light.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Turn Off Light Bulb"
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
+          # Turns off light switch if configured and currently on
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
+            then:
+              - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Open"
+                  action: "Turn Off Light Switch"
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns off fan switch if configured and currently on
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
+            then:
+              - service: homeassistant.turn_off
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Door Open"
+                  action: "Turn Off Fan Switch"
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+          # Restarts idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+            then:
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: state
+                        entity_id: !input idle_timer
+                        state: active
+                then:
+                  - service: timer.cancel
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Stop Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Restart Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
+                else:
+                  - service: timer.start
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Door Open"
+                      action: "Start Idle Timer"
+                    data: {}
+                    target:
+                      entity_id: !input idle_timer
       # Actions to perform when bypass is turned on
       - conditions:
           - condition: and
@@ -1138,7 +1122,10 @@ action:
                 value_template: "{{ bypass_timer != 'timer.none' }}"
             then:
               - service: timer.start
-                metadata: {}
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Bypass On"
+                  action: "Start Bypass Timer"
                 data: {}
                 target:
                   entity_id: !input bypass_timer
@@ -1147,7 +1134,7 @@ action:
           - condition: and
             conditions:
               - condition: trigger
-                id: Bypass Turn off
+                id: Bypass Turn Off
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
               - condition: not
@@ -1170,23 +1157,47 @@ action:
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Bypass Off"
+                      action: "Turn Off Occupancy Helper"
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
-              # Turns off light bulbs if configured and currently on
+              # Turns off light_bulbs if configured and the light is on
               - if:
                   - condition: and
                     conditions:
                       - condition: template
                         value_template: "{{ light_bulbs != 'light.none' }}"
+                      - condition: state
+                        entity_id: !input light_bulbs
+                        state: "on"
                 then:
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: !input light_bulbs
+                  - choose:
+                      - conditions:
+                          - condition: and
+                            conditions:
+                              - condition: template
+                                value_template: "{{ light_control == 'bulb' }}"
+                              - condition: template
+                                value_template: "{{ light_control_features | list | length  > 0 }}"
+                        sequence:
+                          - service: light.turn_off
+                            metadata:
+                              timestamp: "{{ now().isoformat() }}"
+                              source: "WITB+ Debug Bypass Off"
+                              action: "Turn Off Light Bulb With Light Control"
+                            data: >
+                              {% if 'use_transition' in light_control_features %}
+                                transition: !input light_transition
+                              {% endif %}
+                            target:
+                              entity_id: !input light_bulbs
+                    default:
+                      - service: light.turn_off
+                        target:
+                          entity_id: !input light_bulbs
               # Turns off light switch if configured and currently on
               - if:
                   - condition: and
@@ -1198,6 +1209,10 @@ action:
                     entity_id: !input light_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Bypass Off"
+                      action: "Turn Off Light Switch"
                     data: {}
                     target:
                       entity_id: !input light_switch
@@ -1212,6 +1227,10 @@ action:
                     entity_id: !input fan_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Bypass Off"
+                      action: "Turn Off Fan Switch"
                     data: {}
                     target:
                       entity_id: !input fan_switch
@@ -1230,68 +1249,109 @@ action:
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
             then:
               - service: homeassistant.turn_off
-                metadata: {}
+                metadata:
+                  timestamp: "{{ now().isoformat() }}"
+                  source: "WITB+ Debug Bypass Auto Off"
+                  action: "Turn Off Bypsss Helper"
                 data: {}
                 target:
                   entity_id: !input bypass_helper
           # Performs additional actions if specified when bypass timer finishes
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ bypass_finished_action == 'turn_off' }}"
-            then:
-              # Turns off occupancy helper if configured
-              - if:
-                  - condition: template
-                    value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
-                then:
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: !input occupancy_helper
-              # Turns off light bulbs if configured and currently on
-              - if:
+          - choose:
+              - conditions:
                   - condition: and
                     conditions:
                       - condition: template
-                        value_template: "{{ light_bulbs != 'light.none' }}"
-                then:
-                  - condition: state
-                    entity_id: !input light_bulbs
-                    state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: !input light_bulbs
-              # Turns off light switch if configured and currently on
-              - if:
-                  - condition: and
-                    conditions:
+                        value_template: "{{ bypass_finished_action == 'turn_off' }}"
+                sequence:
+                  # Turns off occupancy helper if configured
+                  - if:
                       - condition: template
-                        value_template: "{{ light_switch != 'light.none' }}"
-                then:
-                  - condition: state
-                    entity_id: !input light_switch
-                    state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: !input light_switch
-              # Turns off fan switch if configured and currently on
-              - if:
-                  - condition: and
-                    conditions:
-                      - condition: template
-                        value_template: "{{ fan_switch != 'fan.none' }}"
-                then:
-                  - condition: state
-                    entity_id: !input fan_switch
-                    state: "on"
-                  - service: homeassistant.turn_off
-                    data: {}
-                    target:
-                      entity_id: !input fan_switch
+                        value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+                    then:
+                      - service: homeassistant.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Bypass Auto Off"
+                          action: "Turn Off Occupancy Helper"
+                        data: {}
+                        target:
+                          entity_id: !input occupancy_helper
+                  # Turns off light_bulbs if configured and the light is on
+                  - if:
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_bulbs != 'light.none' }}"
+                          - condition: state
+                            entity_id: !input light_bulbs
+                            state: "on"
+                    then:
+                      - choose:
+                          - conditions:
+                              - condition: and
+                                conditions:
+                                  - condition: template
+                                    value_template: "{{ light_control == 'bulb' }}"
+                                  - condition: template
+                                    value_template: "{{ light_control_features | list | length  > 0 }}"
+                            sequence:
+                              - service: light.turn_off
+                                metadata:
+                                  timestamp: "{{ now().isoformat() }}"
+                                  source: "WITB+ Debug Bypass Auto Off"
+                                  action: "Turn Off Light Bulb With Light Control"
+                                data: >
+                                  {% if 'use_transition' in light_control_features %}
+                                    transition: !input light_transition
+                                  {% endif %}
+                                target:
+                                  entity_id: !input light_bulbs
+                        default:
+                          - service: light.turn_off
+                            metadata:
+                              timestamp: "{{ now().isoformat() }}"
+                              source: "WITB+ Debug Bypass Auto Off"
+                              action: "Turn Off Light Bulb"
+                            data: {}
+                            target:
+                              entity_id: !input light_bulbs
+                  # Turns off light switch if configured and currently on
+                  - if:
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ light_switch != 'light.none' }}"
+                    then:
+                      - condition: state
+                        entity_id: !input light_switch
+                        state: "on"
+                      - service: homeassistant.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Bypass Auto Off"
+                          action: "Turn Off Light Switch"
+                        data: {}
+                        target:
+                          entity_id: !input light_switch
+                  # Turns off fan switch if configured and currently on
+                  - if:
+                      - condition: and
+                        conditions:
+                          - condition: template
+                            value_template: "{{ fan_switch != 'fan.none' }}"
+                    then:
+                      - condition: state
+                        entity_id: !input fan_switch
+                        state: "on"
+                      - service: homeassistant.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Bypass Auto Off"
+                          action: "Turn Off Fan Switch"
+                        data: {}
+                        target:
+                          entity_id: !input fan_switch
       # Actions to perform when idle timer finishes
       - conditions:
           - condition: and
@@ -1327,6 +1387,10 @@ action:
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Idle Timer Finish"
+                      action: "Turn Off Occupancy Helper"
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
@@ -1359,6 +1423,10 @@ action:
                                 sequence:
                                   # Turn off the light with specific settings
                                   - service: light.turn_off
+                                    metadata:
+                                      timestamp: "{{ now().isoformat() }}"
+                                      source: "WITB+ Debug Idle Timer Finish"
+                                      action: "Turn Off Light Bulb With Light Control"
                                     data:
                                       transition: !input light_transition
                                     target:
@@ -1366,11 +1434,21 @@ action:
                             default:
                               # If conditions are not met, turn off the light without considering light_control or selected features
                               - service: light.turn_off
+                                metadata:
+                                  timestamp: "{{ now().isoformat() }}"
+                                  source: "WITB+ Debug Idle Timer Finish"
+                                  action: "Turn Off Light Bulb"
+                                data: {}
                                 target:
                                   entity_id: !input light_bulbs
                     default:
                       # If conditions are not met, turn off the light without considering light_control or selected features
                       - service: light.turn_off
+                        metadata:
+                          timestamp: "{{ now().isoformat() }}"
+                          source: "WITB+ Debug Idle Timer Finish"
+                          action: "Turn Off Light Bulb"
+                        data: {}
                         target:
                           entity_id: !input light_bulbs
               # Turns off light switch if configured and currently on
@@ -1384,6 +1462,10 @@ action:
                     entity_id: !input light_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Idle Timer Finish"
+                      action: "Turn Off Light Switch"
                     data: {}
                     target:
                       entity_id: !input light_switch
@@ -1398,49 +1480,13 @@ action:
                     entity_id: !input fan_switch
                     state: "on"
                   - service: homeassistant.turn_off
+                    metadata:
+                      timestamp: "{{ now().isoformat() }}"
+                      source: "WITB+ Debug Idle Timer Finish"
+                      action: "Turn Off Fan Switch"
                     data: {}
                     target:
                       entity_id: !input fan_switch
-      # Actions to perform when door has been closed for specified duration
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id: Door Closed For Seconds
-              - condition: template
-                value_template: "{{ idle_timer != 'timer.none' }}"
-        sequence:
-          # Enables bypass if configured
-          - if:
-              - condition: template
-                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
-            then:
-              - condition: state
-                state: "on"
-                entity_id: !input bypass_helper
-              - stop: Bypass Enabled
-          # Restarts idle timer if configured and conditions are met
-          - if:
-              - condition: state
-                entity_id: !input idle_timer
-                state: active
-            then:
-              - service: timer.cancel
-                target:
-                  entity_id: !input idle_timer
-                data: {}
-              - service: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input idle_timer
-            # Starts idle timer if configured and conditions are not met
-            else:
-              - service: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input idle_timer
 
 mode: single
 max_exceeded: silent

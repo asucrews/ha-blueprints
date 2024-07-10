@@ -529,5 +529,6 @@ action:
                     data: {}
                     target:
                       entity_id: !input idle_timer
+
 mode: single
 max_exceeded: silent
