@@ -1,5 +1,5 @@
 blueprint:
-  name: 6 Speed Ceiling Fan Remote (0.1.1)
+  name: 6 Speed Ceiling Fan Remote (0.2.0)
   description: Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
   homeassistant:
     min_version: 2024.6.0
@@ -108,7 +108,7 @@ action:
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_light }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_light | int ) }}"
         sequence:
           - if:
               - condition: state
@@ -124,7 +124,7 @@ action:
                   entity_id: !input light_state
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_fan }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_fan | int ) }}"
         sequence:
           - if:
               - condition: state
@@ -140,7 +140,7 @@ action:
                   entity_id: !input fan_state
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_preset_1 }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_preset_1 | int )  }}"
         sequence:
           - service: input_select.select_option
             target:
@@ -149,7 +149,7 @@ action:
               option: "1"
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_preset_2 }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_preset_2 | int )  }}"
         sequence:
           - service: input_select.select_option
             target:
@@ -158,7 +158,7 @@ action:
               option: "2"
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_preset_3 }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_preset_3 | int )  }}"
         sequence:
           - service: input_select.select_option
             target:
@@ -167,7 +167,7 @@ action:
               option: "3"
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_preset_4 }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_preset_4 | int )  }}"
         sequence:
           - service: input_select.select_option
             target:
@@ -176,7 +176,7 @@ action:
               option: "4"
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_preset_5 }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_preset_5 | int )  }}"
         sequence:
           - service: input_select.select_option
             target:
@@ -185,7 +185,7 @@ action:
               option: "5"
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_preset_6 }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == ( code_preset_6 | int )  }}"
         sequence:
           - service: input_select.select_option
             target:
@@ -194,7 +194,7 @@ action:
               option: "6"
       - conditions:
           - condition: template
-            value_template: "{{ event_protocol == protocol and event_code == code_direction }}"
+            value_template: "{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code | int ) == code_direction }}"
         sequence:
           - if:
               - condition: state
