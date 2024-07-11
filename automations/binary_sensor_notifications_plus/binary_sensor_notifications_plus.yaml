@@ -51,21 +51,9 @@ blueprint:
           selector:
             entity:
               domain: timer
-        debounce_duration:
-          name: "Debounce duration"
-          description: "Duration time the notification won't be sent again after sensor changed its state."
-          default: 10
-          selector:
-            number:
-              min: 0
-              max: 100
-              unit_of_measurement: "s"
-              mode: slider
-              step: 1
 
 variables:
   sensor_entity: !input sensor_entity
-  debounce_duration: !input debounce_duration
   left_open_timer_helper: !input left_open_timer_helper
   notify_group: !input notify_group
   title: !input title
@@ -89,18 +77,6 @@ trigger:
     event_data:
       entity_id: !input left_open_timer_helper
     id: Timer Finished
-
-condition:
-  - condition: template
-    value_template: >
-      {
-        {
-          iif(this.attributes.last_triggered == None,
-          9999,
-          as_timestamp(now()) - as_timestamp(this.attributes.last_triggered,
-          default=0) ) >= (debounce_duration | int),
-        },
-      }
 
 action:
   - choose:
