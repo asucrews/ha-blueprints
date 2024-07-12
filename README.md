@@ -17,10 +17,10 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- [Binary Sensor Notifications Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus/README.md) (Last updated: 2024-07-04)
+- [Binary Sensor Notifications Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus/README.md) (Last updated: 2024-07-10)
 - [Ratdgo 2.5i](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md) (Last updated: 2024-07-04)
-- [On Off Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/on_off_plus/on_off_plus/README.md) (Last updated: 2024-07-09)
 - [Witb Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus/README.md) (Last updated: 2024-07-09)
+- [Binary Sensor Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/derivatives/binary_sensor_plus/binary_sensor_plus/README.md) (Last updated: 2024-07-10)
 - [Lock Management](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management/README.md) (Last updated: 2024-07-03)
 - [Lux Sensor](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor/README.md) (Last updated: 2024-06-24)
 - [Car Tag](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag/README.md) (Last updated: 2024-07-03)
@@ -29,7 +29,6 @@ Check out the [automations documentation](https://github.com/asucrews/ha-bluepri
 - [Ha Restart](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart/README.md) (Last updated: 2024-06-26)
 - [Time Of Day](https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day/README.md) (Last updated: 2024-07-03)
 - [Flair](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair/README.md) (Last updated: 2024-06-24)
-- [Motion Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/motion_plus/motion_plus/README.md) (Last updated: 2024-07-09)
 - [6 Speed Fan](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan/README.md) (Last updated: 2024-07-10)
 
 ## Feedback
