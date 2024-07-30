@@ -1,5 +1,5 @@
 blueprint:
-  name: LUX Sensor Stable (0.3.0)
+  name: LUX Sensor Stable (0.4.0)
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -85,6 +85,29 @@ blueprint:
               step: 10
               unit_of_measurement: lx
               mode: slider
+    window_blinds_or_curtians:
+      name: Window(s) Blind(s) or Curtian(s)
+      description: Optional if you have blinds or curtians
+      collapsed: true
+      input:
+        cover_blind:
+          name: Blind or Blind Group
+          description: <br/>
+          default: "cover.none"
+          selector:
+            entity:
+              domain:
+                - cover
+              multiple: false
+        cover_curtain:
+          name: Curtain or Curtain group
+          description: <br/>
+          default: "cover.none"
+          selector:
+            entity:
+              domain:
+                - cover
+              multiple: false        
 
 variables:
   lux_sensor: !input lux_sensor
