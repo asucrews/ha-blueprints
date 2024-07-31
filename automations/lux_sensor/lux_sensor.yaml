@@ -116,6 +116,8 @@ variables:
   day_below_lux_level: !input day_below_lux_level
   night_above_lux_level: !input night_above_lux_level
   night_below_lux_level: !input night_below_lux_level
+  cover_blind: !input cover_blind
+  cover_curtain: !input cover_curtain
 
 trigger:
   - platform: event
@@ -152,25 +154,53 @@ action:
                 target:
                   entity_id: !input status_boolean
     else:
-      - choose:
-          - conditions:
+      - if:
+          - condition: or
+            conditions:
               - condition: template
-                value_template: "{{ new_state | float > day_above_lux_level | float }}"
-            sequence:
-              - service: input_boolean.turn_on
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input status_boolean
-          - conditions:
+                value_template: "{{ cover_blind != 'cover.none' && is_state(cover_blind, "close") }}"
               - condition: template
-                value_template: "{{ new_state | float < day_below_lux_level | float }}"
-            sequence:
-              - service: input_boolean.turn_off
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input status_boolean
+                value_template: "{{ cover_curtains != 'cover.none' && is_state(cover_curtains, "close") }}"   
+        then:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float > night_above_lux_level | float }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input status_boolean
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float < night_below_lux_level | float }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input status_boolean
+        else:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float > day_above_lux_level | float }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input status_boolean
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float < day_below_lux_level | float }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    metadata: {}
+                    data: {}
+                    target:
+                      entity_id: !input status_boolean
 
 mode: single
 max_exceeded: silent
