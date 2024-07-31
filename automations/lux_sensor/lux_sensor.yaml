@@ -2,9 +2,7 @@ blueprint:
   name: LUX Sensor Stable (0.4.0)
   homeassistant:
     min_version: 2024.6.0
-  description: >
-    <br/>
-    <br/>
+  description: <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml
   input:
@@ -15,9 +13,7 @@ blueprint:
       input:
         lux_sensor:
           name: LUX Sensor
-          description: >
-            <br/>
-            <br/>
+          description: <br/>
           selector:
             entity:
               domain:
@@ -25,9 +21,7 @@ blueprint:
               multiple: false
         status_boolean:
           name: Binary Sensor
-          description: >
-            <br/>
-            <br/>
+          description: <br/>
           selector:
             entity:
               domain:
@@ -35,9 +29,7 @@ blueprint:
               multiple: false
         day_above_lux_level:
           name: Above LUX level for day time
-          description: >
-            <br/>
-            <br/>
+          description: <br/>
           default: 0
           selector:
             number:
@@ -48,9 +40,7 @@ blueprint:
               mode: slider
         day_below_lux_level:
           name: Below LUX level for day time
-          description: >
-            <br/>
-            <br/>
+          description: <br/>
           default: 0
           selector:
             number:
@@ -61,9 +51,7 @@ blueprint:
               mode: slider
         night_above_lux_level:
           name: Above LUX level for night time
-          description: >
-            <br/>
-            <br/>
+          description: <br/>
           default: 0
           selector:
             number:
@@ -74,9 +62,7 @@ blueprint:
               mode: slider
         night_below_lux_level:
           name: Below LUX level for night time
-          description: >
-            <br/>
-            <br/>
+          description: <br/>
           default: 0
           selector:
             number:
