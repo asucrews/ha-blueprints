@@ -158,9 +158,9 @@ action:
           - condition: or
             conditions:
               - condition: template
-                value_template: "{{ cover_blind != 'cover.none' && is_state(cover_blind, "close") }}"
+                value_template: "{{ cover_blind != 'cover.none' && is_state(cover_blind, 'close') }}"
               - condition: template
-                value_template: "{{ cover_curtains != 'cover.none' && is_state(cover_curtains, "close") }}"   
+                value_template: "{{ cover_curtains != 'cover.none' && is_state(cover_curtains, 'close') }}"   
         then:
           - choose:
               - conditions:
