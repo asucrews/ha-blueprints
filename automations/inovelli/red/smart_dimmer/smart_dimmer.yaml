@@ -1,7 +1,7 @@
 # Base on https://gist.github.com/mitchcapper/ce031de253c0300a7141f43a6e1a405c and https://github.com/rohankapoorcom/homeassistant-config/blob/master/blueprints/automation/rohankapoorcom/inovelli-vzw31-sn-red-series-switch.yaml
 # Modify by asucrews
 blueprint:
-  name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS (0.2.0)
+  name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS (1.0.0)
   homeassistant:
     min_version: 2024.8.0
   description: >

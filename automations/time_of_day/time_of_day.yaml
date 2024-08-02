@@ -1,5 +1,5 @@
 blueprint:
-  name: Time of Day Trigger (1.0.0)
+  name: Time of Day Trigger (1.1.0)
   homeassistant:
     min_version: 2024.8.0
   description: Blueprint for triggering actions at a specific time of day

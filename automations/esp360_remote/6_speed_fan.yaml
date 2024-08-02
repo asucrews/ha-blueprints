@@ -1,5 +1,5 @@
 blueprint:
-  name: 6 Speed Ceiling Fan Remote (0.2.0)
+  name: 6 Speed Ceiling Fan Remote (1.0.0)
   description: Blueprint for controlling the 6 speed ceiling fan with RF remote using ESP360 Remote
   homeassistant:
     min_version: 2024.8.0

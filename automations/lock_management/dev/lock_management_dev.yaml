@@ -1,5 +1,5 @@
 blueprint:
-  name: Lock Management Dev (0.4.1)
+  name: Lock Management Dev (1.0.0)
   homeassistant:
     min_version: 2024.8.0
   description: lock Management

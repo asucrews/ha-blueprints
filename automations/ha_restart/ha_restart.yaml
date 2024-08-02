@@ -1,5 +1,5 @@
 blueprint:
-  name: Home Assistant Start and Stop Trigger (1.0.0)
+  name: Home Assistant Start and Stop Trigger (1.1.0)
   homeassistant:
     min_version: 2024.8.0
   description: Blueprint for triggering actions on Home Assistant start and stop

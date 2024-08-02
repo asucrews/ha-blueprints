@@ -1,5 +1,5 @@
 blueprint:
-  name: "Person: Status Update Fork (1.1.0)"
+  name: "Person: Status Update Fork (1.2.0)"
   homeassistant:
     min_version: 2024.8.0
   description: >

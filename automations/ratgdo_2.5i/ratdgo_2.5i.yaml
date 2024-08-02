@@ -1,5 +1,5 @@
 blueprint:
-  name: Ratdgo 2.5i Stable (0.5.3)
+  name: Ratdgo 2.5i Stable (1.0.0)
   homeassistant:
     min_version: 2024.8.0
   description: Ratdgo Notification and auto close
