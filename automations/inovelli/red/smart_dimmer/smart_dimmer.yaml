@@ -3,7 +3,7 @@
 blueprint:
   name: Inovelli Smart Dimmer FKA 2-1 Switch - VZW31-SN - ZWave-JS (0.2.0)
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: >
     Perform actions on various scenes supported by the Inovelli Inovelli Smart Dimmer FKA 2-1 Switch<br/>
     <br/>

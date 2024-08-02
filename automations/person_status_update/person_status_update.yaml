@@ -1,7 +1,7 @@
 blueprint:
   name: "Person: Status Update Fork (1.1.0)"
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: >
     Making Home Assistant’s Presence Detection not so Binary
     https://gist.github.com/cliffordwhansen/aa993e4173d2ce2e44fc6a0cb0af3599
@@ -104,7 +104,7 @@ action:
             entity_id: !input person_input_select
             state: Just Left
         sequence:
-          - service: input_select.select_option
+          - action: input_select.select_option
             target:
               entity_id: !input person_input_select
             data:
@@ -113,7 +113,7 @@ action:
           - condition: trigger
             id: device_tracker_home # enter home zone
         sequence:
-          - service: input_select.select_option
+          - action: input_select.select_option
             target:
               entity_id: !input person_input_select
             data:
@@ -126,7 +126,7 @@ action:
               - condition: trigger
                 id: input_select_debounce
         sequence:
-          - service: input_select.select_option
+          - action: input_select.select_option
             target:
               entity_id: !input person_input_select
             data:
@@ -135,7 +135,7 @@ action:
           - condition: trigger
             id: device_tracker_not_home # left the home zone
         sequence:
-          - service: input_select.select_option
+          - action: input_select.select_option
             target:
               entity_id: !input person_input_select
             data:
@@ -144,7 +144,7 @@ action:
           - condition: trigger
             id: input_select_wait_left # away after X minutes
         sequence:
-          - service: input_select.select_option
+          - action: input_select.select_option
             target:
               entity_id: !input person_input_select
             data:
@@ -152,7 +152,7 @@ action:
     default:
       - condition: trigger
         id: input_select_wait_away # extended away
-      - service: input_select.select_option
+      - action: input_select.select_option
         target:
           entity_id: !input person_input_select
         data:

@@ -1,7 +1,7 @@
 blueprint:
   name: WITB+ Debug Idle Timer Finished
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept. The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box"). If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -391,7 +391,7 @@ action:
                   - condition: template
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Idle Timer Finish"
@@ -427,7 +427,7 @@ action:
                                     value_template: "{{ 'use_transition' in light_control_features }}"
                                 sequence:
                                   # Turn off the light with specific settings
-                                  - service: light.turn_off
+                                  - action: light.turn_off
                                     metadata:
                                       timestamp: "{{ now().isoformat() }}"
                                       source: "WITB+ Debug Idle Timer Finish"
@@ -438,7 +438,7 @@ action:
                                       entity_id: !input light_bulbs
                             default:
                               # If conditions are not met, turn off the light without considering light_control or selected features
-                              - service: light.turn_off
+                              - action: light.turn_off
                                 metadata:
                                   timestamp: "{{ now().isoformat() }}"
                                   source: "WITB+ Debug Idle Timer Finish"
@@ -448,7 +448,7 @@ action:
                                   entity_id: !input light_bulbs
                     default:
                       # If conditions are not met, turn off the light without considering light_control or selected features
-                      - service: light.turn_off
+                      - action: light.turn_off
                         metadata:
                           timestamp: "{{ now().isoformat() }}"
                           source: "WITB+ Debug Idle Timer Finish"
@@ -466,7 +466,7 @@ action:
                         entity_id: !input light_switch
                         state: "on"
                 then:
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Idle Timer Finish"
@@ -484,7 +484,7 @@ action:
                         entity_id: !input fan_switch
                         state: "on"
                 then:
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Idle Timer Finish"

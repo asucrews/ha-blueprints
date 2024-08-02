@@ -46,17 +46,17 @@ action:
                   - condition: template
                     value_template: "{{ is_state('cover', 'closed') }}"
             then:
-              - service: input_boolean.turn_on
+              - action: input_boolean.turn_on
                 target:
                   entity_id: input_boolean
                 data: {}
-              - service: cover.set_cover_position
+              - action: cover.set_cover_position
                 target:
                   entity_id:
                     - cover
                 data:
                   position: 15
-          - service: timer.start
+          - action: timer.start
             metadata: {}
             data: {}
             target:
@@ -67,7 +67,7 @@ action:
               - morning end
               - evening end
         sequence:
-          - service: input_boolean.turn_off
+          - action: input_boolean.turn_off
             metadata: {}
             data: {}
             target:
@@ -78,12 +78,12 @@ action:
                 attribute: current_position
                 state: "15"
             then:
-              - service: cover.close_cover
+              - action: cover.close_cover
                 metadata: {}
                 data: {}
                 target:
                   entity_id: cover
-          - service: timer.cancel
+          - action: timer.cancel
             metadata: {}
             data: {}
             target:
@@ -106,13 +106,13 @@ action:
                   - condition: template
                     value_template: "{{ is_state('cover', 'closed') }}"
             then:
-              - service: cover.set_cover_position
+              - action: cover.set_cover_position
                 target:
                   entity_id:
                     - cover
                 data:
                   position: 15
-          - service: timer.start
+          - action: timer.start
             metadata: {}
             data: {}
             target:

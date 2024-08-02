@@ -1,7 +1,7 @@
 blueprint:
   name: Smart Vents - Flair (0.2.0)
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: >
     <br/>
     <br/>
@@ -127,12 +127,12 @@ action:
                 id:
                   - Room Occupied
         sequence:
-          - service: select.select_option
+          - action: select.select_option
             data:
               option: Active
             target:
               entity_id: !input flair_activity_status
-          - service: button.press
+          - action: button.press
             data: {}
             target:
               entity_id: !input flair_clear_hold
@@ -143,12 +143,12 @@ action:
                 id:
                   - Room Unoccupied
         sequence:
-          - service: select.select_option
+          - action: select.select_option
             data:
               option: Active
             target:
               entity_id: !input flair_activity_status
-          - service: button.press
+          - action: button.press
             data: {}
             target:
               entity_id: !input flair_clear_hold
@@ -162,12 +162,12 @@ action:
                 entity_id: !input room_occupancy_sensor
                 state: "on"
         sequence:
-          - service: select.select_option
+          - action: select.select_option
             data:
               option: Active
             target:
               entity_id: !input flair_activity_status
-          - service: button.press
+          - action: button.press
             data: {}
             target:
               entity_id: !input flair_clear_hold
@@ -181,12 +181,12 @@ action:
                 entity_id: !input room_occupancy_sensor
                 state: "on"
         sequence:
-          - service: select.select_option
+          - action: select.select_option
             data:
               option: Inactive
             target:
               entity_id: !input flair_activity_status
-          - service: button.press
+          - action: button.press
             data: {}
             target:
               entity_id: !input flair_clear_hold

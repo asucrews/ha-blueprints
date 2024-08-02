@@ -1,7 +1,7 @@
 blueprint:
   name: WITB+ Debug Motion On
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept. The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box"). If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -366,7 +366,7 @@ action:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 metadata:
                   timestamp: "{{ now().isoformat() }}"
                   source: "WITB+ Debug Motion On"
@@ -428,7 +428,7 @@ action:
                           - condition: template
                             value_template: "{{ light_control_features | list | length  > 0 }}"
                     sequence:
-                      - service: light.turn_on
+                      - action: light.turn_on
                         metadata:
                           timestamp: "{{ now().isoformat() }}"
                           source: "WITB+ Debug Motion On"
@@ -446,7 +446,7 @@ action:
                         target:
                           entity_id: !input light_bulbs
                 default:
-                  - service: homeassistant.turn_on
+                  - action: homeassistant.turn_on
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Motion On"
@@ -464,7 +464,7 @@ action:
                     entity_id: !input light_switch
                     state: "off"
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 metadata:
                   timestamp: "{{ now().isoformat() }}"
                   source: "WITB+ Debug Motion On"
@@ -482,7 +482,7 @@ action:
                     entity_id: !input fan_switch
                     state: "off"
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 metadata:
                   timestamp: "{{ now().isoformat() }}"
                   source: "WITB+ Debug Motion On"
@@ -504,7 +504,7 @@ action:
                         entity_id: !input idle_timer
                         state: active
                 then:
-                  - service: timer.cancel
+                  - action: timer.cancel
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Motion On"
@@ -512,7 +512,7 @@ action:
                     data: {}
                     target:
                       entity_id: !input idle_timer
-                  - service: timer.start
+                  - action: timer.start
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Motion On"
@@ -521,7 +521,7 @@ action:
                     target:
                       entity_id: !input idle_timer
                 else:
-                  - service: timer.start
+                  - action: timer.start
                     metadata:
                       timestamp: "{{ now().isoformat() }}"
                       source: "WITB+ Debug Motion On"

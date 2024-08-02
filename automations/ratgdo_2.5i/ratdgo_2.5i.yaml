@@ -1,7 +1,7 @@
 blueprint:
   name: Ratdgo 2.5i Stable (0.5.3)
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: Ratdgo Notification and auto close
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
@@ -135,7 +135,7 @@ action:
                   - condition: template
                     value_template: "{{ is_state(light_bulbs, 'off') }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 metadata: {}
                 data: {}
                 target:
@@ -148,7 +148,7 @@ action:
                   - condition: template
                     value_template: "{{ is_state(light_switch, 'off') }}"
             then:
-              - service: light.turn_on
+              - action: light.turn_on
                 metadata: {}
                 data: {}
                 target:
@@ -159,7 +159,7 @@ action:
                   - condition: template
                     value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
             then:
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
@@ -168,7 +168,7 @@ action:
               - condition: template
                 value_template: "{{ notify_group is defined }}"
             then:
-              - service: "notify.{{ notify_group }}"
+              - action: "notify.{{ notify_group }}"
                 data:
                   title: "{{ device_attr(ratdgo_device, 'name') }} | {{ states('sensor.time') }}"
                   message: Garage Door is Open
@@ -189,7 +189,7 @@ action:
                   - condition: template
                     value_template: "{{ is_state(garage_door_timer_helper, ['active', 'paused'] ) }}"
             then:
-              - service: timer.cancel
+              - action: timer.cancel
                 metadata: {}
                 data: {}
                 target:
@@ -198,7 +198,7 @@ action:
               - condition: template
                 value_template: "{{ notify_group is defined }}"
             then:
-              - service: "notify.{{ notify_group }}"
+              - action: "notify.{{ notify_group }}"
                 data:
                   title: "{{ device_attr(ratdgo_device, 'name') }} | {{ states('sensor.time') }}"
                   message: Garage Door is Closed
@@ -220,17 +220,17 @@ action:
                     entity_id: !input obstruction_entity
                     state: "off"
             then:
-              - service: cover.close_cover
+              - action: cover.close_cover
                 metadata: {}
                 data: {}
                 target:
                   entity_id: !input ratdgo_device
             else:
-              - service: timer.cancel
+              - action: timer.cancel
                 target:
                   entity_id: !input garage_door_timer_helper
                 data: {}
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
@@ -246,11 +246,11 @@ action:
               - condition: template
                 value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
         sequence:
-          - service: timer.cancel
+          - action: timer.cancel
             target:
               entity_id: !input garage_door_timer_helper
             data: {}
-          - service: timer.start
+          - action: timer.start
             metadata: {}
             data: {}
             target:

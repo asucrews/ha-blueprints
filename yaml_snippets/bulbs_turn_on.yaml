@@ -32,7 +32,7 @@
                             - condition: template
                               value_template: "{{ 'use_brightness' in light_control_features }}"
                           sequence:
-                            - service: light.turn_on
+                            - action: light.turn_on
                               data:
                                 brightness_pct: !input light_brightness_pct
                               target:
@@ -42,7 +42,7 @@
                             - condition: template
                               value_template: "{{ 'use_colour_temperature' in light_control_features }}"
                           sequence:
-                            - service: light.turn_on
+                            - action: light.turn_on
                               data:
                                 kelvin: !input light_temperature
                               target:
@@ -52,7 +52,7 @@
                             - condition: template
                               value_template: "{{ 'use_transition' in light_control_features }}"
                           sequence:
-                            - service: light.turn_on
+                            - action: light.turn_on
                               data:
                                 transition: !input light_transition
                               target:
@@ -69,7 +69,7 @@
                             - condition: template
                               value_template: "{{ 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
                           sequence:
-                            - service: light.turn_on
+                            - action: light.turn_on
                               data:
                                 kelvin: !input light_temperature
                                 brightness_pct: !input light_brightness_pct
@@ -80,7 +80,7 @@
                             - condition: template
                               value_template: "{{ 'use_brightness' in light_control_features and not 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                           sequence:
-                            - service: light.turn_on
+                            - action: light.turn_on
                               data:
                                 transition: !input light_transition
                                 brightness_pct: !input light_brightness_pct
@@ -91,7 +91,7 @@
                             - condition: template
                               value_template: "{{ not 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                           sequence:
-                            - service: light.turn_on
+                            - action: light.turn_on
                               data:
                                 transition: !input light_transition
                                 kelvin: !input light_temperature
@@ -103,7 +103,7 @@
                       value_template: "{{ light_control_features | list | length  == 3 }}"
                   sequence:
                     # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
-                    - service: light.turn_on
+                    - action: light.turn_on
                       data:
                         transition: !input light_transition
                         kelvin: !input light_temperature
@@ -117,6 +117,6 @@
           entity_id: !input light_bulbs
           state: "off"
         # Turn on the light using the default settings
-        - service: homeassistant.turn_on
+        - action: homeassistant.turn_on
           target:
             entity_id: !input light_bulbs

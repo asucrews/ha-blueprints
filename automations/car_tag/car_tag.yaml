@@ -1,7 +1,7 @@
 blueprint:
   name: Car Tag Stable (0.2.2)
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag.yaml
@@ -86,7 +86,7 @@ action:
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
-          - service: cover.open_cover
+          - action: cover.open_cover
             data: {}
             target:
               entity_id: !input garage_door_cover
@@ -104,17 +104,17 @@ action:
                 entity_id: !input garage_door_timer_helper
                 state: active
             then:
-              - service: timer.cancel
+              - action: timer.cancel
                 target:
                   entity_id: !input garage_door_timer_helper
                 data: {}
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
                   entity_id: !input garage_door_timer_helper
             else:
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
@@ -128,7 +128,7 @@ action:
               - condition: template
                 value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
         sequence:
-          - service: cover.open_cover
+          - action: cover.open_cover
             data: {}
             target:
               entity_id: !input garage_door_cover
@@ -146,17 +146,17 @@ action:
                 entity_id: !input garage_door_timer_helper
                 state: active
             then:
-              - service: timer.cancel
+              - action: timer.cancel
                 target:
                   entity_id: !input garage_door_timer_helper
                 data: {}
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
                   entity_id: !input garage_door_timer_helper
             else:
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:

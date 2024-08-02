@@ -1,7 +1,7 @@
 blueprint:
   name: LUX Sensor Stable (0.4.0)
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml
@@ -125,7 +125,7 @@ action:
               - condition: template
                 value_template: "{{ new_state | float > night_above_lux_level | float }}"
             sequence:
-              - service: input_boolean.turn_on
+              - action: input_boolean.turn_on
                 metadata: {}
                 data: {}
                 target:
@@ -134,7 +134,7 @@ action:
               - condition: template
                 value_template: "{{ new_state | float < night_below_lux_level | float }}"
             sequence:
-              - service: input_boolean.turn_off
+              - action: input_boolean.turn_off
                 metadata: {}
                 data: {}
                 target:
@@ -153,7 +153,7 @@ action:
                   - condition: template
                     value_template: "{{ new_state | float > night_above_lux_level | float }}"
                 sequence:
-                  - service: input_boolean.turn_on
+                  - action: input_boolean.turn_on
                     metadata: {}
                     data: {}
                     target:
@@ -162,7 +162,7 @@ action:
                   - condition: template
                     value_template: "{{ new_state | float < night_below_lux_level | float }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     metadata: {}
                     data: {}
                     target:
@@ -173,7 +173,7 @@ action:
                   - condition: template
                     value_template: "{{ new_state | float > day_above_lux_level | float }}"
                 sequence:
-                  - service: input_boolean.turn_on
+                  - action: input_boolean.turn_on
                     metadata: {}
                     data: {}
                     target:
@@ -182,7 +182,7 @@ action:
                   - condition: template
                     value_template: "{{ new_state | float < day_below_lux_level | float }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     metadata: {}
                     data: {}
                     target:

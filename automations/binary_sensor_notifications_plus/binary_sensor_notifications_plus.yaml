@@ -4,7 +4,7 @@ blueprint:
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
   domain: automation
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   input:
     required_entities:
       name: Required Entities
@@ -89,7 +89,7 @@ action:
               - condition: template
                 value_template: "{{ message_open  != 'None' }}"
         sequence:
-          - service: "notify.{{ notify_group }}"
+          - action: "notify.{{ notify_group }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message_open }}"
@@ -97,7 +97,7 @@ action:
                 ttl: 0
                 priority: high
                 tag: t"tag-binary-sensor-notification"
-          - service: timer.start
+          - action: timer.start
             metadata: {}
             data: {}
             target:
@@ -111,7 +111,7 @@ action:
               - condition: template
                 value_template: "{{ message_close  != 'None' }}"
         sequence:
-          - service: "notify.{{ notify_group }}"
+          - action: "notify.{{ notify_group }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message_close }}"
@@ -119,7 +119,7 @@ action:
                 ttl: 0
                 priority: high
                 tag: "tag-binary-sensor-notification"
-          - service: timer.cancel
+          - action: timer.cancel
             metadata: {}
             data: {}
             target:
@@ -136,7 +136,7 @@ action:
                 entity_id: !input sensor_entity
                 state: "on"
         sequence:
-          - service: "notify.{{ notify_group }}"
+          - action: "notify.{{ notify_group }}"
             data:
               title: "{{ title }} | {{ states('sensor.time') }}"
               message: "{{ message_left }}"
@@ -144,7 +144,7 @@ action:
                 ttl: 0
                 priority: high
                 tag: "tag-binary-sensor-notification"
-          - service: timer.start
+          - action: timer.start
             metadata: {}
             data: {}
             target:

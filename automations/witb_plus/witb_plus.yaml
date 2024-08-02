@@ -1,7 +1,7 @@
 blueprint:
   name: WITB+ Stable (0.4.0)
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2024.8.0
   description: >
     WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
     <br/>Assumptions:<br/>
@@ -397,7 +397,7 @@ action:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -444,7 +444,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_brightness' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           brightness_pct: !input light_brightness_pct
                                         target:
@@ -454,7 +454,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_colour_temperature' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           kelvin: !input light_temperature
                                         target:
@@ -464,7 +464,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           transition: !input light_transition
                                         target:
@@ -481,7 +481,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           kelvin: !input light_temperature
                                           brightness_pct: !input light_brightness_pct
@@ -492,7 +492,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_brightness' in light_control_features and not 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           transition: !input light_transition
                                           brightness_pct: !input light_brightness_pct
@@ -503,7 +503,7 @@ action:
                                       - condition: template
                                         value_template: "{{ not 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           transition: !input light_transition
                                           kelvin: !input light_temperature
@@ -515,7 +515,7 @@ action:
                                 value_template: "{{ light_control_features | list | length  == 3 }}"
                             sequence:
                               # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
-                              - service: light.turn_on
+                              - action: light.turn_on
                                 data:
                                   transition: !input light_transition
                                   kelvin: !input light_temperature
@@ -529,7 +529,7 @@ action:
                     entity_id: !input light_bulbs
                     state: "off"
                   # Turn on the light using the default settings
-                  - service: homeassistant.turn_on
+                  - action: homeassistant.turn_on
                     target:
                       entity_id: !input light_bulbs
           # Turns on light switch if configured and currently off
@@ -542,7 +542,7 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -556,7 +556,7 @@ action:
               - condition: state
                 entity_id: !input fan_switch
                 state: "off"
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -575,7 +575,7 @@ action:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
-              - service: homeassistant.turn_off
+              - action: homeassistant.turn_off
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -616,19 +616,19 @@ action:
                                 value_template: "{{ 'use_transition' in light_control_features }}"
                             sequence:
                               # Turn off the light with specific settings
-                              - service: light.turn_off
+                              - action: light.turn_off
                                 data:
                                   transition: !input light_transition
                                 target:
                                   entity_id: !input light_bulbs
                         default:
                           # If conditions are not met, turn off the light without considering light_control or selected features
-                          - service: light.turn_off
+                          - action: light.turn_off
                             target:
                               entity_id: !input light_bulbs
                 default:
                   # If conditions are not met, turn off the light without considering light_control or selected features
-                  - service: light.turn_off
+                  - action: light.turn_off
                     target:
                       entity_id: !input light_bulbs
           # Turns on light switch if configured and currently off
@@ -641,7 +641,7 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -655,7 +655,7 @@ action:
               - condition: state
                 entity_id: !input fan_switch
                 state: "off"
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -669,11 +669,11 @@ action:
                     entity_id: !input idle_timer
                     state: active
             then:
-              - service: timer.cancel
+              - action: timer.cancel
                 target:
                   entity_id: !input idle_timer
                 data: {}
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
@@ -690,7 +690,7 @@ action:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -737,7 +737,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_brightness' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           brightness_pct: !input light_brightness_pct
                                         target:
@@ -747,7 +747,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_colour_temperature' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           kelvin: !input light_temperature
                                         target:
@@ -757,7 +757,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           transition: !input light_transition
                                         target:
@@ -774,7 +774,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and not 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           kelvin: !input light_temperature
                                           brightness_pct: !input light_brightness_pct
@@ -785,7 +785,7 @@ action:
                                       - condition: template
                                         value_template: "{{ 'use_brightness' in light_control_features and not 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           transition: !input light_transition
                                           brightness_pct: !input light_brightness_pct
@@ -796,7 +796,7 @@ action:
                                       - condition: template
                                         value_template: "{{ not 'use_brightness' in light_control_features and 'use_colour_temperature' in light_control_features and 'use_transition' in light_control_features }}"
                                     sequence:
-                                      - service: light.turn_on
+                                      - action: light.turn_on
                                         data:
                                           transition: !input light_transition
                                           kelvin: !input light_temperature
@@ -808,7 +808,7 @@ action:
                                 value_template: "{{ light_control_features | list | length  == 3 }}"
                             sequence:
                               # Turn on the light with specific settings (brightness 100%, color temperature 6500K) and no transition
-                              - service: light.turn_on
+                              - action: light.turn_on
                                 data:
                                   transition: !input light_transition
                                   kelvin: !input light_temperature
@@ -822,7 +822,7 @@ action:
                     entity_id: !input light_bulbs
                     state: "off"
                   # Turn on the light using the default settings
-                  - service: homeassistant.turn_on
+                  - action: homeassistant.turn_on
                     target:
                       entity_id: !input light_bulbs
           # Turns on light switch if configured and currently off
@@ -835,7 +835,7 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "off"
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -849,7 +849,7 @@ action:
               - condition: state
                 entity_id: !input fan_switch
                 state: "off"
-              - service: homeassistant.turn_on
+              - action: homeassistant.turn_on
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -863,11 +863,11 @@ action:
                     entity_id: !input idle_timer
                     state: active
             then:
-              - service: timer.cancel
+              - action: timer.cancel
                 target:
                   entity_id: !input idle_timer
                 data: {}
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
@@ -887,7 +887,7 @@ action:
               - condition: template
                 value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
             then:
-              - service: homeassistant.turn_off
+              - action: homeassistant.turn_off
                 data: {}
                 target:
                   entity_id: !input occupancy_helper
@@ -928,19 +928,19 @@ action:
                                 value_template: "{{ 'use_transition' in light_control_features }}"
                             sequence:
                               # Turn off the light with specific settings
-                              - service: light.turn_off
+                              - action: light.turn_off
                                 data:
                                   transition: !input light_transition
                                 target:
                                   entity_id: !input light_bulbs
                         default:
                           # If conditions are not met, turn off the light without considering light_control or selected features
-                          - service: light.turn_off
+                          - action: light.turn_off
                             target:
                               entity_id: !input light_bulbs
                 default:
                   # If conditions are not met, turn off the light without considering light_control or selected features
-                  - service: light.turn_off
+                  - action: light.turn_off
                     target:
                       entity_id: !input light_bulbs
           # Turns off light switch if configured and currently on
@@ -953,7 +953,7 @@ action:
               - condition: state
                 entity_id: !input light_switch
                 state: "on"
-              - service: homeassistant.turn_off
+              - action: homeassistant.turn_off
                 data: {}
                 target:
                   entity_id: !input light_switch
@@ -967,7 +967,7 @@ action:
               - condition: state
                 entity_id: !input fan_switch
                 state: "on"
-              - service: homeassistant.turn_off
+              - action: homeassistant.turn_off
                 data: {}
                 target:
                   entity_id: !input fan_switch
@@ -985,7 +985,7 @@ action:
               - condition: template
                 value_template: "{{ bypass_timer != 'timer.none' }}"
             then:
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
@@ -1008,7 +1008,7 @@ action:
               - condition: template
                 value_template: "{{ bypass_timer != 'timer.none' }}"
             then:
-              - service: timer.finish
+              - action: timer.finish
                 metadata: {}
                 data: {}
                 target:
@@ -1027,7 +1027,7 @@ action:
               - condition: template
                 value_template: "{{ bypass_helper != 'input_boolean.none' }}"
             then:
-              - service: homeassistant.turn_off
+              - action: homeassistant.turn_off
                 metadata: {}
                 data: {}
                 target:
@@ -1044,7 +1044,7 @@ action:
                   - condition: template
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
@@ -1058,7 +1058,7 @@ action:
                   - condition: state
                     entity_id: !input light_bulbs
                     state: "on"
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input light_bulbs
@@ -1072,7 +1072,7 @@ action:
                   - condition: state
                     entity_id: !input light_switch
                     state: "on"
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input light_switch
@@ -1086,7 +1086,7 @@ action:
                   - condition: state
                     entity_id: !input fan_switch
                     state: "on"
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input fan_switch
@@ -1124,7 +1124,7 @@ action:
                   - condition: template
                     value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
                 then:
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input occupancy_helper
@@ -1156,19 +1156,19 @@ action:
                                     value_template: "{{ 'use_transition' in light_control_features }}"
                                 sequence:
                                   # Turn off the light with specific settings
-                                  - service: light.turn_off
+                                  - action: light.turn_off
                                     data:
                                       transition: !input light_transition
                                     target:
                                       entity_id: !input light_bulbs
                             default:
                               # If conditions are not met, turn off the light without considering light_control or selected features
-                              - service: light.turn_off
+                              - action: light.turn_off
                                 target:
                                   entity_id: !input light_bulbs
                     default:
                       # If conditions are not met, turn off the light without considering light_control or selected features
-                      - service: light.turn_off
+                      - action: light.turn_off
                         target:
                           entity_id: !input light_bulbs
               # Turns off light switch if configured and currently on
@@ -1181,7 +1181,7 @@ action:
                   - condition: state
                     entity_id: !input light_switch
                     state: "on"
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input light_switch
@@ -1195,7 +1195,7 @@ action:
                   - condition: state
                     entity_id: !input fan_switch
                     state: "on"
-                  - service: homeassistant.turn_off
+                  - action: homeassistant.turn_off
                     data: {}
                     target:
                       entity_id: !input fan_switch
@@ -1223,18 +1223,18 @@ action:
                 entity_id: !input idle_timer
                 state: active
             then:
-              - service: timer.cancel
+              - action: timer.cancel
                 target:
                   entity_id: !input idle_timer
                 data: {}
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
                   entity_id: !input idle_timer
             # Starts idle timer if configured and conditions are not met
             else:
-              - service: timer.start
+              - action: timer.start
                 metadata: {}
                 data: {}
                 target:
