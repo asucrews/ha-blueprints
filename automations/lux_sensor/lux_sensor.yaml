@@ -1,13 +1,13 @@
 blueprint:
-  name: LUX Sensor Stable (0.4.0)
+  name: LUX Sensor Stable (0.4.2)
   homeassistant:
     min_version: 2024.8.0
   description: <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml
   input:
-    required_entities:
-      name: Required Entities
+    lux_sensor:
+      name: LUX Sensor
       description: The required entities for this automation
       collapsed: false
       input:
@@ -19,6 +19,17 @@ blueprint:
               domain:
                 - sensor
               multiple: false
+        lux_sensor_delay:
+          name: Above LUX level for day time
+          description: <br/>
+          default: 0
+          selector:
+            number:
+              min: 0
+              max: 10
+              step: 1
+              unit_of_measurement: s
+              mode: slider
         status_boolean:
           name: Binary Sensor
           description: <br/>
@@ -26,7 +37,14 @@ blueprint:
             entity:
               domain:
                 - input_boolean
+                - light
+                - switch
               multiple: false
+    light_levels:
+      name: Light Levels
+      description: The LUX levels to trigger on.
+      collapsed: false
+      input:
         day_above_lux_level:
           name: Above LUX level for day time
           description: <br/>
@@ -97,6 +115,7 @@ blueprint:
 
 variables:
   lux_sensor: !input lux_sensor
+  lux_sensor_delay: !input lux_sensor_delay
   status_boolean: !input status_boolean
   day_above_lux_level: !input day_above_lux_level
   day_below_lux_level: !input day_below_lux_level
@@ -115,6 +134,15 @@ action:
   - variables:
       new_state: "{{ trigger.event.data.new_state.state }}"
       old_state: "{{ trigger.event.data.old_state.state }}"
+  - if:
+      - condition: template
+        value_template: "{{ lux_sensor_delay | float > 0 }}"
+    then:
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: !input lux_sensor_delay
+          milliseconds: 0
   - if:
       - condition: state
         entity_id: binary_sensor.night
