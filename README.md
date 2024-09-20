@@ -20,7 +20,7 @@ Check out the [automations documentation](https://github.com/asucrews/ha-bluepri
 - [Ratdgo 2.5i](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md) (Last updated: 2024-08-02)
 - [6 Speed Fan](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan/README.md) (Last updated: 2024-08-02)
 - [Ha Restart](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart/README.md) (Last updated: 2024-08-02)
-- [Lux Sensor](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor/README.md) (Last updated: 2024-08-02)
+- [Lux Sensor](https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor/README.md) (Last updated: 2024-09-18)
 - [Witb Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/witb_plus/README.md) (Last updated: 2024-08-02)
 - [Binary Sensor Plus](https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/derivatives/binary_sensor_plus/binary_sensor_plus/README.md) (Last updated: 2024-08-02)
 - [Lock Management](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management/README.md) (Last updated: 2024-08-02)
