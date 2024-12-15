@@ -1,0 +1,880 @@
+blueprint:
+  name: WITB+ Stable No Light Control (0.5.0)
+  homeassistant:
+    min_version: 2024.8.0
+  description: >
+    WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed for occupancy detection using multiple sensors, inspired by the "Wasp in the Box" concept.  The blueprint employs motion and door sensors to detect occupants (referred to as "wasps") within a defined space (the "box").  If motion is detected, indicating the presence of a "wasp," the state of the box is updated accordingly. The generated binary sensor reflects the presence or absence of a wasp in the box, enabling seamless integration with automation triggers.<br/>
+    <br/>Assumptions:<br/>
+    - Motion sensors are typically positioned to detect movement when someone walks into the room, triggering occupancy detection.<br/>
+    - It is assumed that as long as the door to the designated area ("box") is closed, the room is considered occupied, influencing the automation's behavior.<br/>
+    - Users are expected to configure motion and door sensors accurately to detect occupancy within the designated area.<br/>
+    - The blueprint provides options to control smart light bulbs, light switches, and fans within the area based on occupancy detection.<br/>
+    - Users are expected to create input_boolean entities for occupancy tracking and bypass control if they choose to utilize these features.<br/>
+    - For bypass functionality, users need to manually integrate call service actions into their automations or methods to control devices when bypassing occupancy detection is required.<br/>
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus.yaml
+  input:
+    sensor_entities:
+      name: Sensor Entities
+      description: The sensor entities for this automation
+      collapsed: false
+      input:
+        door_sensor:
+          name: Door Sensor or Door Sensor Group
+          description: >
+            Select the door sensor or group of door sensors representing the entrance to the "box" — the designated area where occupancy is detected.  In the context of the "Wasp in a Box" concept, the door sensor serves as the gateway to monitoring occupants (referred to as "wasps") entering and exiting the space.<br/>
+            <br/>Please note: This input is restricted to entities within the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+        motion_sensor:
+          name: Motion Sensor or Motion Sensor Group
+          description: >
+            Choose the motion sensor or group of motion sensors responsible for detecting movement within the designated area ("box").  In the "Wasp in a Box" analogy, the motion sensor plays a crucial role in identifying the presence of "wasps" (occupants) within the space.<br/>
+            <br/>Please note: This input is limited to entities categorized under the binary_sensor domain and allows only a single selection.  This field and this input is required.<br/>
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+    bulb_switch_fan_entities:
+      name: Bulb, Switch, Fan, or related groups
+      description: The entities or gorups to automate.
+      collapsed: false
+      input:
+        light_bulbs:
+          name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
+          description: >
+            Select a smart light bulb or group of smart light bulbs to control within the designated area ("box").  These lights illuminate the space based on occupancy detected by the motion sensor.<br/> 
+            <br/>Please note: Only entities within the light domain are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "light.none"
+          selector:
+            entity:
+              domain:
+                - light
+              multiple: false
+        light_switch:
+          name: Light, Light Group, Switch, or Switch Group (Optional)
+          description: >
+            Choose a light, light group, switch, or switch group to control within the designated area ("box").  These devices provide illumination based on occupancy detected by the motion sensor.<br/>
+            <br/>Please note: Only entities within the light or switch domains are selectable, and only one selection is allowed.  Default value: 'light.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "light.none"
+          selector:
+            entity:
+              domain:
+                - light
+                - switch
+              multiple: false
+        fan_switch:
+          name: Fan or Fan Group (Optional)
+          description: >
+            Select a fan or group of fans to control within the designated area ("box").  These fans regulate air circulation based on occupancy detected by the motion sensor.<br/>
+            <br/>Please note: Only entities within the fan or light domains are selectable, and only one selection is allowed.  Default value: 'fan.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "fan.none"
+          selector:
+            entity:
+              domain:
+                - fan
+                - light
+              multiple: false
+    sensor_options:
+      name: Sensor Options
+      description: >
+        Options to set if you need to add delays to when sensors take actions. Not all sensors are created the same; some might need delays while others don't.
+        Some sensors fire clear signals right away, while others wait a configurable time. The type that waits might need delays to prevent false positives, whereas the other type does not.
+        You might need to adjust these settings to best fit your sensors or groups.
+      collapsed: true
+      input:
+        door_sensor_open_delay:
+          name: Door Sensor Open Delay (Optional)
+          description: >
+            Specify the delay time, in seconds, for the door sensor to register an open event after detecting movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor open event and this input is optional.<br/>
+          default: 0
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: seconds
+              step: 1.0
+        door_sensor_close_delay:
+          name: Door Sensor Close Delay (Optional)
+          description: >
+            Specify the delay time, in seconds, for the door sensor to register a close event after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Default value: 0 seconds, Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require a delay for the door sensor close event and this input is optional.<br/>
+          default: 0
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 60.0
+              unit_of_measurement: seconds
+              step: 1.0
+        motion_sensor_delay:
+          name: Motion off delay (Optional)
+          description: >
+            Set the delay time, in seconds, for the motion sensor to turn off after detecting no movement.  This option helps reduce false events triggered by activities like door openings and closings or shared spaces with multiple occupants.<br/>
+            <br/>Please note that not all motion sensors behave the same way; some may have built-in delay mechanisms while others do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value: 3600 seconds. Adjust as needed if you require a different delay for the motion sensor to turn off.<br/>
+          default: 30
+          selector:
+            number:
+              mode: box
+              min: 0.0
+              max: 3600.0
+              unit_of_measurement: seconds
+              step: 1.0
+    occupancy_options:
+      name: Occupancy Options
+      description: Occupancy Settings
+      collapsed: true
+      input:
+        occupancy_helper:
+          name: Occupancy Helper (Optional)
+          description: >
+            Select an input boolean entity to serve as an occupancy helper within the designated area ("box").  To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+            The occupancy helper can be used to track the overall occupancy status and coordinate actions based on occupancy detection.  Can be utilized for more advanced automation scenarios where additional logic based on occupancy status is required.<br/>
+            <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "input_boolean.none"
+          selector:
+            entity:
+              domain:
+                - input_boolean
+              multiple: false
+    bypass_options:
+      name: Bypass Options
+      description: Bypass Mode and settings
+      collapsed: true
+      input:
+        bypass_mode:
+          name: Bypass Mode (Optional)
+          description: >
+            Select the bypass mode to control how the automation handles bypass events.  This input is optional and allows you to customize the behavior of the automation based on your preferences and requirements.<br/>
+            Bypass mode determines whether the automation should ignore occupancy detection temporarily.  Depening on the option you select you need to create a input_boolean for bypass and timer helper.<br/>
+            <br/>Options:<br/>
+              - No Bypass: Automation operates normally without bypassing occupancy detection.<br/>
+              - Bypass No Auto OFF: Automation temporarily ignores occupancy detection until manually turned off. To use this option, create an input_boolean helper entity for bypass control.<br/>
+              - Bypass Auto OFF: Automation temporarily ignores occupancy detection and automatically reverts to normal operation after a specified time. To use this option, create input_boolean and timer helper entities for bypass control and automatic timer management.<br/>
+            <br/>Default value: No Bypass. Only change if you intend to use this field and this input is optional.<br/>
+          default: no_bypass
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: No Bypass
+                  value: no_bypass
+                - label: Bypass No Auto OFF
+                  value: bypass_no_auto_off
+                - label: Bypass Auto OFF
+                  value: bypass_auto_off
+              custom_value: false
+              multiple: false
+              sort: false
+        bypass_helper:
+          name: Bypass Helper (Optional)
+          description: >
+            Select an input boolean entity to serve as a bypass helper within the designated area ("box").  The bypass helper enables manual control over bypass events, allowing users to override occupancy detection when necessary.<br/>
+            To enable bypass for a WIAB room, manually integrate call service actions into your automations or methods.  For instance, you might configure a double-tap action on the light switch to set the bypass helper.<br/>
+            To utilize this function, create an input_boolean helper entity in your Home Assistant configuration or UI.<br/>
+            <br/>Default value: 'input_boolean.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "input_boolean.none"
+          selector:
+            entity:
+              domain:
+                - input_boolean
+              multiple: false
+        bypass_timer:
+          name: Bypass Auto Off Timer (Optional)
+          description: >
+            Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+            To utilize this function, create an timer helper entity in your Home Assistant configuration or UI.<br/>
+            <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "timer.none"
+          selector:
+            entity:
+              domain:
+                - timer
+              multiple: false
+        bypass_finished_action:
+          name: Bypass Action After Timer Finished (Optional)
+          description: >
+            Specify the action to be taken after the bypass auto-off timer finishes counting down.  This determines whether the automation should turn off lights or other devices when the bypass timer expires.<br/>
+            <br/>Options:<br/>
+            - Turn Off: Automatically turns off lights or devices when the bypass timer expires.<br/>
+            - Do Nothing: Leaves lights or devices unchanged after the bypass timer expires.<br/>
+            <br/>Default value: Turn Off. Only change if you intend to use this field and this input is optional.<br/>
+          default: turn_off
+          selector:
+            select:
+              mode: dropdown
+              options:
+                - label: Turn Off
+                  value: turn_off
+                - label: Do Nothing
+                  value: do_nothing
+              custom_value: false
+              multiple: false
+              sort: false
+        idle_timer:
+          name: Idle Timer (Optional)
+          description: >
+            Set the duration, in seconds, for the automatic cancellation of a bypass event. After the specified time elapses, the bypass mode will automatically revert to its default state.<br/>
+            To utilize this function, create a timer helper entity in your Home Assistant configuration or UI. Example: Consider a closet where the door is shut, but no motion is detected and the light remains on.<br/>
+            <br/>Default value: 'timer.none'. Only change if you intend to use this field and this input is optional.<br/>
+          default: "timer.none"
+          selector:
+            entity:
+              domain:
+                - timer
+              multiple: false
+
+variables:
+  door_sensor: !input door_sensor
+  door_sensor_open_delay: !input door_sensor_open_delay
+  door_sensor_close_delay: !input door_sensor_close_delay
+  motion_sensor: !input motion_sensor
+  motion_sensor_delay: !input motion_sensor_delay
+  light_bulbs: !input light_bulbs
+  light_switch: !input light_switch
+  fan_switch: !input fan_switch
+  occupancy_helper: !input occupancy_helper
+  bypass_mode: !input bypass_mode
+  bypass_helper: !input bypass_helper
+  bypass_timer: !input bypass_timer
+  bypass_finished_action: !input bypass_finished_action
+  idle_timer: !input idle_timer
+
+trigger:
+  # If door is opened
+  - platform: state
+    entity_id: !input door_sensor
+    from: "off"
+    to: "on"
+    id: Door Opened
+    for: !input door_sensor_open_delay
+  # If door is closed
+  - platform: state
+    entity_id: !input door_sensor
+    from: "on"
+    to: "off"
+    id: Door Closed
+    for: !input door_sensor_close_delay
+  # If door is closed for 62 seconds
+  - platform: state
+    entity_id: !input door_sensor
+    from: "on"
+    to: "off"
+    id: Door Closed For Seconds
+    for: 62
+  # If motion is detected
+  - platform: state
+    entity_id: !input motion_sensor
+    from: "off"
+    to: "on"
+    id: Motion On
+  # If motion is cleared
+  - platform: state
+    entity_id: !input motion_sensor
+    from: "on"
+    to: "off"
+    id: Motion Off
+    for: !input motion_sensor_delay
+  # If bypass is enabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "off"
+    to: "on"
+    id: Bypass Turn on
+  # If bypass is disabled
+  - platform: state
+    entity_id: !input bypass_helper
+    from: "on"
+    to: "off"
+    id: Bypass Turn off
+  # If bypass auto off timer ends
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input bypass_timer
+    id: Bypass Timer Finished
+  # If idle timer ends
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input idle_timer
+    id: Idle Timer Finished
+
+action:
+  # Actions to perform when the door is closed
+  - choose:
+      # Actions to perfrom when the door is closed
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Closed
+        sequence:
+          # Turns on occupancy helper if it's configured
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - action: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Truns on light_bulbs if configured and the light is off
+          - if:
+              # Check if both conditions are met
+              - condition: and
+                conditions:
+                  # Check if light_bulbs is not equal to 'light.none'
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  # Check if the state of the light is "off"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "off"
+            then:
+              # Turn on the light using the default settings
+              - action: homeassistant.turn_on
+                target:
+                  entity_id: !input light_bulbs
+          # Turns on light switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "off"
+            then:
+              - action: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns on fan switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "off"
+            then:
+              - action: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+          # Restarts idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+                  - condition: state
+                    entity_id: !input idle_timer
+                    state: active
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input idle_timer
+                data: {}
+              - action: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input idle_timer
+      # Actions to perform when the door is opened and motion is cleared
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Opened
+              - condition: state
+                state: "off"
+                entity_id: !input motion_sensor
+        sequence:
+          # Turns off occupancy helper if configured
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - action: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Turns off light_bulbs if configured
+          - if:
+              # Check if both conditions are met
+              - condition: and
+                conditions:
+                  # Check if light_bulbs is not equal to 'light.none'
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  # Check if the state of the light is "on"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "on"
+            then:
+              # If conditions are not met, turn off the light
+              - action: light.turn_off
+                target:
+                  entity_id: !input light_bulbs
+          # Turns off light switch if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
+            then:
+              - action: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns off fan switch if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
+            then:
+              - action: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+      # Actions to perform when motion is detected.
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Motion On
+        sequence:
+          # Turns on occupancy helper if it's configured
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - action: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Truns on light_bulbs if configured and the light is off
+          - if:
+              # Check if both conditions are met
+              - condition: and
+                conditions:
+                  # Check if light_bulbs is not equal to 'light.none'
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  # Check if the state of the light is "off"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "off"
+            then:
+              # Turn on the light using the default settings
+              - action: homeassistant.turn_on
+                target:
+                  entity_id: !input light_bulbs
+          # Turns on light switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+            then:
+              - condition: state
+                entity_id: !input light_switch
+                state: "off"
+              - action: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns on fan switch if configured and currently off
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+            then:
+              - condition: state
+                entity_id: !input fan_switch
+                state: "off"
+              - action: homeassistant.turn_on
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+          # Restart idle timer if configured
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ idle_timer != 'timer.none' }}"
+                  - condition: state
+                    entity_id: !input idle_timer
+                    state: active
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input idle_timer
+                data: {}
+              - action: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input idle_timer
+      # Actions to perform when motion is cleared
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Motion Off
+              - condition: state
+                state: "on"
+                entity_id: !input door_sensor
+        sequence:
+          # Turns off occupancy helper if configured
+          - if:
+              - condition: template
+                value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+            then:
+              - action: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input occupancy_helper
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Turns off light_bulbs if configured and the light is on
+          - if:
+              # Check if both conditions are met
+              - condition: and
+                conditions:
+                  # Check if light_bulbs is not equal to 'light.none'
+                  - condition: template
+                    value_template: "{{ light_bulbs != 'light.none' }}"
+                  # Check if the state of the light is "on"
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "on"
+            then:
+              # If conditions are not met, turn off the light
+              - action: light.turn_off
+                target:
+                  entity_id: !input light_bulbs
+          # Turns off light switch if configured and currently on
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ light_switch != 'light.none' }}"
+            then:
+              - condition: state
+                entity_id: !input light_switch
+                state: "on"
+              - action: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input light_switch
+          # Turns off fan switch if configured and currently on
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ fan_switch != 'fan.none' }}"
+            then:
+              - condition: state
+                entity_id: !input fan_switch
+                state: "on"
+              - action: homeassistant.turn_off
+                data: {}
+                target:
+                  entity_id: !input fan_switch
+      # Actions to perform when bypass is turned on
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Turn on
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+        sequence:
+          # Starts bypass timer if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_timer != 'timer.none' }}"
+            then:
+              - action: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_timer
+      # Actions to perform when bypass is turned off
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Turn off
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+              - condition: not
+                conditions:
+                  - condition: trigger
+                    id: Bypass Timer Finished
+        sequence:
+          # Finishes bypass timer if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_timer != 'timer.none' }}"
+            then:
+              - action: timer.finish
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_timer
+      # Actions to perform when bypass timer finishes
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Bypass Timer Finished
+              - condition: template
+                value_template: "{{ bypass_mode == 'bypass_auto_off' }}"
+        sequence:
+          # Turns off bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - action: homeassistant.turn_off
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input bypass_helper
+          # Performs additional actions if specified when bypass timer finishes
+          - if:
+              - condition: and
+                conditions:
+                  - condition: template
+                    value_template: "{{ bypass_finished_action == 'turn_off' }}"
+            then:
+              # Turns off occupancy helper if configured
+              - if:
+                  - condition: template
+                    value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+                then:
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input occupancy_helper
+              # Turns off light bulbs if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ light_bulbs != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_bulbs
+                    state: "on"
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_bulbs
+              # Turns off light switch if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ light_switch != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
+              # Turns off fan switch if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ fan_switch != 'fan.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input fan_switch
+      # Actions to perform when idle timer finishes
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Idle Timer Finished
+              - condition: template
+                value_template: "{{ idle_timer != 'timer.none' }}"
+        sequence:
+          # Enables bypass if configured and conditions are met
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Turns off various devices if idle timer conditions are met
+          - if:
+              - condition: and
+                conditions:
+                  - condition: state
+                    state: "off"
+                    entity_id: !input motion_sensor
+                  - condition: state
+                    state: "off"
+                    entity_id: !input door_sensor
+            then:
+              # Turns off occupancy helper if configured
+              - if:
+                  - condition: template
+                    value_template: "{{ occupancy_helper != 'input_boolean.none' }}"
+                then:
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input occupancy_helper
+              # Turns off light_bulbs if configured and the light is on
+              - if:
+                  # Check if both conditions are met
+                  - condition: and
+                    conditions:
+                      # Check if light_bulbs is not equal to 'light.none'
+                      - condition: template
+                        value_template: "{{ light_bulbs != 'light.none' }}"
+                      # Check if the state of the light is "on"
+                      - condition: state
+                        entity_id: !input light_bulbs
+                        state: "on"
+                then:
+                  # If conditions are not met, turn off
+                  - action: light.turn_off
+                    target:
+                      entity_id: !input light_bulbs
+              # Turns off light switch if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ light_switch != 'light.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input light_switch
+                    state: "on"
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input light_switch
+              # Turns off fan switch if configured and currently on
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ fan_switch != 'fan.none' }}"
+                then:
+                  - condition: state
+                    entity_id: !input fan_switch
+                    state: "on"
+                  - action: homeassistant.turn_off
+                    data: {}
+                    target:
+                      entity_id: !input fan_switch
+      # Actions to perform when door has been closed for specified duration
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id: Door Closed For Seconds
+              - condition: template
+                value_template: "{{ idle_timer != 'timer.none' }}"
+        sequence:
+          # Enables bypass if configured
+          - if:
+              - condition: template
+                value_template: "{{ bypass_helper != 'input_boolean.none' }}"
+            then:
+              - condition: state
+                state: "on"
+                entity_id: !input bypass_helper
+              - stop: Bypass Enabled
+          # Restarts idle timer if configured and conditions are met
+          - if:
+              - condition: state
+                entity_id: !input idle_timer
+                state: active
+            then:
+              - action: timer.cancel
+                target:
+                  entity_id: !input idle_timer
+                data: {}
+              - action: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input idle_timer
+            # Starts idle timer if configured and conditions are not met
+            else:
+              - action: timer.start
+                metadata: {}
+                data: {}
+                target:
+                  entity_id: !input idle_timer
+
+mode: single
+max_exceeded: silent
