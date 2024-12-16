@@ -142,7 +142,7 @@ trigger:
 
 action:
   # Actions to perform when the door is closed
-  - cho-ose:
+  - choose:
       # Actions to perfrom when the door is closed
       - conditions:
           - condition: and
