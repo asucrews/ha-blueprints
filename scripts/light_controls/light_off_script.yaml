@@ -1,0 +1,7 @@
+blueprint:
+  name: Turn Light Off Script
+  description: Turn Light Off Script
+  domain: script
+  source_url: https://github.com/home-assistant/core/blob/master/homeassistant/components/script/blueprints/confirmable_notification.yaml
+  author: Home Assistant
+  input:
