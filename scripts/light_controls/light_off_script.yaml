@@ -16,7 +16,7 @@ blueprint:
         allowing lights to be turned off directly without evaluating device conditions.
       selector:
         entity:
-          domain: binary_sensor
+          domain: input_boolean
     lights_to_check:
       name: Lights to check for "unavailable"
       selector:
