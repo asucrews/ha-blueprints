@@ -1,7 +1,103 @@
 blueprint:
   name: Turn Light Off Script
-  description: Turn Light Off Script
+  description: >
+    Smart script to turn off lights based on automation bypass and device availability.
+    If 'automation_bypass' is ON, all automation logic is skipped and the lights are not effected by the automation.
+    If OFF, the script checks if any lights in 'lights_to_check' are unavailable for over 1 minute,
+    and if so, sets a Z-Wave parameter before turning off the specified switch.
   domain: script
-  source_url: https://github.com/home-assistant/core/blob/master/homeassistant/components/script/blueprints/confirmable_notification.yaml
-  author: Home Assistant
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_off_script.yaml
+  author: Jeremy Crews
   input:
+    automation_bypass:
+      name: Automation Bypass
+      description: >
+        When ON, bypasses availability checks and disables automation logic,
+        allowing lights to be turned off directly without evaluating device conditions.
+      selector:
+        entity:
+          domain: binary_sensor
+    lights_to_check:
+      name: Lights to check for "unavailable"
+      selector:
+        entity:
+          domain: light
+          multiple: true
+    light_switch:
+      name: Light Switch
+      selector:
+        target:
+          entity:
+            domain: light
+    light_group:
+      name: Light Group
+      selector:
+        target:
+          entity:
+            domain: light
+
+    zwave_device_id:
+      name: Z-Wave Device ID
+      description: Device ID for setting Z-Wave parameters
+      selector:
+        device:
+          filter:
+            integration: zwave_js
+
+mode: restart  # ensures restarts cleanly if triggered again before completion
+
+sequence:
+  # Initialize a variable to track if any light is unavailable
+  - variables:
+      unavailable_detected: false
+
+  # Loop through each light in the list and check if it's been unavailable for 1 minute
+  - repeat:
+      for_each: !input lights_to_check
+      sequence:
+        - condition: state
+          entity_id: "{{ repeat.item }}"
+          state: unavailable
+          for: "00:01:00"
+        - variables:
+            unavailable_detected: true  # If any match, set this to true
+
+  # Main logic branching
+  - choose:
+      # If automation bypass is OFF, run conditional logic
+      - conditions:
+          - condition: state
+            entity_id: !input automation_bypass
+            state: "off"
+        sequence:
+          - choose:
+              # If unavailable lights were detected
+              - conditions:
+                  - condition: template
+                    value_template: "{{ unavailable_detected }}"
+                sequence:
+                  # Set Z-Wave config parameter
+                  - service: zwave_js.set_config_parameter
+                    data:
+                      parameter: 52
+                      value: 0
+                      endpoint: 0
+                    target:
+                      device_id: !input zwave_device_id
+
+                  # Turn off the light switch
+                  - service: light.turn_off
+                    target: !input light_switch
+
+            # If no unavailable lights, just turn off the light switch
+            default:
+              - service: light.turn_off
+                target: !input light_switch
+
+    # If automation bypass is ON, turn off both group and individual light
+    default:
+      - service: light.turn_off
+        target: !input light_group
+
+      - service: light.turn_off
+        target: !input light_switch
