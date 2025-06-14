@@ -1,0 +1,122 @@
+blueprint:
+  name: Turn Light On 50% Script (0.1.0)
+  description: >
+    Smart script to turn on lights based on automation bypass and device availability.
+    If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
+    If OFF, the script checks if any lights in 'lights_to_check' are unavailable for over 1 minute,
+    and if so, sets a Z-Wave parameter before turning on the specified switch.
+  domain: script
+  homeassistant:
+    min_version: 2025.6.0
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_on_50_script.yaml
+  author: Jeremy Crews
+  input:
+    automation_bypass:
+      name: Automation Bypass
+      description: >
+        When ON, bypasses availability checks and disables automation logic.
+      selector:
+        entity:
+          domain: input_boolean
+    lights_to_check:
+      name: Lights to check for "unavailable"
+      selector:
+        entity:
+          domain: light
+          multiple: true
+    light_switch:
+      name: Light Switch
+      selector:
+        target:
+          entity:
+            domain: light
+    light_group:
+      name: Light Group
+      selector:
+        target:
+          entity:
+            domain: light
+    zwave_device_id:
+      name: Z-Wave Device ID
+      description: Device ID for setting Z-Wave parameters
+      selector:
+        device:
+          filter:
+            integration: zwave_js
+    zwave_config_delay:
+      name: Z-Wave Config Delay
+      description: Time to wait after turning on the light before resetting Z-Wave mode
+      default: 2
+      selector:
+        number:
+          min: 1
+          max: 10
+          unit_of_measurement: seconds
+          mode: slider
+mode: restart
+sequence:
+  - variables:
+      unavailable_detected: false
+  - repeat:
+      for_each: !input lights_to_check
+      sequence:
+        - condition: template
+          value_template: >
+            {{ is_state(repeat.item, 'unavailable') and
+              (now() - states[repeat.item].last_changed).total_seconds() > 60 }}
+        - variables:
+            unavailable_detected: true
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input automation_bypass
+            state: "off"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ unavailable_detected }}"
+                sequence:
+                  - action: zwave_js.set_config_parameter
+                    data:
+                      parameter: 52
+                      value: 0
+                      endpoint: 0
+                    target:
+                      device_id: !input zwave_device_id
+
+                  - action: light.turn_on
+                    target: !input light_switch
+
+                  - delay:
+                      seconds: !input zwave_config_delay
+
+                  - action: zwave_js.set_config_parameter
+                    data:
+                      parameter: 52
+                      value: 1
+                      endpoint: 0
+                    target:
+                      device_id: !input zwave_device_id
+            default:
+              - if:
+                  - condition: state
+                    entity_id: switch.circadian_lighting_loft
+                    state: "on"
+                then:
+                  - action: light.turn_on
+                    data:
+                      color_temp_kelvin: >
+                        {{ state_attr('sensor.circadian_values', 'colortemp') | int }}
+                      brightness_pct: 50
+                    target: !input light_group
+                else:
+                  - action: light.turn_on
+                    data:
+                      brightness_pct: 50
+                      color_temp_kelvin: 6500
+                    target: !input light_group
+              - action: light.turn_on
+                data:
+                  brightness_pct: 50
+                target: !input light_switch
