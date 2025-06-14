@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light Off Script (0.1.2)
+  name: Turn Light Off Script (1.0.0)
   description: >
     Smart script to turn off lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not effected by the automation.
@@ -45,14 +45,11 @@ blueprint:
         device:
           filter:
             integration: zwave_js
-
 mode: restart  # ensures restarts cleanly if triggered again before completion
-
 sequence:
   # Initialize a variable to track if any light is unavailable
   - variables:
       unavailable_detected: false
-
   # Loop through each light in the list and check if it's been unavailable for 1 minute
   - repeat:
       for_each: !input lights_to_check
@@ -63,7 +60,6 @@ sequence:
               (now() - states[repeat.item].last_changed).total_seconds() > 60 }}
         - variables:
             unavailable_detected: true
-
   # Main logic branching
   - choose:
       # If automation bypass is OFF, run conditional logic
@@ -86,7 +82,6 @@ sequence:
                       endpoint: 0
                     target:
                       device_id: !input zwave_device_id
-
                   # Turn off the light switch
                   - service: light.turn_off
                     target: !input light_switch
