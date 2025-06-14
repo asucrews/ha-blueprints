@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light On Script (0.1.1)
+  name: Turn Light On Script (1.0.0)
   description: >
     Smart script to turn on lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
