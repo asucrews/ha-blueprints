@@ -55,12 +55,12 @@ sequence:
   - repeat:
       for_each: !input lights_to_check
       sequence:
-        - condition: state
-          entity_id: "{{ repeat.item }}"
-          state: unavailable
-          for: "00:01:00"
+        - condition: template
+          value_template: >
+            {{ is_state(repeat.item, 'unavailable') and
+              (now() - states[repeat.item].last_changed).total_seconds() > 60 }}
         - variables:
-            unavailable_detected: true  # If any match, set this to true
+            unavailable_detected: true
 
   # Main logic branching
   - choose:
