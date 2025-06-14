@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light On Script (0.1.0)
+  name: Turn Light On Script (0.1.1)
   description: >
     Smart script to turn on lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
@@ -52,6 +52,17 @@ blueprint:
           min: 1
           max: 10
           unit_of_measurement: seconds
+          mode: slider
+    brightness_pct:
+      name: Brightness Level
+      description: >
+        Set the brightness percentage for lights. Defaults to 100% if not specified.
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
           mode: slider
 mode: restart
 sequence:
@@ -108,15 +119,15 @@ sequence:
                     data:
                       color_temp_kelvin: >
                         {{ state_attr('sensor.circadian_values', 'colortemp') | int }}
-                      brightness_pct: 100
+                      brightness_pct: !input brightness_pct
                     target: !input light_group
                 else:
                   - action: light.turn_on
                     data:
-                      brightness_pct: 100
+                      brightness_pct: !input brightness_pct
                       color_temp_kelvin: 6500
                     target: !input light_group
               - action: light.turn_on
                 data:
-                  brightness_pct: 100
+                  brightness_pct: !input brightness_pct
                 target: !input light_switch
