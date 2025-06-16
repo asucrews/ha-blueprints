@@ -1,9 +1,10 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.3.0)
+  name: Lights Based on Sun (Twilight Redundancy) (0.3.1)
   description: >
     Turns lights on after sunset and off at sunrise using three twilight thresholds
     for both ON and OFF to ensure redundancy. Also restores lights if manually turned off at night.
   domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lights_sunset/lights_at_sunset.yaml
   input:
     front_lights:
       name: Front Door Lights
