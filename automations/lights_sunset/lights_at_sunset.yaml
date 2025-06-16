@@ -1,18 +1,19 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.4.0)
+  name: Lights Based on Sun (Twilight Redundancy) (0.4.1)
   description: >
     Turns lights on after sunset and off at sunrise using three twilight thresholds
     for both ON and OFF to ensure redundancy. Also restores lights if manually turned off at night.
   domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lights_sunset/lights_at_sunset.yaml
   input:
     front_lights:
-      name: Front Door Lights (target for service calls)
+      name: Front Door Lights
       selector:
         target:
           entity:
             domain: light
     garage_lights:
-      name: Garage Door Lights (target for service calls)
+      name: Garage Door Lights
       selector:
         target:
           entity:
@@ -24,18 +25,6 @@ blueprint:
         target:
           entity:
             domain: light
-    front_lights_entities:
-      name: Front Door Light Entities (for triggers)
-      selector:
-        entity:
-          domain: light
-          multiple: true
-    garage_lights_entities:
-      name: Garage Door Light Entities (for triggers)
-      selector:
-        entity:
-          domain: light
-          multiple: true
     sun_sensor:
       name: Sun Solar Rising Sensor
       default: sensor.sun_solar_rising
@@ -66,7 +55,6 @@ trigger:
     attribute: elevation
     below: -18
     id: astro_twilight_on
-
   # SUNRISE PHASES (Redundant OFF triggers)
   - platform: numeric_state
     entity_id: sun.sun
@@ -83,14 +71,13 @@ trigger:
     attribute: elevation
     above: -6
     id: civil_twilight_off
-
   # Manual light off triggers (restore during night)
   - platform: state
-    entity_id: !input front_lights_entities
+    entity_id: !input front_lights
     to: "off"
     id: front_door_manual_off
   - platform: state
-    entity_id: !input garage_lights_entities
+    entity_id: !input garage_lights
     to: "off"
     id: garage_door_manual_off
 
@@ -106,64 +93,11 @@ action:
           - condition: template
             value_template: "{{ is_state(inputs.sun_sensor, 'False') }}"
         sequence:
-          - service: light.turn_on
-            target: !input front_lights
-          - service: light.turn_on
-            target: !input garage_lights
-          - condition: template
-            value_template: >
-              {{ expand(inputs.string_lights) | selectattr('state', 'eq', 'off') | list | count > 0 }}
-          - service: light.turn_on
+          - action: light.turn_on
+            target: !input light_target
+          - action: light.turn_on
             data:
               brightness_pct: 100
               color_temp_kelvin: 6500
             target: !input string_lights
-
-      # === LIGHTS OFF at sunrise (redundant triggers) ===
-      - conditions:
-          - condition: trigger
-            id:
-              - civil_twilight_off
-              - nautical_twilight_off
-              - astro_twilight_off
-          - condition: template
-            value_template: "{{ is_state(inputs.sun_sensor, 'True') }}"
-        sequence:
-          - service: light.turn_off
-            target: !input front_lights
-          - service: light.turn_off
-            target: !input garage_lights
-          - service: light.turn_off
-            target: !input string_lights
-
-      # === FRONT LIGHTS RESTORE at night ===
-      - conditions:
-          - condition: trigger
-            id: front_door_manual_off
-          - condition: state
-            entity_id: !input sun_phase_sensor
-            state: "night"
-        sequence:
-          - service: light.turn_on
-            target: !input front_lights
-          - condition: template
-            value_template: >
-              {{ expand(inputs.string_lights) | selectattr('state', 'eq', 'off') | list | count > 0 }}
-          - service: light.turn_on
-            data:
-              brightness_pct: 100
-              color_temp_kelvin: 6500
-            target: !input string_lights
-
-      # === GARAGE LIGHTS RESTORE at night ===
-      - conditions:
-          - condition: trigger
-            id: garage_door_manual_off
-          - condition: state
-            entity_id: !input sun_phase_sensor
-            state: "night"
-        sequence:
-          - service: light.turn_on
-            target: !input garage_lights
-
 mode: single
