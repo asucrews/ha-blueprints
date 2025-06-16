@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.4.1)
+  name: Lights Based on Sun (Twilight Redundancy) (0.4.2)
   description: >
     Turns lights on after sunset and off at sunrise using three twilight thresholds
     for both ON and OFF to ensure redundancy. Also restores lights if manually turned off at night.
@@ -94,7 +94,7 @@ action:
             value_template: "{{ is_state(inputs.sun_sensor, 'False') }}"
         sequence:
           - action: light.turn_on
-            target: !input light_target
+            target: !input front_lights
           - action: light.turn_on
             data:
               brightness_pct: 100
