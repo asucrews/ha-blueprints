@@ -1,10 +1,13 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.4.3)
-  description: >
-    Turns lights on after sunset and off at sunrise using three twilight thresholds
-    for both ON and OFF to ensure redundancy. Also restores lights if manually turned off at night.
+  name: Lights Based on Sun (Twilight Redundancy) (0.4.4)
+  description:
+    "Turns lights on after sunset and off at sunrise using three twilight
+    thresholds for both ON and OFF to ensure redundancy. Also restores lights if manually
+    turned off at night.
+
+    "
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lights_sunset/lights_at_sunset.yaml
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/refs/heads/main/automations/lights_sunset/lights_at_sunset.yaml
   input:
     front_lights:
       name: Front Door Lights
@@ -12,14 +15,14 @@ blueprint:
         entity:
           domain:
             - light
-          multiple: false
+          multiple: true
     garage_lights:
       name: Garage Door Lights
       selector:
         entity:
           domain:
             - light
-          multiple: false
+          multiple: true
     string_lights:
       name: String Lights (Optional)
       default: []
@@ -27,24 +30,24 @@ blueprint:
         entity:
           domain:
             - light
-          multiple: false
+          multiple: true
     sun_sensor:
       name: Sun Solar Rising Sensor
       default: sensor.sun_solar_rising
       selector:
         entity:
-          domain: 
-           - sensor
+          domain:
+            - sensor
+          multiple: false
     sun_phase_sensor:
       name: Home Sun Phase Sensor
       default: sensor.home_sun_phase
       selector:
         entity:
           domain:
-           - sensor
-
+            - sensor
+          multiple: false
 trigger:
-  # SUNSET PHASES (Redundant ON triggers)
   - platform: numeric_state
     entity_id: sun.sun
     attribute: elevation
@@ -60,7 +63,6 @@ trigger:
     attribute: elevation
     below: -18
     id: astro_twilight_on
-  # SUNRISE PHASES (Redundant OFF triggers)
   - platform: numeric_state
     entity_id: sun.sun
     attribute: elevation
@@ -76,7 +78,6 @@ trigger:
     attribute: elevation
     above: -6
     id: civil_twilight_off
-  # Manual light off triggers (restore during night)
   - platform: state
     entity_id: !input front_lights
     to: "off"
@@ -85,10 +86,8 @@ trigger:
     entity_id: !input garage_lights
     to: "off"
     id: garage_door_manual_off
-
 action:
   - choose:
-      # === LIGHTS ON at sunset (redundant triggers) ===
       - conditions:
           - condition: trigger
             id:
