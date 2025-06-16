@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.4.2)
+  name: Lights Based on Sun (Twilight Redundancy) (0.4.3)
   description: >
     Turns lights on after sunset and off at sunrise using three twilight thresholds
     for both ON and OFF to ensure redundancy. Also restores lights if manually turned off at night.
@@ -73,11 +73,13 @@ trigger:
     id: civil_twilight_off
   # Manual light off triggers (restore during night)
   - platform: state
-    entity_id: !input front_lights
+    entity_id: 
+      - !input front_lights
     to: "off"
     id: front_door_manual_off
   - platform: state
-    entity_id: !input garage_lights
+    entity_id: 
+      - !input garage_lights
     to: "off"
     id: garage_door_manual_off
 
