@@ -9,34 +9,39 @@ blueprint:
     front_lights:
       name: Front Door Lights
       selector:
-        target:
-          entity:
-            domain: light
+        entity:
+          domain:
+            - light
+          multiple: false
     garage_lights:
       name: Garage Door Lights
       selector:
-        target:
-          entity:
-            domain: light
+        entity:
+          domain:
+            - light
+          multiple: false
     string_lights:
       name: String Lights (Optional)
       default: []
       selector:
-        target:
-          entity:
-            domain: light
+        entity:
+          domain:
+            - light
+          multiple: false
     sun_sensor:
       name: Sun Solar Rising Sensor
       default: sensor.sun_solar_rising
       selector:
         entity:
-          domain: sensor
+          domain: 
+           - sensor
     sun_phase_sensor:
       name: Home Sun Phase Sensor
       default: sensor.home_sun_phase
       selector:
         entity:
-          domain: sensor
+          domain:
+           - sensor
 
 trigger:
   # SUNSET PHASES (Redundant ON triggers)
