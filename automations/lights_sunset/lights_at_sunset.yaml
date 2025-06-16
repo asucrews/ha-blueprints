@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.3.1)
+  name: Lights Based on Sun (Twilight Redundancy) (0.3.2)
   description: >
     Turns lights on after sunset and off at sunrise using three twilight thresholds
     for both ON and OFF to ensure redundancy. Also restores lights if manually turned off at night.
@@ -55,7 +55,6 @@ trigger:
     attribute: elevation
     below: -18
     id: astro_twilight_on
-
   # SUNRISE PHASES (Redundant OFF triggers)
   - platform: numeric_state
     entity_id: sun.sun
@@ -72,7 +71,6 @@ trigger:
     attribute: elevation
     above: -6
     id: civil_twilight_off
-
   # Manual light off triggers (restore during night)
   - platform: state
     entity_id: !input front_lights
@@ -95,22 +93,21 @@ action:
           - condition: template
             value_template: "{{ is_state(inputs.sun_sensor, 'False') }}"
         sequence:
-          - service: light.turn_on
+          - action: light.turn_on
             target:
               entity_id: !input front_lights
-          - service: light.turn_on
+          - action: light.turn_on
             target:
               entity_id: !input garage_lights
           - condition: template
             value_template: >
               {{ expand(inputs.string_lights) | selectattr('state', 'eq', 'off') | list | count > 0 }}
-          - service: light.turn_on
+          - action: light.turn_on
             data:
               brightness_pct: 100
               color_temp_kelvin: 6500
             target:
               entity_id: !input string_lights
-
       # === LIGHTS OFF at sunrise (redundant triggers) ===
       - conditions:
           - condition: trigger
@@ -121,13 +118,12 @@ action:
           - condition: template
             value_template: "{{ is_state(inputs.sun_sensor, 'True') }}"
         sequence:
-          - service: light.turn_off
+          - action: light.turn_off
             target:
               entity_id:
                 - !input front_lights
                 - !input garage_lights
                 - !input string_lights
-
       # === FRONT LIGHTS RESTORE at night ===
       - conditions:
           - condition: trigger
@@ -136,19 +132,18 @@ action:
             entity_id: !input sun_phase_sensor
             state: "night"
         sequence:
-          - service: light.turn_on
+          - action: light.turn_on
             target:
               entity_id: !input front_lights
           - condition: template
             value_template: >
               {{ expand(inputs.string_lights) | selectattr('state', 'eq', 'off') | list | count > 0 }}
-          - service: light.turn_on
+          - action: light.turn_on
             data:
               brightness_pct: 100
               color_temp_kelvin: 6500
             target:
               entity_id: !input string_lights
-
       # === GARAGE LIGHTS RESTORE at night ===
       - conditions:
           - condition: trigger
@@ -157,8 +152,7 @@ action:
             entity_id: !input sun_phase_sensor
             state: "night"
         sequence:
-          - service: light.turn_on
+          - action: light.turn_on
             target:
               entity_id: !input garage_lights
-
 mode: single
