@@ -3,9 +3,7 @@ blueprint:
   description:
     "Turns lights on after sunset and off at sunrise using three twilight
     thresholds for both ON and OFF to ensure redundancy. Also restores lights if manually
-    turned off at night.
-
-    "
+    turned off at night."
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/refs/heads/main/automations/lights_sunset/lights_at_sunset.yaml
   input:
