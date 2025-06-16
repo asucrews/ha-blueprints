@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.4.6)
+  name: Lights Based on Sun (Twilight Redundancy) (0.4.7)
   description:
     "Turns lights on after sunset and off at sunrise using three twilight
     thresholds for both ON and OFF to ensure redundancy. Also restores lights if manually
@@ -123,9 +123,11 @@ action:
           - action: light.turn_off
             metadata: {}
             data: {}
-            target: !input garage_lights
+            target: 
+              entity_id: !input garage_lights
           - action: light.turn_off
             metadata: {}
             data: {}
-            target: !input string_lights
+            target:
+              entity_id: !input string_lights
 mode: single
