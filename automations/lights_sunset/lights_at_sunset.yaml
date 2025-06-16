@@ -73,13 +73,11 @@ trigger:
     id: civil_twilight_off
   # Manual light off triggers (restore during night)
   - platform: state
-    entity_id: 
-      - !input front_lights
+    entity_id: !input front_lights
     to: "off"
     id: front_door_manual_off
   - platform: state
-    entity_id: 
-      - !input garage_lights
+    entity_id: !input garage_lights
     to: "off"
     id: garage_door_manual_off
 
