@@ -119,7 +119,8 @@ action:
           - action: light.turn_off
             metadata: {}
             data: {}
-            target: !input front_lights
+            target:
+              entity_id: !input front_lights
           - action: light.turn_off
             metadata: {}
             data: {}
