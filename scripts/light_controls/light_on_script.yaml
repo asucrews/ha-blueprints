@@ -43,7 +43,9 @@ blueprint:
       selector:
         target:
           entity:
-            domain: fan
+            domain: 
+              - fan
+              - light
     zwave_device_id:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
