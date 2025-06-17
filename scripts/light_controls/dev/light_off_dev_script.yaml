@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light Off Script (1.1.0)
+  name: Dev Turn Light Off Script (1.1.0)
   description: >
     Smart script to turn off lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not effected by the automation.
