@@ -1,0 +1,96 @@
+blueprint:
+  name: Auto Lock Door When Closed (0.1.0)
+  description: >
+    Automatically locks a door 5 seconds after it's unlocked if the door is closed.
+    If the door is open, it starts a timer and will lock once the timer finishes and the door is closed.
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management_new.yaml
+  input:
+    door_lock:
+      name: Door Lock
+      description: The smart lock on the door.
+      selector:
+        entity:
+          domain: lock
+    door_sensor:
+      name: Door Sensor
+      description: Binary sensor that detects if the door is open.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+    lock_timer:
+      name: Lock Timer
+      description: The timer to delay auto-locking when door is open.
+      selector:
+        entity:
+          domain: timer
+trigger:
+  - platform: state
+    entity_id: !input door_lock
+    to: "unlocked"
+    id: Unlocked
+    for:
+      seconds: 5
+  - platform: state
+    entity_id: !input door_lock
+    to: "locked"
+    id: Locked
+    for:
+      seconds: 5
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input lock_timer
+    id: Door timer is done
+action:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: Unlocked
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input door_sensor
+                    state: "on"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: !input lock_timer
+              - conditions:
+                  - condition: state
+                    entity_id: !input door_sensor
+                    state: "off"
+                sequence:
+                  - service: lock.lock
+                    target:
+                      entity_id: !input door_lock
+                  - service: timer.cancel
+                    target:
+                      entity_id: !input lock_timer
+      - conditions:
+          - condition: trigger
+            id: Door timer is done
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input door_sensor
+                    state: "off"
+                sequence:
+                  - service: lock.lock
+                    target:
+                      entity_id: !input door_lock
+                  - service: timer.cancel
+                    target:
+                      entity_id: !input lock_timer
+              - conditions:
+                  - condition: state
+                    entity_id: !input door_sensor
+                    state: "on"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: !input lock_timer
+mode: single
