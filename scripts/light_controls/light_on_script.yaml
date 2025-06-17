@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light On Script (1.1.0)
+  name: Turn Light On Script (1.1.1)
   description: >
     Smart script to turn on lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
@@ -37,6 +37,13 @@ blueprint:
         target:
           entity:
             domain: light
+    fan:
+      name: Fan
+      default: []
+      selector:
+        target:
+          entity:
+            domain: fan
     zwave_device_id:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
@@ -96,13 +103,16 @@ sequence:
                       endpoint: 0
                     target:
                       device_id: !input zwave_device_id
-
                   - action: light.turn_on
                     target: !input light_switch
-
+                  - if:
+                      - condition: template
+                        value_template: "{{ (!input fan).entity_id is defined and (!input fan).entity_id | length > 0 }}"
+                    then:
+                      - action: fan.turn_on
+                        target: !input fan
                   - delay:
                       seconds: !input zwave_config_delay
-
                   - action: zwave_js.set_config_parameter
                     data:
                       parameter: 52
@@ -132,3 +142,9 @@ sequence:
                 data:
                   brightness_pct: !input brightness_pct
                 target: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ (!input fan).entity_id is defined and (!input fan).entity_id | length > 0 }}"
+                then:
+                  - action: fan.turn_on
+                    target: !input fan
