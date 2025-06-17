@@ -99,8 +99,10 @@ sequence:
                       - condition: template
                         value_template: "{{ fan_entity | length > 0 }}"
                     then:
-                      - action: fan.turn_on
-                        target: !input fan
+                      - action: homeassistant.turn_off
+                        target:
+                          entity_id: !input fan
+                        data: {}
 
             # If no unavailable lights, just turn off the light switch
             default:
@@ -112,5 +114,7 @@ sequence:
                   - condition: template
                     value_template: "{{ fan_entity | length > 0 }}"
                 then:
-                  - action: fan.turn_on
-                    target: !input fan
+                  - action: homeassistant.turn_off
+                    target:
+                      entity_id: !input fan
+                    data: {}
