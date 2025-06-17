@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light Off Script (1.1.0)
+  name: Turn Light Off Script (1.2.0)
   description: >
     Smart script to turn off lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not effected by the automation.
@@ -38,7 +38,13 @@ blueprint:
         target:
           entity:
             domain: light
-
+    fan:
+      name: Fan
+      default: []
+      selector:
+        target:
+          entity:
+            domain: fan
     zwave_device_id:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
@@ -51,6 +57,7 @@ sequence:
   # Initialize a variable to track if any light is unavailable
   - variables:
       unavailable_detected: false
+      fan_entity: !input fan
   # Loop through each light in the list and check if it's been unavailable for 1 minute
   - repeat:
       for_each: !input lights_to_check
@@ -86,6 +93,13 @@ sequence:
                   # Turn off the light switch
                   - service: light.turn_off
                     target: !input light_switch
+                  - if:
+                      - condition: template
+                        value_template: "{{ fan_entity | length > 0 }}"
+                    then:
+                      - action: fan.turn_on
+                        target:
+                          entity_id: !input fan
 
             # If no unavailable lights, just turn off the light switch
             default:
@@ -93,3 +107,10 @@ sequence:
                 target: !input light_group
               - service: light.turn_off
                 target: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ fan_entity | length > 0 }}"
+                then:
+                  - action: fan.turn_on
+                    target:
+                      entity_id: !input fan
