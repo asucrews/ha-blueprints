@@ -1,9 +1,9 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (0.4.10)
+  name: Lights Based on Sun (Twilight Redundancy) (1.0.0)
   description:
-    "Turns lights on after sunset and off at sunrise using three twilight
+    Turns lights on after sunset and off at sunrise using three twilight
     thresholds for both ON and OFF to ensure redundancy. Also restores lights if manually
-    turned off at night."
+    turned off at night.
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/refs/heads/main/automations/lights_sunset/lights_at_sunset.yaml
   input:
@@ -92,8 +92,9 @@ action:
               - civil_twilight_on
               - nautical_twilight_on
               - astro_twilight_on
-          - condition: template
-            value_template: "{{ is_state(inputs.sun_sensor, 'False') }}"
+          - condition: state
+            state: "false"
+            entity_id: !input sun_sensor
         sequence:
           - action: light.turn_on
             metadata: {}
@@ -107,14 +108,14 @@ action:
             data:
               brightness_pct: 100
               color_temp_kelvin: 6500
-            target: 
+            target:
               entity_id: !input string_lights
           - action: light.turn_on
             metadata: {}
             data:
               brightness_pct: 100
               color_temp_kelvin: 6500
-            target: 
+            target:
               entity_id: !input garage_lights
       - conditions:
           - condition: trigger
@@ -122,8 +123,9 @@ action:
               - civil_twilight_off
               - nautical_twilight_off
               - astro_twilight_off
-          - condition: template
-            value_template: "{{ is_state(inputs.sun_sensor, 'True') }}"
+          - condition: state
+            state: "true"
+            entity_id: !input sun_sensor
         sequence:
           - action: light.turn_off
             metadata: {}
@@ -138,14 +140,14 @@ action:
           - action: light.turn_off
             metadata: {}
             data: {}
-            target: 
+            target:
               entity_id: !input garage_lights
       - conditions:
           - condition: trigger
             id: front_door_manual_off
           - condition: state
             entity_id: !input sun_phase_sensor
-            state: "night"
+            state: night
         sequence:
           - action: light.turn_on
             metadata: {}
@@ -166,13 +168,13 @@ action:
             id: garage_door_manual_off
           - condition: state
             entity_id: !input sun_phase_sensor
-            state: "night"
+            state: night
         sequence:
           - action: light.turn_on
             metadata: {}
             data:
               brightness_pct: 100
               color_temp_kelvin: 6500
-            target: 
+            target:
               entity_id: !input garage_lights
 mode: single
