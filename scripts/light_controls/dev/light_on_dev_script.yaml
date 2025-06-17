@@ -107,7 +107,7 @@ sequence:
                     target: !input light_switch
                   - if:
                       - condition: template
-                        value_template: "{{ (target.fan.entity_id | length > 0 }}"
+                        value_template: "{{ target.fan.entity_id | length > 0 }}"
                     then:
                       - action: fan.turn_on
                         target:
@@ -145,7 +145,7 @@ sequence:
                 target: !input light_switch
               - if:
                   - condition: template
-                    value_template: "{{ (target.fan.entity_id | length > 0 }}"
+                    value_template: "{{ target.fan.entity_id | length > 0 }}"
                 then:
                   - action: fan.turn_on
                     target:
