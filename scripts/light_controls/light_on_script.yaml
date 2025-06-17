@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light On Script (1.1.1)
+  name: Turn Light On Script (1.1.2)
   description: >
     Smart script to turn on lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
@@ -107,7 +107,7 @@ sequence:
                     target: !input light_switch
                   - if:
                       - condition: template
-                        value_template: "{{ (!input fan).entity_id is defined and (!input fan).entity_id | length > 0 }}"
+                        value_template: "{{ (target.fan.entity_id | default([])) | length > 0 }}"
                     then:
                       - action: fan.turn_on
                         target: !input fan
@@ -144,7 +144,7 @@ sequence:
                 target: !input light_switch
               - if:
                   - condition: template
-                    value_template: "{{ (!input fan).entity_id is defined and (!input fan).entity_id | length > 0 }}"
+                    value_template: "{{ (target.fan.entity_id | default([])) | length > 0 }}"
                 then:
                   - action: fan.turn_on
                     target: !input fan
