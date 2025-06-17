@@ -8,7 +8,7 @@ blueprint:
   domain: script
   homeassistant:
     min_version: 2025.6.0
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_on_script.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_on_dev_script.yaml
   author: Jeremy Crews
   input:
     automation_bypass:
@@ -105,6 +105,13 @@ sequence:
                       device_id: !input zwave_device_id
                   - action: light.turn_on
                     target: !input light_switch
+                  - if:
+                      - condition: template
+                        value_template: "{{ (target.fan.entity_id | length > 0 }}"
+                    then:
+                      - action: fan.turn_on
+                        target:
+                          entity_id: "{{ target.fan.entity_id }}"
                   - delay:
                       seconds: !input zwave_config_delay
                   - action: zwave_js.set_config_parameter
@@ -136,3 +143,10 @@ sequence:
                 data:
                   brightness_pct: !input brightness_pct
                 target: !input light_switch
+              - if:
+                  - condition: template
+                    value_template: "{{ (target.fan.entity_id | length > 0 }}"
+                then:
+                  - action: fan.turn_on
+                    target:
+                      entity_id: "{{ target.fan.entity_id }}"
