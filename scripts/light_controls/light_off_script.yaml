@@ -100,8 +100,7 @@ sequence:
                         value_template: "{{ fan_entity | length > 0 }}"
                     then:
                       - action: fan.turn_on
-                        target:
-                          entity_id: !input fan
+                        target: !input fan
 
             # If no unavailable lights, just turn off the light switch
             default:
@@ -114,5 +113,4 @@ sequence:
                     value_template: "{{ fan_entity | length > 0 }}"
                 then:
                   - action: fan.turn_on
-                    target:
-                      entity_id: !input fan
+                    target: !input fan

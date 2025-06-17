@@ -113,8 +113,7 @@ sequence:
                         value_template: "{{ fan_entity | length > 0 }}"
                     then:
                       - action: fan.turn_on
-                        target:
-                          entity_id: !input fan
+                        target: !input fan
                   - delay:
                       seconds: !input zwave_config_delay
                   - action: zwave_js.set_config_parameter
@@ -151,5 +150,4 @@ sequence:
                     value_template: "{{ fan_entity | length > 0 }}"
                 then:
                   - action: fan.turn_on
-                    target:
-                      entity_id: !input fan
+                    target: !input fan
