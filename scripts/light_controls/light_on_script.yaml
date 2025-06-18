@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light On Script (1.2.0)
+  name: Turn Light On Script (2.0.0)
   description: >
     Smart script to turn on lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
@@ -13,79 +13,98 @@ blueprint:
   input:
     automation_bypass:
       name: Automation Bypass
-      description: >
-        When ON, bypasses availability checks and disables automation logic.
+      description:
+        "When ON, bypasses availability checks and disables automation
+        logic."
       selector:
         entity:
-          domain: input_boolean
+          domain:
+            - input_boolean
+          multiple: false
     lights_to_check:
       name: Lights to check for "unavailable"
       default: []
       selector:
         entity:
-          domain: light
+          domain:
+            - light
           multiple: true
     light_switch:
       name: Light Switch
       selector:
         target:
           entity:
-            domain: light
+            - domain:
+                - light
     light_group:
       name: Light Group
       selector:
         target:
           entity:
-            domain: light
+            - domain:
+                - light
     fan:
       name: Fan
       default: []
       selector:
         target:
           entity:
-            domain: 
-              - fan
-              - light
+            - domain:
+                - fan
+                - light
     zwave_device_id:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
       selector:
         device:
           filter:
-            integration: zwave_js
+            - integration: zwave_js
+          multiple: false
     zwave_config_delay:
       name: Z-Wave Config Delay
-      description: Time to wait after turning on the light before resetting Z-Wave mode
+      description:
+        Time to wait after turning on the light before resetting Z-Wave
+        mode
       default: 2
       selector:
         number:
-          min: 1
-          max: 10
+          min: 1.0
+          max: 10.0
           unit_of_measurement: seconds
           mode: slider
+          step: 1.0
     brightness_pct:
       name: Brightness Level
-      description: >
-        Set the brightness percentage for lights. Defaults to 100% if not specified.
+      description:
+        "Set the brightness percentage for lights. Defaults to 100% if
+        not specified."
       default: 100
       selector:
         number:
-          min: 1
-          max: 100
+          min: 1.0
+          max: 100.0
           unit_of_measurement: "%"
           mode: slider
-mode: restart
+          step: 1.0
+
+variables:
+  fan_switch: !input fan
+  fan_enitiy_id: >
+    {% if fan_switch | length > 0  %}
+      {{ fan_switch }}
+    {% else %}
+      "fan.none"
+    {% endif %}
 sequence:
   - variables:
       unavailable_detected: false
-      fan_entity: !input fan
   - repeat:
       for_each: !input lights_to_check
       sequence:
         - condition: template
-          value_template: >
-            {{ is_state(repeat.item, 'unavailable') and
-              (now() - states[repeat.item].last_changed).total_seconds() > 60 }}
+          value_template:
+            "{{ is_state(repeat.item, 'unavailable') and\n  (now() - states[repeat.item].last_changed).total_seconds()
+            > 60 }}\n"
         - variables:
             unavailable_detected: true
   - choose:
@@ -110,12 +129,10 @@ sequence:
                     target: !input light_switch
                   - if:
                       - condition: template
-                        value_template: "{{ fan_entity | length > 0 }}"
+                        value_template: "{{ fan_switch | length > 0 }}"
                     then:
                       - action: homeassistant.turn_on
-                        target:
-                          entity_id: !input fan
-                        data: {}
+                        target: "{{ fan_enitiy_id }}"
                   - delay:
                       seconds: !input zwave_config_delay
                   - action: zwave_js.set_config_parameter
@@ -133,8 +150,9 @@ sequence:
                 then:
                   - action: light.turn_on
                     data:
-                      color_temp_kelvin: >
-                        {{ state_attr('sensor.circadian_values', 'colortemp') | int }}
+                      color_temp_kelvin:
+                        "{{ state_attr('sensor.circadian_values', 'colortemp')
+                        | int }}"
                       brightness_pct: !input brightness_pct
                     target: !input light_group
                 else:
@@ -149,9 +167,7 @@ sequence:
                 target: !input light_switch
               - if:
                   - condition: template
-                    value_template: "{{ fan_entity | length > 0 }}"
+                    value_template: "{{ fan_switch | length > 0 }}"
                 then:
                   - action: homeassistant.turn_on
-                    target:
-                      entity_id: !input fan
-                    data: {}
+                    target: "{{ fan_enitiy_id }}"

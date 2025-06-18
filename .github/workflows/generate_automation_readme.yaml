@@ -28,7 +28,7 @@ jobs:
           python -m pip install --upgrade pip
 
       - name: Run update script
-        run: python scripts/generate_automation_readme.py
+        run: python python/generate_automation_readme.py
 
       - name: Check for changes
         id: changes
