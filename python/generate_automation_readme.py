@@ -54,7 +54,7 @@ def generate_readme_content(blueprints):
     ]
 
     for name, path, date, import_url, shield_url in blueprints:
-        readme_lines.append(f'- [{name}](./{path}) (Last updated: {date}) [![Import Blueprint]({shield_url})]({import_url})\n')
+        readme_lines.append(f'- [{name}](../{path}) (Last updated: {date}) [![Import Blueprint]({shield_url})]({import_url})\n')
     
     readme_lines.extend([
         "\n",
