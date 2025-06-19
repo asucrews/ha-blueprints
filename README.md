@@ -18,8 +18,10 @@ Blueprints for Home Assistant
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
 - [Ratdgo 2.5i](https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md) (Last updated: 2024-08-02)
+- [Lights At Sunset](https://github.com/asucrews/ha-blueprints/blob/main/automations/lights_sunset/lights_at_sunset/README.md) (Last updated: 2025-06-16)
 - [Car Tag](https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag/README.md) (Last updated: 2024-08-02)
-- [Lock Management](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management/README.md) (Last updated: 2024-08-02)
+- [Lock Management New](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management_new/README.md) (Last updated: 2025-06-16)
+- [Lock Management Old](https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management_old/README.md) (Last updated: 2025-06-16)
 - [Flair](https://github.com/asucrews/ha-blueprints/blob/main/automations/smart_vents/flair/README.md) (Last updated: 2024-08-02)
 - [Ha Restart](https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart/README.md) (Last updated: 2024-08-02)
 - [6 Speed Fan](https://github.com/asucrews/ha-blueprints/blob/main/automations/esp360_remote/6_speed_fan/README.md) (Last updated: 2024-08-02)
