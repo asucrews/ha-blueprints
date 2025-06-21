@@ -1,5 +1,5 @@
 blueprint:
-  name: Turn Light On Script (2.0.1)
+  name: Turn Light On Script (3.0.0)
   description: >
     Smart script to turn on lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
@@ -93,10 +93,11 @@ variables:
   light_switch: !input light_switch
   light_group: !input light_group
   fan_switch: !input fan
-  zwave_device_id: !input zwave_device_id
+  zwave_switch: !input zwave_switch
   light_switch_entity_id: "{{ light_switch.entity_id if 'entity_id' in light_switch else 'light.none' }}"
   light_group_entity_id: "{{ light_group.entity_id if 'entity_id' in light_group else 'light.none' }}"
   fan_entity_id: "{{ fan_switch.entity_id if 'entity_id' in fan_switch else 'fan.none' }}"
+  zwave_device_id: "{{ zwave_switch.device_id if 'device_id' in zwave_switch else '00000000000000000000000000000000'}}"
 
 sequence:
   - variables:
@@ -123,36 +124,47 @@ sequence:
                   - condition: template
                     value_template: "{{ unavailable_detected }}"
                 sequence:
-                  - service: zwave_js.set_config_parameter
-                    data:
-                      parameter: 52
-                      value: 0
-                      endpoint: 0
-                    target:
-                      device_id: "{{ zwave_device_id }}"
-
-                  - service: light.turn_on
-                    target:
-                      entity_id: "{{ light_group_entity_id }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ zwave_device_id != '00000000000000000000000000000000' }}"
+                    then:
+                      - action: zwave_js.set_config_parameter
+                        data:
+                          parameter: 52
+                          value: 0
+                          endpoint: 0
+                        target:
+                          device_id: "{{ zwave_device_id }}"
 
                   - if:
                       - condition: template
-                        value_template: "{{ fan_switch | length > 0 }}"
+                        value_template: "{{ light_group_entity_id != 'light.none' }}"
                     then:
-                      - service: homeassistant.turn_on
+                      - action: light.turn_on
+                        target:
+                          entity_id: "{{ light_group_entity_id }}"
+
+                  - if:
+                      - condition: template
+                        value_template: "{{ fan_entity_id != 'fan.none' }}"
+                    then:
+                      - action: homeassistant.turn_on
                         target:
                           entity_id: "{{ fan_entity_id }}"
 
-                  - delay:
-                      seconds: !input zwave_config_delay
-
-                  - service: zwave_js.set_config_parameter
-                    data:
-                      parameter: 52
-                      value: 1
-                      endpoint: 0
-                    target:
-                      device_id: "{{ zwave_device_id }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ zwave_device_id != '00000000000000000000000000000000' }}"
+                    then:
+                      - delay:
+                          seconds: !input zwave_config_delay
+                      - action: zwave_js.set_config_parameter
+                        data:
+                          parameter: 52
+                          value: 1
+                          endpoint: 0
+                        target:
+                          device_id: "{{ zwave_device_id }}"
 
             default:
               - if:
@@ -160,30 +172,43 @@ sequence:
                     entity_id: switch.circadian_lighting_loft
                     state: "on"
                 then:
-                  - service: light.turn_on
-                    data:
-                      color_temp_kelvin: "{{ state_attr('sensor.circadian_values', 'colortemp') | int }}"
-                      brightness_pct: !input brightness_pct
-                    target:
-                      entity_id: "{{ light_group_entity_id }}"
+                  - if:
+                     - condition: template
+                       value_template: "{{ light_group_entity_id != 'light.none' }}"
+                    then:
+                      - action: light.turn_on
+                        data:
+                          color_temp_kelvin: "{{ state_attr('sensor.circadian_values', 'colortemp') | int }}"
+                          brightness_pct: !input brightness_pct
+                        target:
+                          entity_id: "{{ light_group_entity_id }}"
                 else:
-                  - service: light.turn_on
-                    data:
-                      brightness_pct: !input brightness_pct
-                      color_temp_kelvin: 6500
-                    target:
-                      entity_id: "{{ light_group_entity_id }}"
-
-              - service: light.turn_on
-                data:
-                  brightness_pct: !input brightness_pct
-                target:
-                  entity_id: "{{ light_switch_entity_id }}"
+                  - if:
+                     - condition: template
+                       value_template: "{{ light_group_entity_id != 'light.none' }}"
+                    then:
+                      - action: light.turn_on
+                        data:
+                          brightness_pct: !input brightness_pct
+                          color_temp_kelvin: 6500
+                        target:
+                          entity_id: "{{ light_group_entity_id }}"
 
               - if:
                   - condition: template
-                    value_template: "{{ fan_switch | length > 0 }}"
+                    value_template: "{{ light_switch_entity_id != 'light.none' }}"
                 then:
-                  - service: homeassistant.turn_on
+                  - action: light.turn_on
+                    data:
+                      brightness_pct: !input brightness_pct
+                    target:
+                      entity_id: "{{ light_switch_entity_id }}"
+
+              - if:
+                  - condition: template
+                    value_template: "{{ fan_entity_id != 'fan.none' }}"
+                then:
+                  - action: fan.turn_on
                     target:
                       entity_id: "{{ fan_entity_id }}"
+
