@@ -1,30 +1,28 @@
 blueprint:
-  name: Turn Light Off Script (2.0.0)
+  name: Turn Light Off Script (2.0.1)
   description: >
-    Smart script to turn off lights based on automation bypass and device
-    availability. If 'automation_bypass' is ON, all automation logic is skipped
-    and the lights are not effected by the automation. If OFF, the script checks if
-    any lights in 'lights_to_check' are unavailable for over 1 minute, and if so,
+    Smart script to turn off lights based on automation bypass and device availability.
+    If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
+    If OFF, the script checks if any lights in 'lights_to_check' are unavailable for over 1 minute, and if so,
     sets a Z-Wave parameter before turning off the specified switch.
   domain: script
   homeassistant:
     min_version: 2024.8.0
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_off_script.yaml
   author: Jeremy Crews
+
   input:
     automation_bypass:
       name: Automation Bypass
-      description:
-        "When ON, bypasses availability checks and disables automation
-        logic, allowing lights to be turned off directly without evaluating device
-        conditions.
-
-        "
+      description: >
+        When ON, bypasses availability checks and disables automation logic,
+        allowing lights to be turned off directly without evaluating device conditions.
       selector:
         entity:
           domain:
             - input_boolean
           multiple: false
+
     lights_to_check:
       name: Lights to check for "unavailable"
       default: []
@@ -33,6 +31,7 @@ blueprint:
           domain:
             - light
           multiple: true
+
     light_switch:
       name: Light Switch
       default: []
@@ -41,6 +40,7 @@ blueprint:
           entity:
             - domain:
                 - light
+
     light_group:
       name: Light Group
       default: []
@@ -49,6 +49,7 @@ blueprint:
           entity:
             - domain:
                 - light
+
     fan:
       name: Fan
       default: []
@@ -58,6 +59,7 @@ blueprint:
             - domain:
                 - fan
                 - light
+
     zwave_device_id:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
@@ -67,41 +69,30 @@ blueprint:
           filter:
             - integration: zwave_js
           multiple: false
+
 variables:
   light_switch: !input light_switch
-  light_switch_enitiy_id: >
-    {% if light_switch | length > 0  %}
-      {{ light_switch }}
-    {% else %}
-      "light.none"
-    {% endif %}
   light_group: !input light_group
-  light_group_enitiy_id: >
-    {% if light_group | length > 0  %}
-      {{ light_group }}
-    {% else %}
-      "light.none"
-    {% endif %}
   fan_switch: !input fan
-  fan_enitiy_id: >
-    {% if fan_switch | length > 0  %}
-      {{ fan_switch }}
-    {% else %}
-      "fan.none"
-    {% endif %}
   zwave_device_id: !input zwave_device_id
+  light_switch_entity_id: "{{ light_switch.entity_id if 'entity_id' in light_switch else 'light.none' }}"
+  light_group_entity_id: "{{ light_group.entity_id if 'entity_id' in light_group else 'light.none' }}"
+  fan_entity_id: "{{ fan_switch.entity_id if 'entity_id' in fan_switch else 'fan.none' }}"
+
 sequence:
   - variables:
       unavailable_detected: false
+
   - repeat:
       for_each: !input lights_to_check
       sequence:
         - condition: template
-          value_template:
-            "{{ is_state(repeat.item, 'unavailable') and\n  (now() - states[repeat.item].last_changed).total_seconds()
-            > 60 }}\n"
+          value_template: >
+            {{ is_state(repeat.item, 'unavailable') and
+               (now() - states[repeat.item].last_changed).total_seconds() > 60 }}
         - variables:
             unavailable_detected: true
+
   - choose:
       - conditions:
           - condition: state
@@ -114,19 +105,24 @@ sequence:
                     value_template: "{{ unavailable_detected }}"
                 sequence:
                   - service: light.turn_off
-                    target: "{{ light_group_enitiy_id }}"
+                    target:
+                      entity_id: "{{ light_group_entity_id }}"
                   - if:
                       - condition: template
                         value_template: "{{ fan_switch | length > 0 }}"
                     then:
-                      - action: homeassistant.turn_off
-                        target: "{{ fan_enitiy_id }}"
+                      - service: homeassistant.turn_off
+                        target:
+                          entity_id: "{{ fan_entity_id }}"
+
             default:
               - service: light.turn_off
-                target: !input light_group
+                target:
+                  entity_id: "{{ light_group_entity_id }}"
               - if:
                   - condition: template
                     value_template: "{{ fan_switch | length > 0 }}"
                 then:
-                  - action: homeassistant.turn_off
-                    target: "{{ fan_enitiy_id }}"
+                  - service: homeassistant.turn_off
+                    target:
+                      entity_id: "{{ fan_entity_id }}"
