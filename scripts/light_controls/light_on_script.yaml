@@ -31,6 +31,7 @@ blueprint:
           multiple: true
     light_switch:
       name: Light Switch
+      default: []
       selector:
         target:
           entity:
@@ -38,6 +39,7 @@ blueprint:
                 - light
     light_group:
       name: Light Group
+      default: []
       selector:
         target:
           entity:
@@ -55,6 +57,7 @@ blueprint:
     zwave_device_id:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
+      default: []
       selector:
         device:
           filter:
@@ -88,6 +91,20 @@ blueprint:
           step: 1.0
 
 variables:
+  light_switch: !input light_switch
+  light_switch_enitiy_id: >
+    {% if light_switch | length > 0  %}
+      {{ light_switch }}
+    {% else %}
+      "light.none"
+    {% endif %}
+  light_group: !input light_group
+  light_group_enitiy_id: >
+    {% if light_group | length > 0  %}
+      {{ light_group }}
+    {% else %}
+      "light.none"
+    {% endif %}
   fan_switch: !input fan
   fan_enitiy_id: >
     {% if fan_switch | length > 0  %}
@@ -95,6 +112,7 @@ variables:
     {% else %}
       "fan.none"
     {% endif %}
+  zwave_device_id: !input zwave_device_id
 sequence:
   - variables:
       unavailable_detected: false
@@ -124,9 +142,9 @@ sequence:
                       value: 0
                       endpoint: 0
                     target:
-                      device_id: !input zwave_device_id
+                      device_id: "{{ zwave_device_id }}"
                   - action: light.turn_on
-                    target: !input light_switch
+                    target: "{{ light_group_enitiy_id }}"
                   - if:
                       - condition: template
                         value_template: "{{ fan_switch | length > 0 }}"
@@ -141,7 +159,7 @@ sequence:
                       value: 1
                       endpoint: 0
                     target:
-                      device_id: !input zwave_device_id
+                      device_id: "{{ zwave_device_id }}"
             default:
               - if:
                   - condition: state
@@ -154,17 +172,17 @@ sequence:
                         "{{ state_attr('sensor.circadian_values', 'colortemp')
                         | int }}"
                       brightness_pct: !input brightness_pct
-                    target: !input light_group
+                    target: "{{ light_group_enitiy_id }}"
                 else:
                   - action: light.turn_on
                     data:
                       brightness_pct: !input brightness_pct
                       color_temp_kelvin: 6500
-                    target: !input light_group
+                    target: "{{ light_group_enitiy_id }}"
               - action: light.turn_on
                 data:
                   brightness_pct: !input brightness_pct
-                target: !input light_switch
+                target: "{{ light_group_switch_id }}"
               - if:
                   - condition: template
                     value_template: "{{ fan_switch | length > 0 }}"
