@@ -54,7 +54,7 @@ blueprint:
             - domain: fan
             - domain: light
 
-    zwave_device_id:
+    zwave_switch:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
       default: []

@@ -60,7 +60,7 @@ blueprint:
                 - fan
                 - light
 
-    zwave_device_id:
+    zwave_switch:
       name: Z-Wave Device ID
       description: Device ID for setting Z-Wave parameters
       default: []
@@ -74,7 +74,7 @@ variables:
   light_switch: !input light_switch
   light_group: !input light_group
   fan_switch: !input fan
-  zwave_device_id: !input zwave_device_id
+  zwave_switch: !input zwave_switch
   light_switch_entity_id: "{{ light_switch.entity_id if 'entity_id' in light_switch else 'light.none' }}"
   light_group_entity_id: "{{ light_group.entity_id if 'entity_id' in light_group else 'light.none' }}"
   fan_entity_id: "{{ fan_switch.entity_id if 'entity_id' in fan_switch else 'fan.none' }}"
