@@ -1,13 +1,11 @@
 blueprint:
   name: Turn Light Off Script Non-ZWave (2.0.0)
-  description:
-    "Smart script to turn off lights based on automation bypass and device
+  description: >
+    Smart script to turn off lights based on automation bypass and device
     availability. If 'automation_bypass' is ON, all automation logic is skipped
     and the lights are not effected by the automation. If OFF, the script checks if
     any lights in 'lights_to_check' are unavailable for over 1 minute, and if so,
     sets a Z-Wave parameter before turning off the specified switch.
-
-    "
   domain: script
   homeassistant:
     min_version: 2024.8.0
