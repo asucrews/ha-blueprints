@@ -1,5 +1,5 @@
 blueprint:
-  name: Lights Based on Sun (Twilight Redundancy) (1.0.0)
+  name: Lights Based on Sun (Twilight Redundancy) (1.0.1)
   description:
     Turns lights on after sunset and off at sunrise using three twilight
     thresholds for both ON and OFF to ensure redundancy. Also restores lights if manually
@@ -93,7 +93,7 @@ action:
               - nautical_twilight_on
               - astro_twilight_on
           - condition: state
-            state: "false"
+            state: False
             entity_id: !input sun_sensor
         sequence:
           - action: light.turn_on
@@ -124,7 +124,7 @@ action:
               - nautical_twilight_off
               - astro_twilight_off
           - condition: state
-            state: "true"
+            state: True
             entity_id: !input sun_sensor
         sequence:
           - action: light.turn_off
