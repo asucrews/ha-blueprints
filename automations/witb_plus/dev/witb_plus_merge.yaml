@@ -251,15 +251,5 @@ action:
                 target:
                   entity_id: !input occupancy_helper
 
-  - if:
-      - condition: template
-        value_template: "{{ bypass_helper and bypass_timeout_minutes > 0 }}"
-    then:
-      - delay:
-          minutes: !input bypass_timeout_minutes
-      - action: input_boolean.turn_off
-        target:
-          entity_id: !input bypass_helper
-
 mode: queued
 max: 10
