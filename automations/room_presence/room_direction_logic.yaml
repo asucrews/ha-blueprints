@@ -37,10 +37,13 @@ trigger:
     entity_id: !input motion_sensor
     to: "on"
 
+variables:
+  door_open_entity: !input door_open_time
+
 condition:
   - condition: template
     value_template: >
-      {{ (as_timestamp(now()) - (state_attr(states(input.door_open_time), 'timestamp') | float(0))) < 10 }}
+      {{ (as_timestamp(now()) - (state_attr(door_open_entity, 'timestamp') | float(0))) < 10 }}
 
 action:
   - choose:
