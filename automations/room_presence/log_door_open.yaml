@@ -2,6 +2,7 @@ blueprint:
   name: Log Door Open Time
   description: >
     Updates an input_datetime whenever the selected door sensor opens.
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/room_presence/log_door_open.yaml
   domain: automation
   input:
     door_sensor:

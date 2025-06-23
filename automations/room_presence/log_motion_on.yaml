@@ -2,6 +2,7 @@ blueprint:
   name: Log Motion Detected Time
   description: >
     Updates an input_datetime whenever the selected motion sensor detects motion (turns ON).
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/room_presence/log_motion_on.yaml
   domain: automation
   input:
     motion_sensor:
