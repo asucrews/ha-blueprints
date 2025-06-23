@@ -5,7 +5,7 @@ blueprint:
     Combines motion and door sensors with smart timestamp logic to detect and clear room presence accurately.
 
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/merged/witb_plus_occupancy.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_merge.yaml
   homeassistant:
     min_version: 2024.12.0
 
