@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Occupancy (1.3.0)
+  name: WITB+ Merge Occupancy (1.0.0)
   description: >
     Advanced occupancy detection blueprint based on the Wasp-In-The-Box principle.
     Combines motion and door sensors with smart timestamp logic to detect and clear room presence accurately.
