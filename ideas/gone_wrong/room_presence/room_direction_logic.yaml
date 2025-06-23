@@ -40,10 +40,10 @@ trigger:
 variables:
   door_open_entity: !input door_open_time
 
-condition:
-  - condition: template
-    value_template: >
-      {{ (as_timestamp(now()) - (state_attr(door_open_entity, 'timestamp') | float(0))) < 10 }}
+# condition:
+#   - condition: template
+#     value_template: >
+#       {{ (as_timestamp(now()) - (state_attr(door_open_entity, 'timestamp') | float(0))) < 10 }}
 
 action:
   - choose:
