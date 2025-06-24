@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Merge Occupancy (1.0.0)
+  name: WITB+ Merge Occupancy (1.1.1)
   description: >
     Advanced occupancy detection blueprint based on the Wasp-In-The-Box principle.
     Combines motion and door sensors with smart timestamp logic to detect and clear room presence accurately.
@@ -90,6 +90,14 @@ blueprint:
           default: true
           selector:
             boolean:
+        reset_on_door_close_min_seconds:
+          name: Min time before reset on door close
+          default: 20
+          selector:
+            number:
+              min: 1
+              max: 600
+              unit_of_measurement: seconds
         bypass_timeout_minutes:
           name: Auto-disable bypass (minutes, 0 = never)
           default: 0
@@ -97,11 +105,6 @@ blueprint:
             number:
               min: 0
               max: 360
-        enable_logging:
-          name: Enable Debug Logging
-          default: false
-          selector:
-            boolean:
         recheck_on_start:
           name: Sync state on Home Assistant restart
           default: true
@@ -121,8 +124,8 @@ variables:
   enable_clear_when_door_open_and_idle: !input enable_clear_when_door_open_and_idle
   enable_smart_timestamp_clear: !input enable_smart_timestamp_clear
   bypass_timeout_minutes: !input bypass_timeout_minutes
-  enable_logging: !input enable_logging
   recheck_on_start: !input recheck_on_start
+  reset_on_door_close_min_seconds: !input reset_on_door_close_min_seconds
 
 trigger:
   - platform: state
@@ -169,12 +172,12 @@ action:
           - condition: trigger
             id: motion_detected
         sequence:
-          - action: input_datetime.set_datetime
+          - service: input_datetime.set_datetime
             data:
               timestamp: "{{ now().timestamp() }}"
             target:
               entity_id: !input last_motion_helper
-          - action: input_boolean.turn_on
+          - service: input_boolean.turn_on
             target:
               entity_id: !input occupancy_helper
 
@@ -186,9 +189,9 @@ action:
               - conditions:
                   - condition: template
                     value_template: >-
-                      {{ is_state(door_sensor, 'on') or is_state(door_sensor, 'unavailable') or is_state(door_sensor, 'unknown') }}
+                      {{ is_state(door_sensor, 'on') }}
                 sequence:
-                  - action: input_boolean.turn_off
+                  - service: input_boolean.turn_off
                     target:
                       entity_id: !input occupancy_helper
               - conditions:
@@ -197,7 +200,7 @@ action:
                       {{ enable_smart_timestamp_clear and is_state(door_sensor, 'off') and
                          as_timestamp(states[door_sensor].last_changed) > as_timestamp(states[last_motion_helper].state) }}
                 sequence:
-                  - action: input_boolean.turn_off
+                  - service: input_boolean.turn_off
                     target:
                       entity_id: !input occupancy_helper
 
@@ -208,7 +211,7 @@ action:
             entity_id: !input motion_sensor
             state: "off"
         sequence:
-          - action: input_boolean.turn_off
+          - service: input_boolean.turn_off
             target:
               entity_id: !input occupancy_helper
 
@@ -218,9 +221,9 @@ action:
           - condition: template
             value_template: >-
               {{ enable_reset_on_door_close and
-              (now().timestamp() - states[occupancy_helper].last_changed.timestamp()) > 20 }}
+              (now().timestamp() - states[occupancy_helper].last_changed.timestamp()) > reset_on_door_close_min_seconds }}
         sequence:
-          - action: input_boolean.turn_off
+          - service: input_boolean.turn_off
             target:
               entity_id: !input occupancy_helper
 
@@ -232,7 +235,7 @@ action:
               {{ enable_clear_when_door_open_and_idle and is_state(motion_sensor, 'off') and
                  as_timestamp(states[door_sensor].last_changed) > as_timestamp(states[last_motion_helper].state) }}
         sequence:
-          - action: input_boolean.turn_off
+          - service: input_boolean.turn_off
             target:
               entity_id: !input occupancy_helper
 
@@ -247,9 +250,19 @@ action:
                 entity_id: !input motion_sensor
                 state: "on"
             then:
-              - action: input_boolean.turn_on
+              - service: input_boolean.turn_on
                 target:
                   entity_id: !input occupancy_helper
+
+  - if:
+      - condition: template
+        value_template: "{{ bypass_helper is defined and bypass_timeout_minutes > 0 }}"
+    then:
+      - delay:
+          minutes: !input bypass_timeout_minutes
+      - service: input_boolean.turn_off
+        target:
+          entity_id: !input bypass_helper
 
 mode: queued
 max: 10
