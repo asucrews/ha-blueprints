@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Merge Occupancy (1.1.1)
+  name: WITB+ Merge Occupancy (1.1.2)
   description: >
     Advanced occupancy detection blueprint based on the Wasp-In-The-Box principle.
     Combines motion and door sensors with smart timestamp logic to detect and clear room presence accurately.
@@ -113,10 +113,15 @@ blueprint:
 
 variables:
   door_sensor: !input door_sensor
+  door_sensor_entity_id: "{{ door_sensor if door_sensor is defined and door_sensor else 'binary_sensor.none' }}"
   motion_sensor: !input motion_sensor
+  motion_sensor_entity_id: "{{ motion_sensor if motion_sensor is defined and motion_sensor else 'binary_sensor.none' }}"
   occupancy_helper: !input occupancy_helper
+  occupancy_helper_entity_id: "{{ occupancy_helper if occupancy_helper is defined and occupancy_helper else 'input_boolean.none' }}"
   last_motion_helper: !input last_motion_helper
+  last_motion_helper_entity_id: "{{ last_motion_helper if last_motion_helper is defined and last_motion_helper else 'input_datetime.none' }}"
   bypass_helper: !input bypass_helper
+  bypass_helper_entity_id: "{{ bypass_helper if bypass_helper is defined and bypass_helper else 'input_boolean.none' }}"
   door_sensor_open_delay: !input door_sensor_open_delay
   door_sensor_close_delay: !input door_sensor_close_delay
   motion_sensor_delay: !input motion_sensor_delay
@@ -164,7 +169,7 @@ trigger:
 condition:
   - condition: template
     value_template: >-
-      {{ bypass_helper is not defined or is_state(bypass_helper, 'off') }}
+      {{ bypass_helper_entity_id != 'binary_sensor.none' and is_state(bypass_helper_entity_id, 'off') }}
 
 action:
   - choose:
@@ -176,10 +181,10 @@ action:
             data:
               timestamp: "{{ now().timestamp() }}"
             target:
-              entity_id: !input last_motion_helper
+              entity_id: "{{ last_motion_helper_entity_id }}"
           - service: input_boolean.turn_on
             target:
-              entity_id: !input occupancy_helper
+              entity_id: "{{ occupancy_helper_entity_id }}"
 
       - conditions:
           - condition: trigger
@@ -193,27 +198,27 @@ action:
                 sequence:
                   - service: input_boolean.turn_off
                     target:
-                      entity_id: !input occupancy_helper
+                      entity_id: "{{ occupancy_helper_entity_id }}"
               - conditions:
                   - condition: template
                     value_template: >-
                       {{ enable_smart_timestamp_clear and is_state(door_sensor, 'off') and
-                         as_timestamp(states[door_sensor].last_changed) > as_timestamp(states[last_motion_helper].state) }}
+                         as_timestamp(states[door_sensor_entity_id].last_changed) > as_timestamp(states[last_motion_helper_entity_id].state) }}
                 sequence:
                   - service: input_boolean.turn_off
                     target:
-                      entity_id: !input occupancy_helper
+                      entity_id: "{{ occupancy_helper_entity_id }}"
 
       - conditions:
           - condition: trigger
             id: door_opened
           - condition: state
-            entity_id: !input motion_sensor
+            entity_id: "{{ motion_sensor_entity_id }}"
             state: "off"
         sequence:
           - service: input_boolean.turn_off
             target:
-              entity_id: !input occupancy_helper
+              entity_id: "{{ occupancy_helper_entity_id }}"
 
       - conditions:
           - condition: trigger
@@ -221,11 +226,11 @@ action:
           - condition: template
             value_template: >-
               {{ enable_reset_on_door_close and
-              (now().timestamp() - states[occupancy_helper].last_changed.timestamp()) > reset_on_door_close_min_seconds }}
+              (now().timestamp() - states[occupancy_helper_entity_id].last_changed.timestamp()) > reset_on_door_close_min_seconds }}
         sequence:
           - service: input_boolean.turn_off
             target:
-              entity_id: !input occupancy_helper
+              entity_id: "{{ occupancy_helper_entity_id }}"
 
       - conditions:
           - condition: trigger
@@ -233,11 +238,11 @@ action:
           - condition: template
             value_template: >-
               {{ enable_clear_when_door_open_and_idle and is_state(motion_sensor, 'off') and
-                 as_timestamp(states[door_sensor].last_changed) > as_timestamp(states[last_motion_helper].state) }}
+                 as_timestamp(states[door_sensor_entity_id].last_changed) > as_timestamp(states[last_motion_helper_entity_id].state) }}
         sequence:
           - service: input_boolean.turn_off
             target:
-              entity_id: !input occupancy_helper
+              entity_id: "{{ occupancy_helper_entity_id }}"
 
       - conditions:
           - condition: trigger
@@ -247,12 +252,12 @@ action:
         sequence:
           - if:
               - condition: state
-                entity_id: !input motion_sensor
+                entity_id: "{{ motion_sensor_entity_id }}"
                 state: "on"
             then:
               - service: input_boolean.turn_on
                 target:
-                  entity_id: !input occupancy_helper
+                  entity_id: "{{ occupancy_helper_entity_id }}"
 
   - if:
       - condition: template
@@ -262,7 +267,4 @@ action:
           minutes: !input bypass_timeout_minutes
       - service: input_boolean.turn_off
         target:
-          entity_id: !input bypass_helper
-
-mode: queued
-max: 10
+          entity_id: "{{ bypass_helper_entity_id }}"
