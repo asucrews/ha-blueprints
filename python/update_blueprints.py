@@ -31,7 +31,7 @@ def get_blueprints(directory, ignore_folder):
                     name = os.path.splitext(filename)[0]
                     formatted_name = ' '.join(word.capitalize() for word in name.split('_'))
                     last_commit_date = get_last_commit_date(filepath)
-                    readme_url = f"https://github.com/asucrews/ha-blueprints/blob/main/{root}/{name}/README.md"
+                    readme_url = f"https://github.com/asucrews/ha-blueprints/tree/main/{root}/{name}/README.md"
                     blueprints.append(f"- [{formatted_name}]({readme_url}) (Last updated: {last_commit_date})")
     return blueprints
 
