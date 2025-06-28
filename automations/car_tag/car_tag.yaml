@@ -1,10 +1,11 @@
 blueprint:
   name: Car Tag Stable (1.0.0)
   homeassistant:
-    min_version: 2024.8.0
+    min_version: 2025.6.0
   description: Car ESPHome Tag - Opens and Closes Garage Door
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/car_tag/car_tag.yaml
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
+  author: Jeremy Crews
   input:
     required_entities:
       name: Required Entities
@@ -15,14 +16,14 @@ blueprint:
           selector:
             entity:
               domain:
-                - binary_sensor
+              - binary_sensor
               multiple: false
         esphome_node_status:
           selector:
             entity:
-              integration: "esphome"
+              integration: esphome
               domain:
-                - binary_sensor
+              - binary_sensor
               multiple: true
         garage_door_cover:
           name: Garage Door Cover
@@ -30,7 +31,7 @@ blueprint:
           selector:
             entity:
               domain:
-                - cover
+              - cover
               multiple: false
     optional_entities:
       name: Optional Entities
@@ -43,124 +44,124 @@ blueprint:
           default: timer.none
           selector:
             entity:
-              integration: "timer"
+              integration: timer
               domain:
-                - timer
+              - timer
               multiple: false
-
 variables:
   esphome_ble: !input esphome_ble
   esphome_node_status: !input esphome_node_status
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
-
 trigger:
-  - platform: state
-    entity_id: !input esphome_ble
-    from: "off"
-    to: "on"
-    id: ESPHome BLE Found
-  - platform: state
-    entity_id: !input esphome_ble
-    from: "on"
-    to: "off"
-    id: ESPHome BLE Not Found
-  - platform: state
-    entity_id: !input esphome_node_status
-    from: "off"
-    to: "on"
-    id: Connected
-  - platform: state
-    entity_id: !input esphome_node_status
-    from: "on"
-    to: "off"
-    id: Disconnected
-
+- platform: state
+  entity_id: !input esphome_ble
+  from: 'off'
+  to: 'on'
+  id: ESPHome BLE Found
+- platform: state
+  entity_id: !input esphome_ble
+  from: 'on'
+  to: 'off'
+  id: ESPHome BLE Not Found
+- platform: state
+  entity_id: !input esphome_node_status
+  from: 'off'
+  to: 'on'
+  id: Connected
+- platform: state
+  entity_id: !input esphome_node_status
+  from: 'on'
+  to: 'off'
+  id: Disconnected
 action:
-  - choose:
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id: Connected
-              - condition: template
-                value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
-        sequence:
-          - action: cover.open_cover
-            data: {}
-            target:
-              entity_id: !input garage_door_cover
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id:
-                  - Disconnected
-              - condition: template
-                value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
-        sequence:
-          - if:
-              - condition: state
-                entity_id: !input garage_door_timer_helper
-                state: active
-            then:
-              - action: timer.cancel
-                target:
-                  entity_id: !input garage_door_timer_helper
-                data: {}
-              - action: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-            else:
-              - action: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id:
-                  - ESPHome BLE Found
-              - condition: template
-                value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
-        sequence:
-          - action: cover.open_cover
-            data: {}
-            target:
-              entity_id: !input garage_door_cover
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id:
-                  - ESPHome BLE Not Found
-              - condition: template
-                value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
-        sequence:
-          - if:
-              - condition: state
-                entity_id: !input garage_door_timer_helper
-                state: active
-            then:
-              - action: timer.cancel
-                target:
-                  entity_id: !input garage_door_timer_helper
-                data: {}
-              - action: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-            else:
-              - action: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-
+- choose:
+  - conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id: Connected
+      - condition: template
+        value_template: '{{ is_state(garage_door_cover, [''off'', ''closed'', ''closing''])
+          }}'
+    sequence:
+    - action: cover.open_cover
+      data: {}
+      target:
+        entity_id: !input garage_door_cover
+  - conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id:
+        - Disconnected
+      - condition: template
+        value_template: '{{ is_state(garage_door_cover, [''on'', ''open'', ''opening''])
+          }}'
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input garage_door_timer_helper
+        state: active
+      then:
+      - action: timer.cancel
+        target:
+          entity_id: !input garage_door_timer_helper
+        data: {}
+      - action: timer.start
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
+      else:
+      - action: timer.start
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
+  - conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id:
+        - ESPHome BLE Found
+      - condition: template
+        value_template: '{{ is_state(garage_door_cover, [''off'', ''closed'', ''closing''])
+          }}'
+    sequence:
+    - action: cover.open_cover
+      data: {}
+      target:
+        entity_id: !input garage_door_cover
+  - conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id:
+        - ESPHome BLE Not Found
+      - condition: template
+        value_template: '{{ is_state(garage_door_cover, [''on'', ''open'', ''opening''])
+          }}'
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input garage_door_timer_helper
+        state: active
+      then:
+      - action: timer.cancel
+        target:
+          entity_id: !input garage_door_timer_helper
+        data: {}
+      - action: timer.start
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
+      else:
+      - action: timer.start
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
 mode: single
 max_exceeded: silent

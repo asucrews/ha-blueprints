@@ -1,41 +1,38 @@
 blueprint:
   name: Home Assistant Start and Stop Trigger (1.1.0)
   homeassistant:
-    min_version: 2024.8.0
+    min_version: 2025.6.0
   description: Blueprint for triggering actions on Home Assistant start and stop
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart.yaml
+  author: Jeremy Crews
   input:
     start_actions:
       name: Actions to Run on Start
       description: Actions to run when Home Assistant starts
       selector:
-        action:
+        action: {}
     stop_actions:
       name: Actions to Run on Stop
       description: Actions to run when Home Assistant stops
       selector:
-        action:
-
+        action: {}
 trigger:
-  - platform: homeassistant
-    event: start
-    id: home_assistant_start
-  - platform: homeassistant
-    event: shutdown
-    id: home_assistant_shutdown
-
+- platform: homeassistant
+  event: start
+  id: home_assistant_start
+- platform: homeassistant
+  event: shutdown
+  id: home_assistant_shutdown
 condition: []
-
 action:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id: home_assistant_start
-        sequence: !input start_actions
-      - conditions:
-          - condition: trigger
-            id: home_assistant_shutdown
-        sequence: !input stop_actions
-
+- choose:
+  - conditions:
+    - condition: trigger
+      id: home_assistant_start
+    sequence: !input start_actions
+  - conditions:
+    - condition: trigger
+      id: home_assistant_shutdown
+    sequence: !input stop_actions
 mode: single

@@ -1,0 +1,232 @@
+blueprint:
+  name: 6 Speed Ceiling Fan Remote (1.0.0)
+  description: Blueprint for controlling the 6 speed ceiling fan with RF remote using
+    ESP360 Remote
+  homeassistant:
+    min_version: 2025.6.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/6_speed_fan/6_speed_fan.yaml
+  author: Jeremy Crews
+  input:
+    rf_event:
+      name: RF Event
+      description: Event for the RF remote
+      default: esphome.rf_code_received
+    protocol:
+      name: Protocol
+      description: Protocol number to match for RF codes
+      default: 4
+      selector:
+        number:
+          min: 1.0
+          max: 12.0
+          step: 1.0
+          mode: slider
+    light_state:
+      name: Ceiling Fan Light State
+      description: Input boolean for the ceiling fan light state
+      selector:
+        entity:
+          domain:
+          - input_boolean
+          multiple: false
+    fan_state:
+      name: Ceiling Fan State
+      description: Input boolean for the ceiling fan state
+      selector:
+        entity:
+          domain:
+          - input_boolean
+          multiple: false
+    preset_mode:
+      name: Ceiling Fan Preset Mode
+      description: Input select for the ceiling fan preset mode
+      selector:
+        entity:
+          domain:
+          - input_select
+          multiple: false
+    direction:
+      name: Ceiling Fan Direction
+      description: Input select for the ceiling fan direction
+      selector:
+        entity:
+          domain:
+          - input_select
+          multiple: false
+    code_light:
+      name: Light Code
+      description: RF code for the light
+      default: '833496100'
+    code_fan:
+      name: Fan Code
+      description: RF code for the fan
+      default: '833496871'
+    code_preset_1:
+      name: Preset Mode 1 Code
+      description: RF code for preset mode 1
+      default: '833497642'
+    code_preset_2:
+      name: Preset Mode 2 Code
+      description: RF code for preset mode 2
+      default: '833501754'
+    code_preset_3:
+      name: Preset Mode 3 Code
+      description: RF code for preset mode 3
+      default: '833505866'
+    code_preset_4:
+      name: Preset Mode 4 Code
+      description: RF code for preset mode 4
+      default: '833509978'
+    code_preset_5:
+      name: Preset Mode 5 Code
+      description: RF code for preset mode 5
+      default: '833514090'
+    code_preset_6:
+      name: Preset Mode 6 Code
+      description: RF code for preset mode 6
+      default: '833493530'
+    code_direction:
+      name: Direction Code
+      description: RF code for changing the fan direction
+      default: '833495843'
+trigger:
+  platform: event
+  event_type: !input rf_event
+variables:
+  event_protocol: '{{ trigger.event.data.protocol }}'
+  event_code: '{{ trigger.event.data.code }}'
+  protocol: !input protocol
+  light_state: !input light_state
+  fan_state: !input fan_state
+  preset_mode: !input preset_mode
+  direction: !input direction
+  code_light: !input code_light
+  code_fan: !input code_fan
+  code_preset_1: !input code_preset_1
+  code_preset_2: !input code_preset_2
+  code_preset_3: !input code_preset_3
+  code_preset_4: !input code_preset_4
+  code_preset_5: !input code_preset_5
+  code_preset_6: !input code_preset_6
+  code_direction: !input code_direction
+condition: []
+action:
+- choose:
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_light | int ) }}'
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input light_state
+        state: 'off'
+      then:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: !input light_state
+      else:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: !input light_state
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_fan | int ) }}'
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input fan_state
+        state: 'off'
+      then:
+      - action: input_boolean.turn_on
+        target:
+          entity_id: !input fan_state
+      else:
+      - action: input_boolean.turn_off
+        target:
+          entity_id: !input fan_state
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_preset_1 | int )  }}'
+    sequence:
+    - action: input_select.select_option
+      target:
+        entity_id: !input preset_mode
+      data:
+        option: '1'
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_preset_2 | int )  }}'
+    sequence:
+    - action: input_select.select_option
+      target:
+        entity_id: !input preset_mode
+      data:
+        option: '2'
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_preset_3 | int )  }}'
+    sequence:
+    - action: input_select.select_option
+      target:
+        entity_id: !input preset_mode
+      data:
+        option: '3'
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_preset_4 | int )  }}'
+    sequence:
+    - action: input_select.select_option
+      target:
+        entity_id: !input preset_mode
+      data:
+        option: '4'
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_preset_5 | int )  }}'
+    sequence:
+    - action: input_select.select_option
+      target:
+        entity_id: !input preset_mode
+      data:
+        option: '5'
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == ( code_preset_6 | int )  }}'
+    sequence:
+    - action: input_select.select_option
+      target:
+        entity_id: !input preset_mode
+      data:
+        option: '6'
+  - conditions:
+    - condition: template
+      value_template: '{{ ( event_protocol | int ) == ( protocol | int ) and ( event_code
+        | int ) == code_direction }}'
+    sequence:
+    - if:
+      - condition: state
+        entity_id: !input direction
+        state: forward
+      then:
+      - action: input_select.select_option
+        target:
+          entity_id: !input direction
+        data:
+          option: reverse
+      else:
+      - action: input_select.select_option
+        target:
+          entity_id: !input direction
+        data:
+          option: forward
+mode: single
+max_exceeded: silent
