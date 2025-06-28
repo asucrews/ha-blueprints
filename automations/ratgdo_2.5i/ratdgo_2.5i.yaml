@@ -1,10 +1,11 @@
 blueprint:
   name: Ratdgo 2.5i Stable (1.0.0)
   homeassistant:
-    min_version: 2024.8.0
+    min_version: 2025.6.0
   description: Ratdgo Notification and auto close
   domain: automation
-  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/ratgdo_2.5i/ratdgo_2.5i.yaml
+  author: Jeremy Crews
   input:
     required_entities:
       name: Required Entities
@@ -17,7 +18,7 @@ blueprint:
           selector:
             entity:
               domain:
-                - cover
+              - cover
               multiple: false
         obstruction_entity:
           name: Obstruction Entity
@@ -25,7 +26,7 @@ blueprint:
           selector:
             entity:
               domain:
-                - binary_sensor
+              - binary_sensor
               multiple: false
     optional_entities:
       name: Optional Entities
@@ -39,46 +40,50 @@ blueprint:
           selector:
             entity:
               domain:
-                - timer
+              - timer
               multiple: false
         light_bulbs:
           name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
-          description: >
-            Select a smart light bulb or group of smart light bulbs to control
-            within the designated area ("box").  These lights illuminate the space based
-            on occupancy detected by the motion sensor.<br/>  <br/>Please note: Only entities
-            within the light domain are selectable, and only one selection is allowed.  Default
-            value: 'light.none'. Only change if you intend to use this field and this
-            input is optional.<br/>
-          default: "light.none"
+          description: 'Select a smart light bulb or group of smart light bulbs to
+            control within the designated area ("box").  These lights illuminate the
+            space based on occupancy detected by the motion sensor.<br/>  <br/>Please
+            note: Only entities within the light domain are selectable, and only one
+            selection is allowed.  Default value: ''light.none''. Only change if you
+            intend to use this field and this input is optional.<br/>
+
+            '
+          default: light.none
           selector:
             entity:
               domain:
-                - light
+              - light
               multiple: false
         light_switch:
           name: Light, Light Group, Switch, or Switch Group (Optional)
-          description: >
-            Choose a light, light group, switch, or switch group to control
-            within the designated area ("box").  These devices provide illumination based
-            on occupancy detected by the motion sensor.<br/> <br/>Please note: Only entities
-            within the light or switch domains are selectable, and only one selection
-            is allowed.  Default value: 'light.none'. Only change if you intend to use
-            this field and this input is optional.<br/>
-          default: "light.none"
+          description: 'Choose a light, light group, switch, or switch group to control
+            within the designated area ("box").  These devices provide illumination
+            based on occupancy detected by the motion sensor.<br/> <br/>Please note:
+            Only entities within the light or switch domains are selectable, and only
+            one selection is allowed.  Default value: ''light.none''. Only change
+            if you intend to use this field and this input is optional.<br/>
+
+            '
+          default: light.none
           selector:
             entity:
               domain:
-                - light
-                - switch
+              - light
+              - switch
               multiple: false
         notify_group:
-          name: "Notification Group (Optional)"
-          description: >
-            If several devices are to receive a notification, a [notify group](https://www.home-assistant.io/integrations/group/#notify-groups)
-            can be used. Enter *notify* for all devices. If 'Notification Group' is
-            defined 'Device to notify' will be ignored.
-          default: ""
+          name: Notification Group (Optional)
+          description: 'If several devices are to receive a notification, a [notify
+            group](https://www.home-assistant.io/integrations/group/#notify-groups)
+            can be used. Enter *notify* for all devices. If ''Notification Group''
+            is defined ''Device to notify'' will be ignored.
+
+            '
+          default: ''
         bypass_helper:
           name: Bypass Helper
           description: Garage Door Bypass helper
@@ -86,9 +91,8 @@ blueprint:
           selector:
             entity:
               domain:
-                - input_boolean
+              - input_boolean
               multiple: false
-
 variables:
   ratdgo_device: !input ratdgo_device
   obstruction_entity: !input obstruction_entity
@@ -97,164 +101,164 @@ variables:
   light_switch: !input light_switch
   notify_group: !input notify_group
   bypass_helper: !input bypass_helper
-
 trigger:
-  - platform: state
-    entity_id: !input ratdgo_device
-    from: opening
-    to: open
-    id: Garage Door is Open
-  - platform: state
-    entity_id: !input ratdgo_device
-    from: closing
-    to: closed
-    id: Garage Door is Closed
-  - platform: event
-    event_type: timer.finished
-    event_data:
-      entity_id: !input garage_door_timer_helper
-    id: Door timer is done
-  - platform: state
-    entity_id: !input obstruction_entity
-    from: "off"
-    to: "on"
-    id: Obstruction Found
-
+- platform: state
+  entity_id: !input ratdgo_device
+  from: opening
+  to: open
+  id: Garage Door is Open
+- platform: state
+  entity_id: !input ratdgo_device
+  from: closing
+  to: closed
+  id: Garage Door is Closed
+- platform: event
+  event_type: timer.finished
+  event_data:
+    entity_id: !input garage_door_timer_helper
+  id: Door timer is done
+- platform: state
+  entity_id: !input obstruction_entity
+  from: 'off'
+  to: 'on'
+  id: Obstruction Found
 action:
-  - choose:
-      - conditions:
-          - condition: trigger
-            id:
-              - Garage Door is Open
-        sequence:
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ light_bulbs != 'light.none' }}"
-                  - condition: template
-                    value_template: "{{ is_state(light_bulbs, 'off') }}"
-            then:
-              - action: light.turn_on
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input light_bulbs
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ light_switch != 'light.none' }}"
-                  - condition: template
-                    value_template: "{{ is_state(light_switch, 'off') }}"
-            then:
-              - action: light.turn_on
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input light_switch
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
-            then:
-              - action: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-          - if:
-              - condition: template
-                value_template: "{{ notify_group is defined }}"
-            then:
-              - action: "notify.{{ notify_group }}"
-                data:
-                  title: "{{ device_attr(ratdgo_device, 'name') }} | {{ states('sensor.time') }}"
-                  message: Garage Door is Open
-                  data:
-                    ttl: 0
-                    priority: high
-                    tag: "tag-ratdgo"
-      - conditions:
-          - condition: trigger
-            id:
-              - Garage Door is Closed
-        sequence:
-          - if:
-              - condition: and
-                conditions:
-                  - condition: template
-                    value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
-                  - condition: template
-                    value_template: "{{ is_state(garage_door_timer_helper, ['active', 'paused'] ) }}"
-            then:
-              - action: timer.cancel
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-          - if:
-              - condition: template
-                value_template: "{{ notify_group is defined }}"
-            then:
-              - action: "notify.{{ notify_group }}"
-                data:
-                  title: "{{ device_attr(ratdgo_device, 'name') }} | {{ states('sensor.time') }}"
-                  message: Garage Door is Closed
-                  data:
-                    ttl: 0
-                    priority: high
-                    tag: "tag-ratdgo"
-      - conditions:
-          - condition: trigger
-            id:
-              - Door timer is done
-          - condition: template
-            value_template: "{{ is_state(ratdgo_device, ['on', 'open']) }}"
-        sequence:
-          - if:
-              - condition: and
-                conditions:
-                  - condition: state
-                    entity_id: !input obstruction_entity
-                    state: "off"
-            then:
-              - action: cover.close_cover
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input ratdgo_device
-            else:
-              - action: timer.cancel
-                target:
-                  entity_id: !input garage_door_timer_helper
-                data: {}
-              - action: timer.start
-                metadata: {}
-                data: {}
-                target:
-                  entity_id: !input garage_door_timer_helper
-      - conditions:
-          - condition: and
-            conditions:
-              - condition: trigger
-                id:
-                  - Obstruction Found
-              - condition: template
-                value_template: "{{ is_state(ratdgo_device, ['on', 'open', 'opening']) }}"
-              - condition: template
-                value_template: "{{ garage_door_timer_helper != 'timer.none' }}"
-        sequence:
-          - action: timer.cancel
-            target:
-              entity_id: !input garage_door_timer_helper
-            data: {}
-          - action: timer.start
-            metadata: {}
-            data: {}
-            target:
-              entity_id: !input garage_door_timer_helper
-
+- choose:
+  - conditions:
+    - condition: trigger
+      id:
+      - Garage Door is Open
+    sequence:
+    - if:
+      - condition: and
+        conditions:
+        - condition: template
+          value_template: '{{ light_bulbs != ''light.none'' }}'
+        - condition: template
+          value_template: '{{ is_state(light_bulbs, ''off'') }}'
+      then:
+      - action: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input light_bulbs
+    - if:
+      - condition: and
+        conditions:
+        - condition: template
+          value_template: '{{ light_switch != ''light.none'' }}'
+        - condition: template
+          value_template: '{{ is_state(light_switch, ''off'') }}'
+      then:
+      - action: light.turn_on
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input light_switch
+    - if:
+      - condition: and
+        conditions:
+        - condition: template
+          value_template: '{{ garage_door_timer_helper != ''timer.none'' }}'
+      then:
+      - action: timer.start
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
+    - if:
+      - condition: template
+        value_template: '{{ notify_group is defined }}'
+      then:
+      - action: notify.{{ notify_group }}
+        data:
+          title: '{{ device_attr(ratdgo_device, ''name'') }} | {{ states(''sensor.time'')
+            }}'
+          message: Garage Door is Open
+          data:
+            ttl: 0
+            priority: high
+            tag: tag-ratdgo
+  - conditions:
+    - condition: trigger
+      id:
+      - Garage Door is Closed
+    sequence:
+    - if:
+      - condition: and
+        conditions:
+        - condition: template
+          value_template: '{{ garage_door_timer_helper != ''timer.none'' }}'
+        - condition: template
+          value_template: '{{ is_state(garage_door_timer_helper, [''active'', ''paused'']
+            ) }}'
+      then:
+      - action: timer.cancel
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
+    - if:
+      - condition: template
+        value_template: '{{ notify_group is defined }}'
+      then:
+      - action: notify.{{ notify_group }}
+        data:
+          title: '{{ device_attr(ratdgo_device, ''name'') }} | {{ states(''sensor.time'')
+            }}'
+          message: Garage Door is Closed
+          data:
+            ttl: 0
+            priority: high
+            tag: tag-ratdgo
+  - conditions:
+    - condition: trigger
+      id:
+      - Door timer is done
+    - condition: template
+      value_template: '{{ is_state(ratdgo_device, [''on'', ''open'']) }}'
+    sequence:
+    - if:
+      - condition: and
+        conditions:
+        - condition: state
+          entity_id: !input obstruction_entity
+          state: 'off'
+      then:
+      - action: cover.close_cover
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input ratdgo_device
+      else:
+      - action: timer.cancel
+        target:
+          entity_id: !input garage_door_timer_helper
+        data: {}
+      - action: timer.start
+        metadata: {}
+        data: {}
+        target:
+          entity_id: !input garage_door_timer_helper
+  - conditions:
+    - condition: and
+      conditions:
+      - condition: trigger
+        id:
+        - Obstruction Found
+      - condition: template
+        value_template: '{{ is_state(ratdgo_device, [''on'', ''open'', ''opening''])
+          }}'
+      - condition: template
+        value_template: '{{ garage_door_timer_helper != ''timer.none'' }}'
+    sequence:
+    - action: timer.cancel
+      target:
+        entity_id: !input garage_door_timer_helper
+      data: {}
+    - action: timer.start
+      metadata: {}
+      data: {}
+      target:
+        entity_id: !input garage_door_timer_helper
 mode: single
-max_exceeded: silent
