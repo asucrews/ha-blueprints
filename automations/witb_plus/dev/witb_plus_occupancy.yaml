@@ -3,232 +3,182 @@ blueprint:
   homeassistant:
     min_version: 2025.6.0
   description: >
-    WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed
-    for occupancy detection using multiple sensors, inspired by the "Wasp in the Box"
-    concept.  The blueprint employs motion and door sensors to detect occupants (referred
-    to as "wasps") within a defined space (the "box").  If motion is detected, indicating
-    the presence of a "wasp," the state of the box is updated accordingly. The generated
-    binary sensor reflects the presence or absence of a wasp in the box, enabling
-    seamless integration with automation triggers.<br/> <br/>Assumptions:<br/> - Motion
-    sensors are typically positioned to detect movement when someone walks into the
-    room, triggering occupancy detection.<br/> - It is assumed that as long as the
-    door to the designated area ("box") is closed, the room is considered occupied,
-    influencing the automation''s behavior.<br/> - Users are expected to configure
-    motion and door sensors accurately to detect occupancy within the designated area.<br/>
-    - The blueprint provides options to control smart light bulbs, light switches,
-    and fans within the area based on occupancy detection.<br/> - Users are expected
-    to create input_boolean entities for occupancy tracking and bypass control if
-    they choose to utilize these features.<br/> - For bypass functionality, users
-    need to manually integrate call service actions into their automations or methods
-    to control devices when bypassing occupancy detection is required.<br/>
+    Basic occupancy detection using the "Wasp in the Box" concept. Marks the room
+    as occupied when motion is detected, and clears it when the door opens without
+    motion or motion clears while the door is open. Assumes the room stays occupied
+    while the door is closed and no new motion has been detected.
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_occupancy.yaml
+
   input:
     sensor_entities:
       name: Sensor Entities
-      description: The sensor entities for this automation
+      description: Required motion and door sensors used to track occupancy.
       collapsed: true
       input:
         door_sensor:
-          name: Door Sensor or Door Sensor Group
-          description: 'Select the door sensor or group of door sensors representing
-            the entrance to the "box" — the designated area where occupancy is detected.  In
-            the context of the "Wasp in a Box" concept, the door sensor serves as
-            the gateway to monitoring occupants (referred to as "wasps") entering
-            and exiting the space.<br/> <br/>Please note: This input is restricted
-            to entities within the binary_sensor domain and allows only a single selection.  This
-            field and this input is required.<br/>
-
-            '
+          name: Door Sensor
+          description: >
+            The binary_sensor representing the door to the room ("box").
+            Required for tracking entry and exit.
           selector:
             entity:
-              domain:
-              - binary_sensor
+              domain: binary_sensor
               multiple: false
         motion_sensor:
-          name: Motion Sensor or Motion Sensor Group
-          description: 'Choose the motion sensor or group of motion sensors responsible
-            for detecting movement within the designated area ("box").  In the "Wasp
-            in a Box" analogy, the motion sensor plays a crucial role in identifying
-            the presence of "wasps" (occupants) within the space.<br/> <br/>Please
-            note: This input is limited to entities categorized under the binary_sensor
-            domain and allows only a single selection.  This field and this input
-            is required.<br/>
-
-            '
+          name: Motion Sensor
+          description: >
+            The binary_sensor detecting movement within the room ("box").
+            Required for identifying presence.
           selector:
             entity:
-              domain:
-              - binary_sensor
+              domain: binary_sensor
               multiple: false
+
     sensor_options:
       name: Sensor Options
-      description: 'Options to set if you need to add delays to when sensors take
-        actions. Not all sensors are created the same; some might need delays while
-        others don''t. Some sensors fire clear signals right away, while others wait
-        a configurable time. The type that waits might need delays to prevent false
-        positives, whereas the other type does not. You might need to adjust these
-        settings to best fit your sensors or groups.
-
-        '
+      description: Optional delay settings for sensor state changes.
       collapsed: true
       input:
         door_sensor_open_delay:
-          name: Door Sensor Open Delay (Optional)
-          description: 'Specify the delay time, in seconds, for the door sensor to
-            register an open event after detecting movement.  This option helps reduce
-            false events triggered by activities like door openings and closings or
-            shared spaces with multiple occupants.<br/> <br/>Default value: 0 seconds,
-            Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require
-            a delay for the door sensor open event and this input is optional.<br/>
-
-            '
+          name: Door Open Delay
+          description: Delay (in seconds) before triggering on door open.
           default: 1
           selector:
             number:
               mode: box
               min: 0.0
               max: 60.0
-              unit_of_measurement: seconds
               step: 1.0
+              unit_of_measurement: seconds
+
         door_sensor_close_delay:
-          name: Door Sensor Close Delay (Optional)
-          description: 'Specify the delay time, in seconds, for the door sensor to
-            register a close event after detecting no movement.  This option helps
-            reduce false events triggered by activities like door openings and closings
-            or shared spaces with multiple occupants.<br/> <br/>Default value: 0 seconds,
-            Min value: 0 seconds, and Max value: 60 seconds. Only adjust if you require
-            a delay for the door sensor close event and this input is optional.<br/>
-
-            '
+          name: Door Close Delay
+          description: Delay (in seconds) before triggering on door close.
           default: 1
           selector:
             number:
               mode: box
               min: 0.0
               max: 60.0
-              unit_of_measurement: seconds
               step: 1.0
-        motion_sensor_delay:
-          name: Motion off delay (Optional)
-          description: 'Set the delay time, in seconds, for the motion sensor to turn
-            off after detecting no movement.  This option helps reduce false events
-            triggered by activities like door openings and closings or shared spaces
-            with multiple occupants.<br/> <br/>Please note that not all motion sensors
-            behave the same way; some may have built-in delay mechanisms while others
-            do not.  Default value: 30 seconds, Min value: 3600 seconds, and Max value:
-            3600 seconds. Adjust as needed if you require a different delay for the
-            motion sensor to turn off.<br/>
+              unit_of_measurement: seconds
 
-            '
+        motion_sensor_delay:
+          name: Motion Off Delay
+          description: Delay (in seconds) before triggering on motion cleared.
           default: 30
           selector:
             number:
               mode: box
               min: 0.0
               max: 3600.0
-              unit_of_measurement: seconds
               step: 1.0
+              unit_of_measurement: seconds
+
     occupancy_options:
       name: Occupancy Options
-      description: Occupancy Settings
+      description: Configure the input_boolean helper used to track occupancy state.
       collapsed: true
       input:
         occupancy_helper:
-          name: Occupancy Helper (Required)
-          description: 'Select an input boolean entity to serve as an occupancy helper
-            within the designated area ("box").  To utilize this function, create
-            an input_boolean helper entity in your Home Assistant configuration or
-            UI.<br/> The occupancy helper can be used to track the overall occupancy
-            status and coordinate actions based on occupancy detection.  Can be utilized
-            for more advanced automation scenarios where additional logic based on
-            occupancy status is required.<br/> <br/>Default value: ''input_boolean.none''.
-            Only change if you intend to use this field and this input is required.<br/>
-
-            '
+          name: Occupancy Helper
+          description: >
+            An input_boolean to store the room's occupancy state.
+            Create one in your Helpers UI before selecting.
           selector:
             entity:
-              domain:
-              - input_boolean
+              domain: input_boolean
               multiple: false
+
 variables:
   door_sensor: !input door_sensor
+  door_sensor_entity_id: "{{ door_sensor if door_sensor is defined and door_sensor else 'binary_sensor.none' }}"
   door_sensor_open_delay: !input door_sensor_open_delay
   door_sensor_close_delay: !input door_sensor_close_delay
   motion_sensor: !input motion_sensor
+  motion_sensor_entity_id: "{{ motion_sensor if motion_sensor is defined and motion_sensor else 'binary_sensor.none' }}"
   motion_sensor_delay: !input motion_sensor_delay
   occupancy_helper: !input occupancy_helper
+  occupancy_helper_entity_id: "{{ occupancy_helper if occupancy_helper is defined and occupancy_helper else 'input_boolean.none' }}"
+  bypass_helper: !input bypass_helper
+  bypass_helper_entity_id: "{{ bypass_helper if bypass_helper is defined and bypass_helper else 'input_boolean.none' }}"
+
 trigger:
-- platform: state
-  entity_id: !input door_sensor
-  from: 'off'
-  to: 'on'
-  id: Door Opened
-  for: !input door_sensor_open_delay
-- platform: state
-  entity_id: !input door_sensor
-  from: 'on'
-  to: 'off'
-  id: Door Closed
-  for: !input door_sensor_close_delay
-- platform: state
-  entity_id: !input motion_sensor
-  from: 'off'
-  to: 'on'
-  id: Motion On
-- platform: state
-  entity_id: !input motion_sensor
-  from: 'on'
-  to: 'off'
-  id: Motion Off
-  for: !input motion_sensor_delay
+  - platform: state
+    entity_id: !input door_sensor
+    from: 'off'
+    to: 'on'
+    id: Door Opened
+    for: !input door_sensor_open_delay
+
+  - platform: state
+    entity_id: !input door_sensor
+    from: 'on'
+    to: 'off'
+    id: Door Closed
+    for: !input door_sensor_close_delay
+
+  - platform: state
+    entity_id: !input motion_sensor
+    from: 'off'
+    to: 'on'
+    id: Motion On
+
+  - platform: state
+    entity_id: !input motion_sensor
+    from: 'on'
+    to: 'off'
+    id: Motion Off
+    for: !input motion_sensor_delay
+
+condition:
+  condi
+
 action:
-- choose:
-  - conditions:
-    - condition: and
-      conditions:
-      - condition: trigger
-        id: Door Closed
-    sequence:
-    - action: homeassistant.turn_on
-      data: {}
-      target:
-        entity_id: !input occupancy_helper
-  - conditions:
-    - condition: and
-      conditions:
-      - condition: trigger
-        id: Door Opened
-      - condition: state
-        state: 'off'
-        entity_id: !input motion_sensor
-    sequence:
-    - action: homeassistant.turn_off
-      data: {}
-      target:
-        entity_id: !input occupancy_helper
-  - conditions:
-    - condition: and
-      conditions:
-      - condition: trigger
-        id: Motion On
-    sequence:
-    - action: homeassistant.turn_on
-      data: {}
-      target:
-        entity_id: !input occupancy_helper
-  - conditions:
-    - condition: and
-      conditions:
-      - condition: trigger
-        id: Motion Off
-      - condition: state
-        state: 'on'
-        entity_id: !input door_sensor
-    sequence:
-    - action: homeassistant.turn_off
-      data: {}
-      target:
-        entity_id: !input occupancy_helper
+  - choose:
+      - conditions:
+          - alias: Door just closed
+            condition: trigger
+            id: Door Closed
+        sequence:
+          - service: homeassistant.turn_on
+            target:
+              entity_id: !input occupancy_helper
+
+      - conditions:
+          - alias: Door opened with no motion
+            condition: trigger
+            id: Door Opened
+          - alias: No motion active
+            condition: state
+            entity_id: !input motion_sensor
+            state: 'off'
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: !input occupancy_helper
+
+      - conditions:
+          - alias: Motion detected
+            condition: trigger
+            id: Motion On
+        sequence:
+          - service: homeassistant.turn_on
+            target:
+              entity_id: !input occupancy_helper
+
+      - conditions:
+          - alias: Motion cleared while door is open
+            condition: trigger
+            id: Motion Off
+          - alias: Door is open
+            condition: state
+            entity_id: !input door_sensor
+            state: 'on'
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: !input occupancy_helper
+
 mode: single
-max_exceeded: silent

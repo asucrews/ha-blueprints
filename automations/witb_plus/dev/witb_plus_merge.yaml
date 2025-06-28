@@ -204,14 +204,11 @@ action:
               - conditions:
                   - condition: and
                     conditions:
-                      - alias: "condition alias (name)"
-                        condition: template
+                      - condition: template
                         value_template: "{{ enable_smart_timestamp_clear }}"
-                      - alias: "condition alias (name)"
-                        condition: template
+                      - condition: template
                         value_template: "{{ is_state(door_sensor, 'off') }}"
-                      - alias: "condition alias (name)"
-                        condition: template
+                      - condition: template
                         value_template: "{{ as_timestamp(states[door_sensor_entity_id].last_changed) > as_timestamp(states[last_motion_helper_entity_id].state) }}"
                 sequence:
                   - service: input_boolean.turn_off
