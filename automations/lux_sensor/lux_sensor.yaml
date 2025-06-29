@@ -17,8 +17,8 @@ blueprint:
           description: <br/>
           selector:
             entity:
-              domain:
-              - sensor
+              filter:
+                - domain: sensor
               multiple: false
         lux_sensor_delay:
           name: Above LUX level for day time
@@ -36,10 +36,10 @@ blueprint:
           description: <br/>
           selector:
             entity:
-              domain:
-              - input_boolean
-              - light
-              - switch
+              filter:
+                - domain: input_boolean
+                - domain: light
+                - domain: switch
               multiple: false
     light_levels:
       name: Light Levels
@@ -101,8 +101,8 @@ blueprint:
           default: cover.none
           selector:
             entity:
-              domain:
-              - cover
+              filter:
+                - domain: cover
               multiple: false
         cover_curtain:
           name: Curtain or Curtain group
@@ -110,8 +110,8 @@ blueprint:
           default: cover.none
           selector:
             entity:
-              domain:
-              - cover
+              filter:
+                - domain: cover
               multiple: false
 variables:
   lux_sensor: !input lux_sensor
@@ -124,7 +124,7 @@ variables:
   cover_blind: !input cover_blind
   cover_curtain: !input cover_curtain
 trigger:
-- platform: event
+- trigger: event
   event_type: state_changed
   event_data:
     entity_id: !input lux_sensor

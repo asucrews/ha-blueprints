@@ -17,16 +17,16 @@ blueprint:
           description: Witch Ratdgo Device?
           selector:
             entity:
-              domain:
-              - cover
+              filter:
+                - domain: cover
               multiple: false
         obstruction_entity:
           name: Obstruction Entity
           description: Witch Obstruction Entity?
           selector:
             entity:
-              domain:
-              - binary_sensor
+              filter:
+                - domain: binary_sensor
               multiple: false
     optional_entities:
       name: Optional Entities
@@ -39,8 +39,8 @@ blueprint:
           default: timer.none
           selector:
             entity:
-              domain:
-              - timer
+              filter:
+                - domain: timer
               multiple: false
         light_bulbs:
           name: Smart Light Bulb, or Smart Light Bulb Group (Optional)
@@ -55,8 +55,8 @@ blueprint:
           default: light.none
           selector:
             entity:
-              domain:
-              - light
+              filter:
+                - domain: light
               multiple: false
         light_switch:
           name: Light, Light Group, Switch, or Switch Group (Optional)
@@ -71,9 +71,9 @@ blueprint:
           default: light.none
           selector:
             entity:
-              domain:
-              - light
-              - switch
+              filter:
+                - domain: light
+                - domain: switch
               multiple: false
         notify_group:
           name: Notification Group (Optional)
@@ -90,8 +90,8 @@ blueprint:
           default: input_boolean.none
           selector:
             entity:
-              domain:
-              - input_boolean
+              filter:
+                - domain: input_boolean
               multiple: false
 variables:
   ratdgo_device: !input ratdgo_device
@@ -102,22 +102,22 @@ variables:
   notify_group: !input notify_group
   bypass_helper: !input bypass_helper
 trigger:
-- platform: state
+- trigger: state
   entity_id: !input ratdgo_device
   from: opening
   to: open
   id: Garage Door is Open
-- platform: state
+- trigger: state
   entity_id: !input ratdgo_device
   from: closing
   to: closed
   id: Garage Door is Closed
-- platform: event
+- trigger: event
   event_type: timer.finished
   event_data:
     entity_id: !input garage_door_timer_helper
   id: Door timer is done
-- platform: state
+- trigger: state
   entity_id: !input obstruction_entity
   from: 'off'
   to: 'on'

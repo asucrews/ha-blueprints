@@ -14,74 +14,74 @@ blueprint:
       name: Front Door Lights
       selector:
         entity:
-          domain:
-            - light
+          filter:
+            - domain: light
           multiple: true
     garage_lights:
       name: Garage Door Lights
       selector:
         entity:
-          domain:
-            - light
+          filter:
+            - domain: light
           multiple: true
     string_lights:
       name: String Lights (Optional)
       default: []
       selector:
         entity:
-          domain:
-            - light
+          filter:
+            - domain: light
           multiple: true
     sun_sensor:
       name: Sun Solar Rising Sensor
       default: sensor.sun_solar_rising
       selector:
         entity:
-          domain:
-            - binary_sensor
+          filter:
+            - domain: binary_sensor
     sun_phase_sensor:
       name: Home Sun Phase Sensor
       default: sensor.home_sun_phase
       selector:
         entity:
-          domain:
-            - sensor
+          filter:
+            - domain: sensor
 trigger:
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: sun.sun
     attribute: elevation
     below: -6
     id: civil_twilight_on
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: sun.sun
     attribute: elevation
     below: -12
     id: nautical_twilight_on
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: sun.sun
     attribute: elevation
     below: -18
     id: astro_twilight_on
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: sun.sun
     attribute: elevation
     above: -18
     id: astro_twilight_off
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: sun.sun
     attribute: elevation
     above: -12
     id: nautical_twilight_off
-  - platform: numeric_state
+  - trigger: numeric_state
     entity_id: sun.sun
     attribute: elevation
     above: -6
     id: civil_twilight_off
-  - platform: state
+  - trigger: state
     entity_id: !input front_lights
     to: "off"
     id: front_door_manual_off
-  - platform: state
+  - trigger: state
     entity_id: !input garage_lights
     to: "off"
     id: garage_door_manual_off

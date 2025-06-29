@@ -27,25 +27,25 @@ blueprint:
             '
           selector:
             entity:
-              domain:
-              - binary_sensor
-              - input_boolean
+              filter:
+                - domain: binary_sensor
+                - domain: input_boolean
               multiple: false
         flair_activity_status:
           name: Flair Activity Status
           description: Flair Activity Status
           selector:
             entity:
-              domain:
-              - select
+              filter:
+                - domain: select
               multiple: false
         flair_clear_hold:
           name: Flair Clear Hold Button
           description: Flair Clear Hold Button
           selector:
             entity:
-              domain:
-              - button
+              filter:
+                - domain: button
               multiple: false
     optional_entities:
       name: Optional Entities
@@ -94,8 +94,8 @@ blueprint:
           default: binary_sensor.none
           selector:
             entity:
-              domain:
-              - binary_sensor
+              filter:
+                - domain: binary_sensor
               multiple: false
 variables:
   room_occupancy_sensor: !input room_occupancy_sensor
@@ -105,24 +105,24 @@ variables:
   flair_clear_hold: !input flair_clear_hold
   hvac_smart_sensor_occupancy: !input hvac_smart_sensor_occupancy
 trigger:
-- platform: state
+- trigger: state
   entity_id: !input room_occupancy_sensor
   from: 'off'
   to: 'on'
   id: Room Occupied
   for: !input door_sensor_open_delay
-- platform: state
+- trigger: state
   entity_id: !input room_occupancy_sensor
   from: 'on'
   to: 'off'
   id: Room Unoccupied
   for: !input door_sensor_close_delay
-- platform: state
+- trigger: state
   entity_id: !input hvac_smart_sensor_occupancy
   from: 'off'
   to: 'on'
   id: HVAC Occupied
-- platform: state
+- trigger: state
   entity_id: !input hvac_smart_sensor_occupancy
   from: 'on'
   to: 'off'

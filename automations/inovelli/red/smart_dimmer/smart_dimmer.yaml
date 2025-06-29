@@ -323,7 +323,7 @@ variables:
   button: '{{ trigger.event.data.property_key_name }}'
   action_type: '{{ trigger.event.data.value }}'
 trigger:
-- platform: event
+- trigger: event
   event_type: zwave_js_value_notification
   id: Z-Wave Event
   event_data:

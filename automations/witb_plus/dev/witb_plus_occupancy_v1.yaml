@@ -2,7 +2,8 @@ blueprint:
   name: WITB+ Dev Occupancy (1.0.0)
   homeassistant:
     min_version: 2025.6.0
-  description: 'WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed
+  description: >
+    WIAB+ (Wasp in the Box Plus) is an enhanced automation blueprint designed
     for occupancy detection using multiple sensors, inspired by the "Wasp in the Box"
     concept.  The blueprint employs motion and door sensors to detect occupants (referred
     to as "wasps") within a defined space (the "box").  If motion is detected, indicating
@@ -20,8 +21,6 @@ blueprint:
     they choose to utilize these features.<br/> - For bypass functionality, users
     need to manually integrate call service actions into their automations or methods
     to control devices when bypassing occupancy detection is required.<br/>
-
-  
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_occupancy.yaml
   input:
@@ -43,8 +42,8 @@ blueprint:
             '
           selector:
             entity:
-              domain:
-              - binary_sensor
+              filter:
+                - domain: binary_sensor
               multiple: false
         motion_sensor:
           name: Motion Sensor or Motion Sensor Group
@@ -59,8 +58,8 @@ blueprint:
             '
           selector:
             entity:
-              domain:
-              - binary_sensor
+              filter:
+                - domain: binary_sensor
               multiple: false
     sensor_options:
       name: Sensor Options
@@ -149,8 +148,8 @@ blueprint:
             '
           selector:
             entity:
-              domain:
-              - input_boolean
+              filter:
+                - domain: input_boolean
               multiple: false
 variables:
   door_sensor: !input door_sensor
@@ -160,24 +159,24 @@ variables:
   motion_sensor_delay: !input motion_sensor_delay
   occupancy_helper: !input occupancy_helper
 trigger:
-- platform: state
+- trigger: state
   entity_id: !input door_sensor
   from: 'off'
   to: 'on'
   id: Door Opened
   for: !input door_sensor_open_delay
-- platform: state
+- trigger: state
   entity_id: !input door_sensor
   from: 'on'
   to: 'off'
   id: Door Closed
   for: !input door_sensor_close_delay
-- platform: state
+- trigger: state
   entity_id: !input motion_sensor
   from: 'off'
   to: 'on'
   id: Motion On
-- platform: state
+- trigger: state
   entity_id: !input motion_sensor
   from: 'on'
   to: 'off'

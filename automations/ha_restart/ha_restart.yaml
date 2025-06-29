@@ -18,10 +18,10 @@ blueprint:
       selector:
         action: {}
 trigger:
-- platform: homeassistant
+- trigger: homeassistant
   event: start
   id: home_assistant_start
-- platform: homeassistant
+- trigger: homeassistant
   event: shutdown
   id: home_assistant_shutdown
 condition: []

@@ -15,23 +15,22 @@ blueprint:
         esphome_ble:
           selector:
             entity:
-              domain:
-              - binary_sensor
+              filter:
+                - domain: binary_sensor
               multiple: false
         esphome_node_status:
           selector:
             entity:
-              integration: esphome
-              domain:
-              - binary_sensor
+              filter:
+                - domain: binary_sensor
               multiple: true
         garage_door_cover:
           name: Garage Door Cover
           description: Garage Door Cover?
           selector:
             entity:
-              domain:
-              - cover
+              filter:
+                - domain: cover
               multiple: false
     optional_entities:
       name: Optional Entities
@@ -44,9 +43,8 @@ blueprint:
           default: timer.none
           selector:
             entity:
-              integration: timer
-              domain:
-              - timer
+              filter:
+                - domain: timer
               multiple: false
 variables:
   esphome_ble: !input esphome_ble
@@ -54,22 +52,22 @@ variables:
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
 trigger:
-- platform: state
+- trigger: state
   entity_id: !input esphome_ble
   from: 'off'
   to: 'on'
   id: ESPHome BLE Found
-- platform: state
+- trigger: state
   entity_id: !input esphome_ble
   from: 'on'
   to: 'off'
   id: ESPHome BLE Not Found
-- platform: state
+- trigger: state
   entity_id: !input esphome_node_status
   from: 'off'
   to: 'on'
   id: Connected
-- platform: state
+- trigger: state
   entity_id: !input esphome_node_status
   from: 'on'
   to: 'off'

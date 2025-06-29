@@ -15,16 +15,16 @@ blueprint:
       description: The smart lock on the door.
       selector:
         entity:
-          domain:
-          - lock
+          filter:
+            - domain: lock
           multiple: false
     door_sensor:
       name: Door Sensor
       description: Binary sensor that detects if the door is open.
       selector:
         entity:
-          domain:
-          - binary_sensor
+          filter:
+            - domain: binary_sensor
           device_class:
           - door
           multiple: false
@@ -33,8 +33,8 @@ blueprint:
       description: The timer to delay auto-locking when door is open.
       selector:
         entity:
-          domain:
-          - timer
+          filter:
+            - domain: timer
           multiple: false
 trigger:
 - platform: state
