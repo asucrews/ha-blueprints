@@ -239,226 +239,226 @@ action:
             value_template: "{{ states(door_sensor_entity_id) in ['unknown', 'unavailable'] }}"
     then:
       - stop: "Sensor unavailable — automation aborted."
-  - if:
-      - alias: "Automation Bypass is off"
-        condition: template
-        value_template: "{{ is_state(bypass_helper_entity_id, 'off') }}"
-    then:
-      - choose:
-        - alias: Door Closed
-          conditions:
-            - alias: Door just closed
-              condition: trigger
-              id: Door Closed
-          sequence:
-            - action: input_datetime.set_datetime
-              data:
-                timestamp: "{{ now().timestamp() }}"
-              target:
-                entity_id: !input last_motion_helper
-            - action: input_datetime.set_datetime
-              data:
-                timestamp: "{{ now().timestamp() }}"
-              target:
-                entity_id: !input last_door_helper
-            - action: homeassistant.turn_on
-              target:
-                entity_id: !input occupancy_helper
-        - alias: Door Opened
-          conditions:
-            - alias: Door opened with no motion
-              condition: trigger
-              id: Door Opened
-            - alias: No motion active
-              condition: template
-              value_template: "{{ is_state(motion_sensor_entity_id, 'off') }}"
-          sequence:
-            - action: input_datetime.set_datetime
-              data:
-                timestamp: "{{ now().timestamp() }}"
-              target:
-                entity_id: !input last_motion_helper
-            - action: input_datetime.set_datetime
-              data:
-                timestamp: "{{ now().timestamp() }}"
-              target:
-                entity_id: !input last_door_helper
-            - action: homeassistant.turn_off
-              target:
-                entity_id: !input occupancy_helper
-        - alias: Door Left Open
-          conditions:
-            - alias: Door left open for extended period
-              condition: trigger
-              id: Door Left Open
-          sequence:
-            - action: input_datetime.set_datetime
-              data:
-                timestamp: "{{ now().timestamp() }}"
-              target:
-                entity_id: !input last_door_helper
-            - if:
-                - alias: Door open idle clear is enabled
-                  condition: template
-                  value_template: "{{ is_state(enable_clear_when_door_open, 'on') }}"
-              then:
-                - wait_for_trigger:
-                    - platform: state
-                      entity_id: !input motion_sensor
-                      to: "on"
-                  timeout: "{{ reset_on_door_open_min_seconds }}"
-                  continue_on_timeout: true
-                - choose:
-                    - conditions:
-                        - alias: Motion resumed before timeout
-                          condition: template
-                          value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
-                      sequence:
-                        - action: logbook.log
-                          data:
-                            name: WITB+ Occupancy
-                            message: "Motion resumed while door was open — occupancy not cleared."
-                  default:
-                    - action: homeassistant.turn_off
-                      target:
-                        entity_id: !input occupancy_helper
-              else:
-                - service: logbook.log
-                  data:
-                    name: WITB+ Occupancy
-                    message: "Unexpected: Door left open but idle clear is disabled — occupancy not cleared."
-        - alias: Motion Cleared
-          conditions:
-            - alias: Motion cleared
-              condition: trigger
-              id: Motion Off
-          sequence:
-            - action: input_datetime.set_datetime
-              data:
-                timestamp: "{{ now().timestamp() }}"
-              target:
-                entity_id: !input last_motion_helper
-            - choose:
-                - conditions:
-                    - alias: Door is closed
-                      condition: template
-                      value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
-                  sequence:
-                    - action: input_datetime.set_datetime
-                      data:
-                        timestamp: "{{ now().timestamp() }}"
-                      target:
-                        entity_id: !input last_door_helper
-                    - if:
-                        - alias: Door reset logic is enabled
-                          condition: template
-                          value_template: "{{ is_state(enable_reset_on_door_close, 'on') }}"
-                      then:
-                        - wait_for_trigger:
-                            - platform: state
-                              entity_id: !input motion_sensor
-                              to: "on"
-                          timeout: "{{ reset_on_door_close_min_seconds }}"
-                          continue_on_timeout: true
-                        - choose:
-                            - conditions:
-                                - alias: Motion did not resume
-                                  condition: template
-                                  value_template: "{{ not is_state(motion_sensor_entity_id, 'on') }}"
-                              sequence:
-                                - action: homeassistant.turn_off
-                                  target:
-                                    entity_id: !input occupancy_helper
-                          default:
-                            - action: logbook.log
-                              data:
-                                name: WITB+ Occupancy
-                                message: "Motion resumed during wait — occupancy not cleared."
-                - conditions:
-                    - alias: Door is open
-                      condition: template
-                      value_template: "{{ is_state(door_sensor_entity_id, 'on') }}"
-                  sequence:
-                    - action: input_datetime.set_datetime
-                      data:
-                        timestamp: "{{ now().timestamp() }}"
-                      target:
-                        entity_id: !input last_door_helper
+  # - if:
+  #     - alias: "Automation Bypass is off"
+  #       condition: template
+  #       value_template: "{{ is_state(bypass_helper_entity_id, 'off') }}"
+  #   then:
+  #     - choose:
+  #       - alias: Door Closed
+  #         conditions:
+  #           - alias: Door just closed
+  #             condition: trigger
+  #             id: Door Closed
+  #         sequence:
+  #           - action: input_datetime.set_datetime
+  #             data:
+  #               timestamp: "{{ now().timestamp() }}"
+  #             target:
+  #               entity_id: !input last_motion_helper
+  #           - action: input_datetime.set_datetime
+  #             data:
+  #               timestamp: "{{ now().timestamp() }}"
+  #             target:
+  #               entity_id: !input last_door_helper
+  #           - action: homeassistant.turn_on
+  #             target:
+  #               entity_id: !input occupancy_helper
+  #       - alias: Door Opened
+  #         conditions:
+  #           - alias: Door opened with no motion
+  #             condition: trigger
+  #             id: Door Opened
+  #           - alias: No motion active
+  #             condition: template
+  #             value_template: "{{ is_state(motion_sensor_entity_id, 'off') }}"
+  #         sequence:
+  #           - action: input_datetime.set_datetime
+  #             data:
+  #               timestamp: "{{ now().timestamp() }}"
+  #             target:
+  #               entity_id: !input last_motion_helper
+  #           - action: input_datetime.set_datetime
+  #             data:
+  #               timestamp: "{{ now().timestamp() }}"
+  #             target:
+  #               entity_id: !input last_door_helper
+  #           - action: homeassistant.turn_off
+  #             target:
+  #               entity_id: !input occupancy_helper
+  #       - alias: Door Left Open
+  #         conditions:
+  #           - alias: Door left open for extended period
+  #             condition: trigger
+  #             id: Door Left Open
+  #         sequence:
+  #           - action: input_datetime.set_datetime
+  #             data:
+  #               timestamp: "{{ now().timestamp() }}"
+  #             target:
+  #               entity_id: !input last_door_helper
+  #           - if:
+  #               - alias: Door open idle clear is enabled
+  #                 condition: template
+  #                 value_template: "{{ is_state(enable_clear_when_door_open, 'on') }}"
+  #             then:
+  #               - wait_for_trigger:
+  #                   - platform: state
+  #                     entity_id: !input motion_sensor
+  #                     to: "on"
+  #                 timeout: "{{ reset_on_door_open_min_seconds }}"
+  #                 continue_on_timeout: true
+  #               - choose:
+  #                   - conditions:
+  #                       - alias: Motion resumed before timeout
+  #                         condition: template
+  #                         value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
+  #                     sequence:
+  #                       - action: logbook.log
+  #                         data:
+  #                           name: WITB+ Occupancy
+  #                           message: "Motion resumed while door was open — occupancy not cleared."
+  #                 default:
+  #                   - action: homeassistant.turn_off
+  #                     target:
+  #                       entity_id: !input occupancy_helper
+  #             else:
+  #               - service: logbook.log
+  #                 data:
+  #                   name: WITB+ Occupancy
+  #                   message: "Unexpected: Door left open but idle clear is disabled — occupancy not cleared."
+  #       - alias: Motion Cleared
+  #         conditions:
+  #           - alias: Motion cleared
+  #             condition: trigger
+  #             id: Motion Off
+  #         sequence:
+  #           - action: input_datetime.set_datetime
+  #             data:
+  #               timestamp: "{{ now().timestamp() }}"
+  #             target:
+  #               entity_id: !input last_motion_helper
+  #           - choose:
+  #               - conditions:
+  #                   - alias: Door is closed
+  #                     condition: template
+  #                     value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
+  #                 sequence:
+  #                   - action: input_datetime.set_datetime
+  #                     data:
+  #                       timestamp: "{{ now().timestamp() }}"
+  #                     target:
+  #                       entity_id: !input last_door_helper
+  #                   - if:
+  #                       - alias: Door reset logic is enabled
+  #                         condition: template
+  #                         value_template: "{{ is_state(enable_reset_on_door_close, 'on') }}"
+  #                     then:
+  #                       - wait_for_trigger:
+  #                           - platform: state
+  #                             entity_id: !input motion_sensor
+  #                             to: "on"
+  #                         timeout: "{{ reset_on_door_close_min_seconds }}"
+  #                         continue_on_timeout: true
+  #                       - choose:
+  #                           - conditions:
+  #                               - alias: Motion did not resume
+  #                                 condition: template
+  #                                 value_template: "{{ not is_state(motion_sensor_entity_id, 'on') }}"
+  #                             sequence:
+  #                               - action: homeassistant.turn_off
+  #                                 target:
+  #                                   entity_id: !input occupancy_helper
+  #                         default:
+  #                           - action: logbook.log
+  #                             data:
+  #                               name: WITB+ Occupancy
+  #                               message: "Motion resumed during wait — occupancy not cleared."
+  #               - conditions:
+  #                   - alias: Door is open
+  #                     condition: template
+  #                     value_template: "{{ is_state(door_sensor_entity_id, 'on') }}"
+  #                 sequence:
+  #                   - action: input_datetime.set_datetime
+  #                     data:
+  #                       timestamp: "{{ now().timestamp() }}"
+  #                     target:
+  #                       entity_id: !input last_door_helper
 
-                    - action: homeassistant.turn_on
-                      target:
-                        entity_id: !input occupancy_helper
-              default:
-                - action: logbook.log
-                  data:
-                    name: WITB+ Occupancy
-                    message: "Motion cleared, but door state was unknown or unhandled. Occupancy unchanged."
-        - alias: HA Restart
-          conditions:
-            - condition: trigger
-              id: ha_start
-            - condition: template
-              value_template: "{{ recheck_on_start }}"
-          sequence:
-            - if:
-                - alias: "Motion Check"
-                  condition: template
-                  value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
-              then:
-                - action: input_boolean.turn_on
-                  target:
-                    entity_id: !input occupancy_helper
-              else:
-                - service: logbook.log
-                  data:
-                    name: WITB+ Occupancy
-                    message: "Restarted but could not infer occupancy from motion timestamps."
-            - if:
-                - alias: Door is closed and motion happened after door
-                - condition: and
-                  conditions:
-                    - alias: "Door Sensor Check"
-                      condition: template
-                      value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
-                    - alias: "Motion Timestamp Check"
-                      condition: template
-                      value_template: "{{ as_timestamp(states[last_motion_helper_entity_id].state) > as_timestamp(states[last_door_helper_entity_id].state) }}"
-              then:
-                - action: input_boolean.turn_on
-                  target:
-                    entity_id: !input occupancy_helper
-              else:
-                - service: logbook.log
-                  data:
-                    name: WITB+ Occupancy
-                    message: "Restarted but could not infer occupancy from door timestamps."
-        - alias: Bypass Clear
-          conditions:
-            - condition: trigger
-              id: Bypass Timer Finished
-          sequence:
-            - choose:
-                - alias: "Bypass reset expected"
-                  conditions:
-                    - condition: template
-                      value_template: >
-                        {{ is_state(bypass_helper_entity_id, 'on') and
-                          is_state(enable_bypass_timeout, 'on') }}
-                  sequence:
-                    - service: input_boolean.turn_off
-                      target:
-                        entity_id: !input bypass_helper
-                - alias: "Bypass timer fired but already reset or disabled (expected)"
-                  conditions:
-                    - condition: template
-                      value_template: >
-                        {{ is_state(bypass_helper_entity_id, 'off') and
-                          is_state(enable_bypass_timeout, 'off') }}
-                  sequence: []
-              default:
-                - service: logbook.log
-                  data:
-                    name: WITB+ Occupancy
-                    message: "Bypass timer finished but states mismatched — unexpected condition."
+  #                   - action: homeassistant.turn_on
+  #                     target:
+  #                       entity_id: !input occupancy_helper
+  #             default:
+  #               - action: logbook.log
+  #                 data:
+  #                   name: WITB+ Occupancy
+  #                   message: "Motion cleared, but door state was unknown or unhandled. Occupancy unchanged."
+  #       - alias: HA Restart
+  #         conditions:
+  #           - condition: trigger
+  #             id: ha_start
+  #           - condition: template
+  #             value_template: "{{ recheck_on_start }}"
+  #         sequence:
+  #           - if:
+  #               - alias: "Motion Check"
+  #                 condition: template
+  #                 value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
+  #             then:
+  #               - action: input_boolean.turn_on
+  #                 target:
+  #                   entity_id: !input occupancy_helper
+  #             else:
+  #               - service: logbook.log
+  #                 data:
+  #                   name: WITB+ Occupancy
+  #                   message: "Restarted but could not infer occupancy from motion timestamps."
+  #           - if:
+  #               - alias: Door is closed and motion happened after door
+  #               - condition: and
+  #                 conditions:
+  #                   - alias: "Door Sensor Check"
+  #                     condition: template
+  #                     value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
+  #                   - alias: "Motion Timestamp Check"
+  #                     condition: template
+  #                     value_template: "{{ as_timestamp(states[last_motion_helper_entity_id].state) > as_timestamp(states[last_door_helper_entity_id].state) }}"
+  #             then:
+  #               - action: input_boolean.turn_on
+  #                 target:
+  #                   entity_id: !input occupancy_helper
+  #             else:
+  #               - service: logbook.log
+  #                 data:
+  #                   name: WITB+ Occupancy
+  #                   message: "Restarted but could not infer occupancy from door timestamps."
+  #       - alias: Bypass Clear
+  #         conditions:
+  #           - condition: trigger
+  #             id: Bypass Timer Finished
+  #         sequence:
+  #           - choose:
+  #               - alias: "Bypass reset expected"
+  #                 conditions:
+  #                   - condition: template
+  #                     value_template: >
+  #                       {{ is_state(bypass_helper_entity_id, 'on') and
+  #                         is_state(enable_bypass_timeout, 'on') }}
+  #                 sequence:
+  #                   - service: input_boolean.turn_off
+  #                     target:
+  #                       entity_id: !input bypass_helper
+  #               - alias: "Bypass timer fired but already reset or disabled (expected)"
+  #                 conditions:
+  #                   - condition: template
+  #                     value_template: >
+  #                       {{ is_state(bypass_helper_entity_id, 'off') and
+  #                         is_state(enable_bypass_timeout, 'off') }}
+  #                 sequence: []
+  #             default:
+  #               - service: logbook.log
+  #                 data:
+  #                   name: WITB+ Occupancy
+  #                   message: "Bypass timer finished but states mismatched — unexpected condition."
 
 mode: single
