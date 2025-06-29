@@ -115,6 +115,14 @@ blueprint:
           selector:
             boolean:
           default: false
+      room_idler_timer:
+        name: Timer to use for room idler
+        selector:
+          entity:
+            filter:
+              - domain: timer
+            multiple: false
+        default: input_datetime.none
 
 variables:
   door_sensor: !input door_sensor
