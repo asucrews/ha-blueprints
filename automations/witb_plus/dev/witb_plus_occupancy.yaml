@@ -148,6 +148,7 @@ blueprint:
             entity:
               domain: input_boolean
               multiple: false
+          default: []
 
         enable_bypass_timeout:
           name: Auto-reset bypass after timeout
@@ -160,6 +161,7 @@ blueprint:
           selector:
             entity:
               domain: timer
+          default: []
 
 variables:
   door_sensor: !input door_sensor
