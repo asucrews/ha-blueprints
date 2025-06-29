@@ -232,7 +232,7 @@ trigger:
   - platform: event
     event_type: timer.finished
     event_data:
-      entity_id: !input bypass_timer_entity_id
+      entity_id: "{{ bypass_timer_entity_id }}"
     id: Bypass Timer Finished
 
 action:
