@@ -49,7 +49,6 @@ blueprint:
               step: 1.0
               unit_of_measurement: seconds
           default: 1
-
         door_sensor_close_delay:
           name: Door Close Delay
           description: Delay (in seconds) before triggering on door close.
@@ -61,7 +60,6 @@ blueprint:
               step: 1.0
               unit_of_measurement: seconds
           default: 1
-
         motion_sensor_delay:
           name: Motion Off Delay
           description: Delay (in seconds) before triggering on motion cleared.
@@ -73,20 +71,20 @@ blueprint:
               step: 1.0
               unit_of_measurement: seconds
           default: 5
-
         last_motion_helper:
           name: Last Motion Helper Date and Time
           selector:
             entity:
               domain: input_datetime
               multiple: false
-
+          default: input_datetime.none
         last_door_helper:
           name: Last Door Helper Date and Time
           selector:
             entity:
               domain: input_datetime
               multiple: false
+          default: input_datetime.none
     occupancy_options:
       name: Occupancy Options
       description: Configure the input_boolean helper used to track occupancy state.
@@ -148,20 +146,18 @@ blueprint:
             entity:
               domain: input_boolean
               multiple: false
-          default: []
-
+          default: input_datetime.none
         enable_bypass_timeout:
           name: Auto-reset bypass after timeout
           selector:
             boolean:
           default: false
-
         bypass_timer:
           name: Timer to use for bypass reset
           selector:
             entity:
               domain: timer
-          default: []
+          default: input_datetime.none
 
 variables:
   door_sensor: !input door_sensor
@@ -227,9 +223,9 @@ trigger:
     id: Bypass Timer Finished
 
 action:
-  - alias: "Abort if any sensor is unavailable"
-    if:
-      - condition: or
+  - if:
+      - alias: "Abort if any sensor is unavailable"
+        condition: or
         conditions:
           - alias: "Motion Sensor Unavailable"
             condition: template
