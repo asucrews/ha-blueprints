@@ -304,7 +304,7 @@ action:
               then:
                 - wait_for_trigger:
                     - platform: state
-                      entity_id: "{{ motion_sensor_entity_id }}"
+                      entity_id: !input motion_sensor
                       to: "on"
                   timeout: "{{ reset_on_door_open_min_seconds }}"
                   continue_on_timeout: true
@@ -356,7 +356,7 @@ action:
                       then:
                         - wait_for_trigger:
                             - platform: state
-                              entity_id: "{{ motion_sensor_entity_id }}"
+                              entity_id: !input motion_sensor
                               to: "on"
                           timeout: "{{ reset_on_door_close_min_seconds }}"
                           continue_on_timeout: true
