@@ -154,10 +154,15 @@ variables:
 
   last_motion_helper: !input last_motion_helper
   last_motion_helper_entity_id: "{{ last_motion_helper if last_motion_helper is defined and last_motion_helper else 'input_datetime.none' }}"
-  last_door_helper: !input last_motion_helper
+  last_door_helper: !input last_door_helper
   last_door_helper_entity_id: "{{ last_door_helper if last_door_helper is defined and last_door_helper else 'input_datetime.none' }}"
+  
   enable_reset_on_door_close: !input enable_reset_on_door_close
   reset_on_door_close_min_seconds: !input reset_on_door_close_min_seconds
+
+  enable_clear_when_door_open: !input enable_clear_when_door_open 
+  reset_on_door_open_min_seconds: !input reset_on_door_open_min_seconds 
+  
   recheck_on_start: !input recheck_on_start
   enable_bypass_timeout: !input enable_bypass_timeout
 
@@ -211,6 +216,17 @@ trigger:
     id: Bypass Timer Finished
 
 action:
+  - alias: "Abort if any sensor is unavailable"
+    condition: or
+    conditions:
+      - alias: "Motion Sensor Unavailable"
+        condition: template
+        value_template: "{{ states(motion_sensor_entity_id) in ['unknown', 'unavailable'] }}"
+      - alias: "Door Sensor Unavailable"
+        condition: template
+        value_template: "{{ states(door_sensor_entity_id) in ['unknown', 'unavailable'] }}"
+    sequence:
+      - stop: "Sensor unavailable — automation aborted."
   - if:
       - alias: "Automation Bypass is off"
         condition: template
@@ -414,30 +430,27 @@ action:
                 id: Bypass Timer Finished
             sequence:
               - choose:
-                  - conditions:
-                      - condition: and
-                        conditions:
-                          - condition: template
-                            value_template: "{{ is_state(enable_bypass_timeout, 'on') }}"
-                          - condition: template
-                            value_template: "{{ is_state(bypass_helper_entity_id, 'on') }}"
+                  - alias: "Bypass reset expected"
+                    conditions:
+                      - condition: template
+                        value_template: >
+                          {{ is_state(bypass_helper_entity_id, 'on') and
+                            is_state(enable_bypass_timeout, 'on') }}
                     sequence:
                       - service: input_boolean.turn_off
                         target:
                           entity_id: "{{ bypass_helper_entity_id }}"
-                  - conditions:
-                      - condition: or
-                        conditions:
-                          - condition: template
-                            value_template: "{{ is_state(enable_bypass_timeout, 'off') }}"
-                          - condition: template
-                            value_template: "{{ is_state(bypass_helper_entity_id, 'off') }}"
-                    sequence: []  # Do nothing, valid expected state
+                  - alias: "Bypass timer fired but already reset or disabled (expected)"
+                    conditions:
+                      - condition: template
+                        value_template: >
+                          {{ is_state(bypass_helper_entity_id, 'off') and
+                            is_state(enable_bypass_timeout, 'off') }}
+                    sequence: []
                 default:
                   - service: logbook.log
                     data:
                       name: WITB+ Occupancy
-                      message: "Bypass timer finished, but could not resolve bypass state — unexpected behavior."
-
+                      message: "Bypass timer finished but states mismatched — unexpected condition."
 
 mode: single
