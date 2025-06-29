@@ -297,7 +297,6 @@ action:
                 timestamp: "{{ now().timestamp() }}"
               target:
                 entity_id: "{{ last_door_helper_entity_id }}"
-
             - if:
                 - alias: Door open idle clear is enabled
                   condition: template
@@ -309,7 +308,6 @@ action:
                       to: "on"
                   timeout: "{{ reset_on_door_open_min_seconds }}"
                   continue_on_timeout: true
-
                 - choose:
                     - conditions:
                         - alias: Motion resumed before timeout
@@ -412,6 +410,11 @@ action:
                 - action: input_boolean.turn_on
                   target:
                     entity_id: "{{ occupancy_helper_entity_id }}"
+              else:
+                - service: logbook.log
+                  data:
+                    name: WITB+ Occupancy
+                    message: "Restarted but could not infer occupancy from motion timestamps."
             - if:
                 - alias: Door is closed and motion happened after door
                 - condition: and
@@ -426,11 +429,11 @@ action:
                 - action: input_boolean.turn_on
                   target:
                     entity_id: "{{ occupancy_helper_entity_id }}"
-          default:
-            - service: logbook.log
-              data:
-                name: WITB+ Occupancy
-                message: "Restarted but could not infer occupancy from motion or door timestamps."
+              else:
+                - service: logbook.log
+                  data:
+                    name: WITB+ Occupancy
+                    message: "Restarted but could not infer occupancy from door timestamps."
         - alias: Bypass Clear
           conditions:
             - condition: trigger
