@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev Occupancy (1.0.0)
+  name: WITB+ Dev Occupancy (2.0.0)
   homeassistant:
     min_version: 2025.6.0
   description: >
