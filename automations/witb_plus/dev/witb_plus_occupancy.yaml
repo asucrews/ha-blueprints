@@ -9,7 +9,6 @@ blueprint:
     while the door is closed and no new motion has been detected.
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_occupancy.yaml
-
   input:
     sensor_entities:
       name: Sensor Entities
@@ -34,7 +33,6 @@ blueprint:
             entity:
               domain: binary_sensor
               multiple: false
-
     sensor_options:
       name: Sensor Options
       description: Optional delay settings for sensor state changes.
@@ -43,7 +41,6 @@ blueprint:
         door_sensor_open_delay:
           name: Door Open Delay
           description: Delay (in seconds) before triggering on door open.
-          default: 1
           selector:
             number:
               mode: box
@@ -51,11 +48,11 @@ blueprint:
               max: 60.0
               step: 1.0
               unit_of_measurement: seconds
+          default: 1
 
         door_sensor_close_delay:
           name: Door Close Delay
           description: Delay (in seconds) before triggering on door close.
-          default: 1
           selector:
             number:
               mode: box
@@ -63,11 +60,11 @@ blueprint:
               max: 60.0
               step: 1.0
               unit_of_measurement: seconds
+          default: 1
 
         motion_sensor_delay:
           name: Motion Off Delay
           description: Delay (in seconds) before triggering on motion cleared.
-          default: 30
           selector:
             number:
               mode: box
@@ -75,7 +72,21 @@ blueprint:
               max: 3600.0
               step: 1.0
               unit_of_measurement: seconds
+          default: 5
 
+        last_motion_helper:
+          name: Last Motion Helper Date and Time
+          selector:
+            entity:
+              domain: input_datetime
+              multiple: false
+
+        last_door_helper:
+          name: Last Door Helper Date and Time
+          selector:
+            entity:
+              domain: input_datetime
+              multiple: false
     occupancy_options:
       name: Occupancy Options
       description: Configure the input_boolean helper used to track occupancy state.
@@ -90,56 +101,65 @@ blueprint:
             entity:
               domain: input_boolean
               multiple: false
-
     advance_logic:
       name: Advance Behavior Options
       input:
         enable_reset_on_door_close:
           name: Clear occupancy on door close after delay
-          default: true
           selector:
             boolean:
+          default: false
+
         reset_on_door_close_min_seconds:
           name: Min time before reset on door close
-          default: 15
           selector:
             number:
               min: 1
               max: 900
               unit_of_measurement: seconds
+          default: 15
+
         enable_clear_when_door_open:
           name: Clear occupancy if door left open with no motion
-          default: true
           selector:
             boolean:
+          default: false
+
         reset_on_door_open_min_seconds:
           name: Min time before reset on door open
-          default: 15
           selector:
             number:
               min: 1
               max: 900
               unit_of_measurement: seconds
+          default: 15
+
         recheck_on_start:
           name: Sync state on Home Assistant restart
-          default: true
           selector:
             boolean:
-
+          default: false
     bypass_options:
       name: Bypass Logic
       input:
+        bypass_helper:
+          name: Bypass Helper
+          selector:
+            entity:
+              domain: input_boolean
+              multiple: false
+
         enable_bypass_timeout:
           name: Auto-reset bypass after timeout
-          default: true
           selector:
             boolean:
+          default: false
+
         bypass_timer:
           name: Timer to use for bypass reset
           selector:
             entity:
               domain: timer
-          default: timer.bypass_timeout_office
 
 variables:
   door_sensor: !input door_sensor
@@ -212,7 +232,7 @@ trigger:
   - platform: event
     event_type: timer.finished
     event_data:
-      entity_id: !input bypass_timer_entity
+      entity_id: !input bypass_timer_entity_id
     id: Bypass Timer Finished
 
 action:
