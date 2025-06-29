@@ -13,7 +13,7 @@ blueprint:
     sensor_entities:
       name: Sensor Entities
       description: Required motion and door sensors used to track occupancy.
-      collapsed: true
+      collapsed: false
       input:
         door_sensor:
           name: Door Sensor
@@ -38,7 +38,7 @@ blueprint:
     sensor_options:
       name: Sensor Options
       description: Optional delay settings for sensor state changes.
-      collapsed: true
+      collapsed: false
       input:
         door_sensor_open_delay:
           name: Door Open Delay
@@ -92,7 +92,7 @@ blueprint:
     occupancy_options:
       name: Occupancy Options
       description: Configure the input_boolean helper used to track occupancy state.
-      collapsed: true
+      collapsed: false
       input:
         occupancy_helper:
           name: Occupancy Helper
@@ -104,21 +104,40 @@ blueprint:
               filter:
                 - domain: input_boolean
               multiple: false
+    advanced_logic:
+      name: Advanced Logic
+      description: Configure the advanced logic options.
+      collapsed: false
+      input:
+        enable_room_idler:
+          name: Enable Room Idler
+          description: Enable idle checks for this room.
+          selector:
+            boolean:
+          default: false
 
 variables:
   door_sensor: !input door_sensor
   door_sensor_entity_id: "{{ door_sensor if door_sensor is defined and door_sensor else 'binary_sensor.none' }}"
   door_sensor_open_delay: !input door_sensor_open_delay
   door_sensor_close_delay: !input door_sensor_close_delay
+  
   motion_sensor: !input motion_sensor
   motion_sensor_entity_id: "{{ motion_sensor if motion_sensor is defined and motion_sensor else 'binary_sensor.none' }}"
   motion_sensor_delay: !input motion_sensor_delay
+  
   occupancy_helper: !input occupancy_helper
   occupancy_helper_entity_id: "{{ occupancy_helper if occupancy_helper is defined and occupancy_helper else 'input_boolean.none' }}"
+  
   last_motion_helper: !input last_motion_helper
   last_motion_helper_entity_id: "{{ last_motion_helper if last_motion_helper is defined and last_motion_helper else 'input_datetime.none' }}"
+  
   last_door_helper: !input last_door_helper
   last_door_helper_entity_id: "{{ last_door_helper if last_door_helper is defined and last_door_helper else 'input_datetime.none' }}"
+
+  enable_room_idler: !input enable_room_idler
+  room_idler_timer: !input room_idler_timer
+  room_idler_timer_entity_id: "{{ room_idler_timer if room_idler_timer is defined and room_idler_timer else 'timer.none' }}"
 
 trigger:
   - trigger: state
@@ -147,12 +166,21 @@ trigger:
   - trigger: homeassistant
     event: start
     id: HA Restarted
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input room_idler_timer
+    id: Room Idler Finished
 
 action:
   - if:
       - alias: Abort if any sensor is unavailable
         condition: or
         conditions:
+          - alias: "condition alias (name)"
+            condition: state
+            entity_id: entity ID
+            state: "state"
           - alias: Door Sensor Unavailable
             condition: template
             value_template: "{{ states(door_sensor_entity_id) in ['unknown', 'unavailable'] }}"
@@ -266,6 +294,17 @@ action:
                       - action: homeassistant.turn_on
                         target:
                           entity_id: !input occupancy_helper
+                      - if:
+                        - condition: and
+                          conditions:
+                            - alias: "enable room idler check"
+                              condition: template
+                              value_template: "{{  is_state(enable_room_idler, 'on') }}"
+                        then:
+                          - alias: "Start Timer"
+                            action: timer.start
+                            target:
+                              entity_id: !input room_idler_timer
                   - conditions:
                       - alias: Door is open
                         condition: template
@@ -304,4 +343,12 @@ action:
                     target:
                       entity_id: !input occupancy_helper
 
+          - alias: Room Idler Finished
+            conditions:
+              - condition: trigger
+                id: Room Idler Finished
+            sequence:
+              - action: homeassistant.turn_off
+                target:
+                  entity_id: !input occupancy_helper
 mode: single
