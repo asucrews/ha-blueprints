@@ -2,11 +2,13 @@ blueprint:
   name: WITB+ Dev Occupancy (2.0.0)
   homeassistant:
     min_version: 2025.6.0
-  description: >
-    Basic occupancy detection using the "Wasp in the Box" concept. Marks
+  description:
+    'Basic occupancy detection using the "Wasp in the Box" concept. Marks
     the room as occupied when motion is detected, and clears it when the door opens
     without motion or motion clears while the door is open. Assumes the room stays
     occupied while the door is closed and no new motion has been detected.
+
+    '
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/refs/heads/main/automations/witb_plus/dev/witb_plus_occupancy_v2.yaml
   input:
@@ -17,9 +19,11 @@ blueprint:
       input:
         door_sensor:
           name: Door Sensor
-          description: >
-            The binary_sensor representing the door to the room ("box").
+          description:
+            'The binary_sensor representing the door to the room ("box").
             Required for tracking entry and exit.
+
+            '
           selector:
             entity:
               filter:
@@ -27,9 +31,11 @@ blueprint:
               multiple: false
         motion_sensor:
           name: Motion Sensor
-          description: >
-            The binary_sensor detecting movement within the room ("box").
+          description:
+            'The binary_sensor detecting movement within the room ("box").
             Required for identifying presence.
+
+            '
           selector:
             entity:
               filter:
@@ -96,15 +102,76 @@ blueprint:
       input:
         occupancy_helper:
           name: Occupancy Helper
-          description: >
-            An input_boolean to store the room's occupancy state. Create
+          description:
+            "An input_boolean to store the room's occupancy state. Create
             one in your Helpers UI before selecting.
+
+            "
           selector:
             entity:
               filter:
                 - domain: input_boolean
               multiple: false
-
+    # advance_logic:
+    #   name: Advance Behavior Options
+    #   input:
+    #     enable_reset_on_door_close:
+    #       name: Clear occupancy on door close after delay
+    #       selector:
+    #         boolean: {}
+    #       default: false
+    #     reset_on_door_close_min_seconds:
+    #       name: Min time before reset on door close
+    #       selector:
+    #         number:
+    #           min: 1.0
+    #           max: 900.0
+    #           unit_of_measurement: seconds
+    #           mode: slider
+    #           step: 1.0
+    #       default: 15
+    #     enable_clear_when_door_open:
+    #       name: Clear occupancy if door left open with no motion
+    #       selector:
+    #         boolean: {}
+    #       default: false
+    #     reset_on_door_open_timer:
+    #       name: Timer to use for door open reset
+    #       selector:
+    #         entity:
+    #           filter:
+    #             - domain: timer
+    #           multiple: false
+    #       default: input_datetime.none
+    #     recheck_on_start:
+    #       name: Sync state on Home Assistant restart
+    #       selector:
+    #         boolean: {}
+    #       default: false
+    # bypass_options:
+    #   name: Bypass Logic
+    #   input:
+    #     bypass_helper:
+    #       name: Bypass Helper
+    #       selector:
+    #         entity:
+    #           filter:
+    #             - domain: input_boolean
+    #           multiple: false
+    #       default: input_datetime.none
+    #     enable_bypass_timeout:
+    #       name: Auto-reset bypass after timeout
+    #       selector:
+    #         boolean: {}
+    #       default: false
+    #     bypass_timer:
+    #       name: Timer to use for bypass reset
+    #       selector:
+    #         entity:
+    #           filter:
+    #             - domain: timer
+    #           multiple: false
+    #       default: input_datetime.none
 variables:
   door_sensor: !input door_sensor
   door_sensor_entity_id: "{{ door_sensor if door_sensor is defined and door_sensor else 'binary_sensor.none' }}"
@@ -119,7 +186,20 @@ variables:
   last_motion_helper_entity_id: "{{ last_motion_helper if last_motion_helper is defined and last_motion_helper else 'input_datetime.none' }}"
   last_door_helper: !input last_door_helper
   last_door_helper_entity_id: "{{ last_door_helper if last_door_helper is defined and last_door_helper else 'input_datetime.none' }}"
-
+  # enable_reset_on_door_close: !input enable_reset_on_door_close
+  # reset_on_door_close_timer: !input reset_on_door_close_timer
+  # enable_clear_when_door_open: !input enable_clear_when_door_open
+  # reset_on_door_open_timer: !input reset_on_door_open_timer
+  # recheck_on_start: !input recheck_on_start
+  # enable_bypass_timeout: !input enable_bypass_timeout
+  # bypass_helper: !input bypass_helper
+  # bypass_helper_entity_id:
+  #   "{{ bypass_helper if bypass_helper is defined and bypass_helper
+  #   else 'input_boolean.none' }}"
+  # bypass_timer: !input bypass_timer
+  # bypass_timer_entity_id:
+  #   "{{ bypass_timer if bypass_timer is defined and bypass_timer
+  #   else 'timer.none' }}"
 trigger:
   - trigger: state
     entity_id: !input door_sensor
@@ -144,7 +224,24 @@ trigger:
     to: "off"
     id: Motion Off
     for: !input motion_sensor_delay
-
+  # - trigger: homeassistant
+  #   event: start
+  #   id: ha_start
+  # - trigger: event
+  #   event_type: timer.finished
+  #   event_data:
+  #     entity_id: !input bypass_timer
+  #   id: Bypass Timer Finished
+  # - trigger: event
+  #   event_type: timer.finished
+  #   event_data:
+  #     entity_id: !input reset_on_door_open_timer
+  #   id: Reset On Door Open Timer Finished
+  # - trigger: event
+  #   event_type: timer.finished
+  #   event_data:
+  #     entity_id: !input reset_on_door_close_timer
+  #   id: Reset On Door Close Timer Finished
 action:
   - if:
       - alias: Abort if any sensor is unavailable
@@ -182,6 +279,15 @@ action:
               - action: homeassistant.turn_on
                 target:
                   entity_id: !input occupancy_helper
+              # - if:
+              #     - alias: Door close idle clear is enabled
+              #       condition: template
+              #       value_template: "{{ is_state(enable_reset_on_door_close, 'on') }}"
+              #   then:
+              #     - alias: "Start Timer"
+              #       action: timer.start
+              #       target:
+              #         entity_id: !input door_close_idle_timer
           - alias: Door Opened
             conditions:
               - alias: Door opened with no motion
@@ -210,6 +316,15 @@ action:
                       - service: homeassistant.turn_off
                         target:
                           entity_id: !input occupancy_helper
+              # - if:
+              #     - alias: Door open idle clear is enabled
+              #       condition: template
+              #       value_template: "{{ is_state(enable_clear_when_door_open, 'on') }}"
+              #   then:
+              #     - alias: "Start Timer"
+              #       action: timer.start
+              #       target:
+              #         entity_id: !input door_open_idle_timer
           - alias: Motion Detected
             conditions:
               - alias: Motion became active
@@ -262,5 +377,73 @@ action:
                       - action: homeassistant.turn_off
                         target:
                           entity_id: !input occupancy_helper
-
+          # - alias: HA Restart
+          #   conditions:
+          #     - condition: trigger
+          #       id: ha_start
+          #     - condition: template
+          #       value_template: "{{ recheck_on_start }}"
+          #   sequence:
+          #     - if:
+          #         - alias: Motion Check
+          #           condition: template
+          #           value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
+          #       then:
+          #         - action: input_boolean.turn_on
+          #           target:
+          #             entity_id: !input occupancy_helper
+          #       else:
+          #         - action: logbook.log
+          #           data:
+          #             name: WITB+ Occupancy
+          #             message: Restarted but could not infer occupancy from motion timestamps.
+          #     - if:
+          #         - alias: Door is closed and motion happened after door
+          #           condition: and
+          #           conditions:
+          #             - alias: Door Sensor Check
+          #               condition: template
+          #               value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
+          #             - alias: Motion Timestamp Check
+          #               condition: template
+          #               value_template:
+          #                 "{{ as_timestamp(states[last_motion_helper_entity_id].state)
+          #                 > as_timestamp(states[last_door_helper_entity_id].state) }}"
+          #       then:
+          #         - action: input_boolean.turn_on
+          #           target:
+          #             entity_id: !input occupancy_helper
+          #       else:
+          #         - action: logbook.log
+          #           data:
+          #             name: WITB+ Occupancy
+          #             message: Restarted but could not infer occupancy from door timestamps.
+          # - alias: Bypass Clear
+          #   conditions:
+          #     - condition: trigger
+          #       id: Bypass Timer Finished
+          #   sequence:
+          #     - choose:
+          #         - alias: Bypass reset expected
+          #           conditions:
+          #             - condition: template
+          #               value_template:
+          #                 "{{ is_state(bypass_helper_entity_id, 'on') and\n  is_state(enable_bypass_timeout,
+          #                 'on') }}\n"
+          #           sequence:
+          #             - action: input_boolean.turn_off
+          #               target:
+          #                 entity_id: !input bypass_helper
+          #         - alias: Bypass timer fired but already reset or disabled (expected)
+          #           conditions:
+          #             - condition: template
+          #               value_template:
+          #                 "{{ is_state(bypass_helper_entity_id, 'off') and\n  is_state(enable_bypass_timeout,
+          #                 'off') }}\n"
+          #           sequence: []
+          #       default:
+          #         - action: logbook.log
+          #           data:
+          #             name: WITB+ Occupancy
+          #             message: Bypass timer finished but states mismatched — unexpected condition.
 mode: single
