@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev Occupancy (2.0.0.rc1)
+  name: WITB+ Dev Occupancy (2.0.0.rc2)
   homeassistant:
     min_version: 2025.6.0
   description: >
@@ -109,6 +109,14 @@ blueprint:
       description: Configure the advanced logic options.
       collapsed: false
       input:
+        bypass_helper:
+          name: Bypass Helper
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+              multiple: false
+          default: input_datetime.none
         enable_room_idler:
           name: Enable Room Idler
           description: Enable idle checks for this room.
@@ -143,9 +151,14 @@ variables:
   last_door_helper: !input last_door_helper
   last_door_helper_entity_id: "{{ last_door_helper if last_door_helper is defined and last_door_helper else 'input_datetime.none' }}"
 
+  bypass_helper: !input bypass_helper
+  bypass_helper_entity_id: "{{ bypass_helper if bypass_helper is defined and bypass_helper else 'input_boolean.none' }}"
+
   enable_room_idler: !input enable_room_idler
   room_idler_timer: !input room_idler_timer
   room_idler_timer_entity_id: "{{ room_idler_timer if room_idler_timer is defined and room_idler_timer else 'timer.none' }}"
+
+
 
 trigger:
   - trigger: state
