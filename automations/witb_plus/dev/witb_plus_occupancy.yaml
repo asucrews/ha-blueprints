@@ -239,15 +239,16 @@ trigger:
 
 action:
   - alias: "Abort if any sensor is unavailable"
-    condition: or
-    conditions:
-      - alias: "Motion Sensor Unavailable"
-        condition: template
-        value_template: "{{ states(motion_sensor_entity_id) in ['unknown', 'unavailable'] }}"
-      - alias: "Door Sensor Unavailable"
-        condition: template
-        value_template: "{{ states(door_sensor_entity_id) in ['unknown', 'unavailable'] }}"
-    sequence:
+    if:
+      - condition: or
+        conditions:
+          - alias: "Motion Sensor Unavailable"
+            condition: template
+            value_template: "{{ states(motion_sensor_entity_id) in ['unknown', 'unavailable'] }}"
+          - alias: "Door Sensor Unavailable"
+            condition: template
+            value_template: "{{ states(door_sensor_entity_id) in ['unknown', 'unavailable'] }}"
+    then:
       - stop: "Sensor unavailable — automation aborted."
   - if:
       - alias: "Automation Bypass is off"
