@@ -306,6 +306,7 @@ blueprint:
           default: []
           selector:
             action: {}
+
 variables:
   down_button: '001'
   up_button: '002'
@@ -322,12 +323,14 @@ variables:
   release: KeyReleased
   button: '{{ trigger.event.data.property_key_name }}'
   action_type: '{{ trigger.event.data.value }}'
+
 trigger:
-- trigger: event
-  event_type: zwave_js_value_notification
-  id: Z-Wave Event
-  event_data:
-    device_id: !input inovelli_switch
+  - trigger: event
+    event_type: zwave_js_value_notification
+    id: Z-Wave Event
+    event_data:
+      device_id: !input inovelli_switch
+
 action:
 - choose:
   - conditions:
