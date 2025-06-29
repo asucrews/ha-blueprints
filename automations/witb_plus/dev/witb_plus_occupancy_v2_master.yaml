@@ -377,47 +377,47 @@ action:
                       - action: homeassistant.turn_off
                         target:
                           entity_id: !input occupancy_helper
-          # - alias: HA Restart
-          #   conditions:
-          #     - condition: trigger
-          #       id: ha_start
-          #     - condition: template
-          #       value_template: "{{ recheck_on_start }}"
-          #   sequence:
-          #     - if:
-          #         - alias: Motion Check
-          #           condition: template
-          #           value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
-          #       then:
-          #         - action: input_boolean.turn_on
-          #           target:
-          #             entity_id: !input occupancy_helper
-          #       else:
-          #         - action: logbook.log
-          #           data:
-          #             name: WITB+ Occupancy
-          #             message: Restarted but could not infer occupancy from motion timestamps.
-          #     - if:
-          #         - alias: Door is closed and motion happened after door
-          #           condition: and
-          #           conditions:
-          #             - alias: Door Sensor Check
-          #               condition: template
-          #               value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
-          #             - alias: Motion Timestamp Check
-          #               condition: template
-          #               value_template:
-          #                 "{{ as_timestamp(states[last_motion_helper_entity_id].state)
-          #                 > as_timestamp(states[last_door_helper_entity_id].state) }}"
-          #       then:
-          #         - action: input_boolean.turn_on
-          #           target:
-          #             entity_id: !input occupancy_helper
-          #       else:
-          #         - action: logbook.log
-          #           data:
-          #             name: WITB+ Occupancy
-          #             message: Restarted but could not infer occupancy from door timestamps.
+          - alias: HA Restart
+            conditions:
+              - condition: trigger
+                id: ha_start
+              - condition: template
+                value_template: "{{ recheck_on_start }}"
+            sequence:
+              - if:
+                  - alias: Motion Check
+                    condition: template
+                    value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
+                then:
+                  - action: input_boolean.turn_on
+                    target:
+                      entity_id: !input occupancy_helper
+                else:
+                  - action: logbook.log
+                    data:
+                      name: WITB+ Occupancy
+                      message: Restarted but could not infer occupancy from motion timestamps.
+              - if:
+                  - alias: Door is closed and motion happened after door
+                    condition: and
+                    conditions:
+                      - alias: Door Sensor Check
+                        condition: template
+                        value_template: "{{ is_state(door_sensor_entity_id, 'off') }}"
+                      - alias: Motion Timestamp Check
+                        condition: template
+                        value_template:
+                          "{{ as_timestamp(states[last_motion_helper_entity_id].state)
+                          > as_timestamp(states[last_door_helper_entity_id].state) }}"
+                then:
+                  - action: input_boolean.turn_on
+                    target:
+                      entity_id: !input occupancy_helper
+                else:
+                  - action: logbook.log
+                    data:
+                      name: WITB+ Occupancy
+                      message: Restarted but could not infer occupancy from door timestamps.
           # - alias: Bypass Clear
           #   conditions:
           #     - condition: trigger

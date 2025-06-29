@@ -144,6 +144,9 @@ trigger:
     to: "off"
     id: Motion Off
     for: !input motion_sensor_delay
+  - trigger: homeassistant
+    event: start
+    id: HA Restarted
 
 action:
   - if:
@@ -187,13 +190,14 @@ action:
               - action: homeassistant.turn_on
                 target:
                   entity_id: !input occupancy_helper
+
           - alias: Door Opened
             conditions:
               - alias: Door opened with no motion
                 condition: trigger
                 id: Door Opened
             sequence:
-              - service: input_datetime.set_datetime
+              - action: input_datetime.set_datetime
                 data:
                   timestamp: "{{ now().timestamp() }}"
                 target:
@@ -204,7 +208,7 @@ action:
                         condition: template
                         value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
                     sequence:
-                      - service: homeassistant.turn_on
+                      - action: homeassistant.turn_on
                         target:
                           entity_id: !input occupancy_helper
                   - conditions:
@@ -212,9 +216,16 @@ action:
                         condition: template
                         value_template: "{{ is_state(motion_sensor_entity_id, 'off') }}"
                     sequence:
-                      - service: homeassistant.turn_off
+                      - action: homeassistant.turn_off
                         target:
                           entity_id: !input occupancy_helper
+                default:
+                  - alias: "Logbook Entry"
+                    action: logbook.log
+                    data:
+                      name: WITB+
+                      message: Door openned without proper motion event
+
           - alias: Motion Detected
             conditions:
               - alias: Motion became active
@@ -229,6 +240,7 @@ action:
               - action: homeassistant.turn_on
                 target:
                   entity_id: !input occupancy_helper
+
           - alias: Motion Cleared
             conditions:
               - alias: Motion cleared
@@ -267,5 +279,29 @@ action:
                       - action: homeassistant.turn_off
                         target:
                           entity_id: !input occupancy_helper
+                default:
+                  - alias: "Logbook Entry"
+                    action: logbook.log
+                    data:
+                      name: WITB+
+                      message: Motion cleared without proper door event
+
+          - alias: HA Restart
+            conditions:
+              - condition: trigger
+                id: HA Restarted
+            sequence:
+              - delay: 5 # Let sensor states stabilize
+              - if:
+                  - condition: and
+                    conditions:
+                      - condition: template
+                        value_template: "{{ is_state(door_sensor_entity_id, 'on') }}"
+                      - condition: template
+                        value_template: "{{ is_state(motion_sensor_entity_id, 'off') }}"
+                then:
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: !input occupancy_helper
 
 mode: single
