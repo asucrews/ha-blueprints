@@ -8,7 +8,7 @@ blueprint:
     motion or motion clears while the door is open. Assumes the room stays occupied
     while the door is closed and no new motion has been detected.
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_occupancy.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_occupancy_v2.yaml
   input:
     sensor_entities:
       name: Sensor Entities
