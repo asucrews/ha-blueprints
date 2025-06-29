@@ -349,7 +349,6 @@ action:
                         timestamp: "{{ now().timestamp() }}"
                       target:
                         entity_id: "{{ last_door_helper_entity_id }}"
-
                     - if:
                         - alias: Door reset logic is enabled
                           condition: template
@@ -361,7 +360,6 @@ action:
                               to: "on"
                           timeout: "{{ reset_on_door_close_min_seconds }}"
                           continue_on_timeout: true
-
                         - choose:
                             - conditions:
                                 - alias: Motion did not resume
