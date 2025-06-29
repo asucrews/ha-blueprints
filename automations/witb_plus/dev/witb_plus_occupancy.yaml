@@ -255,15 +255,15 @@ action:
               data:
                 timestamp: "{{ now().timestamp() }}"
               target:
-                entity_id: "{{ last_motion_helper_entity_id }}"
+                entity_id: !input last_motion_helper
             - action: input_datetime.set_datetime
               data:
                 timestamp: "{{ now().timestamp() }}"
               target:
-                entity_id: "{{ last_door_helper_entity_id }}"
+                entity_id: !input last_door_helper
             - action: homeassistant.turn_on
               target:
-                entity_id: "{{ occupancy_helper_entity_id }}"
+                entity_id: !input occupancy_helper
         - alias: Door Opened
           conditions:
             - alias: Door opened with no motion
@@ -277,15 +277,15 @@ action:
               data:
                 timestamp: "{{ now().timestamp() }}"
               target:
-                entity_id: "{{ last_motion_helper_entity_id }}"
+                entity_id: !input last_motion_helper
             - action: input_datetime.set_datetime
               data:
                 timestamp: "{{ now().timestamp() }}"
               target:
-                entity_id: "{{ last_door_helper_entity_id }}"
+                entity_id: !input last_door_helper
             - action: homeassistant.turn_off
               target:
-                entity_id: "{{ occupancy_helper_entity_id }}"
+                entity_id: !input occupancy_helper
         - alias: Door Left Open
           conditions:
             - alias: Door left open for extended period
@@ -296,7 +296,7 @@ action:
               data:
                 timestamp: "{{ now().timestamp() }}"
               target:
-                entity_id: "{{ last_door_helper_entity_id }}"
+                entity_id: !input last_door_helper
             - if:
                 - alias: Door open idle clear is enabled
                   condition: template
@@ -321,7 +321,7 @@ action:
                   default:
                     - action: homeassistant.turn_off
                       target:
-                        entity_id: "{{ occupancy_helper_entity_id }}"
+                        entity_id: !input occupancy_helper
               else:
                 - service: logbook.log
                   data:
@@ -337,7 +337,7 @@ action:
               data:
                 timestamp: "{{ now().timestamp() }}"
               target:
-                entity_id: "{{ last_motion_helper_entity_id }}"
+                entity_id: !input last_motion_helper
             - choose:
                 - conditions:
                     - alias: Door is closed
@@ -348,7 +348,7 @@ action:
                       data:
                         timestamp: "{{ now().timestamp() }}"
                       target:
-                        entity_id: "{{ last_door_helper_entity_id }}"
+                        entity_id: !input last_door_helper
                     - if:
                         - alias: Door reset logic is enabled
                           condition: template
@@ -368,7 +368,7 @@ action:
                               sequence:
                                 - action: homeassistant.turn_off
                                   target:
-                                    entity_id: "{{ occupancy_helper_entity_id }}"
+                                    entity_id: !input occupancy_helper
                           default:
                             - action: logbook.log
                               data:
@@ -383,11 +383,11 @@ action:
                       data:
                         timestamp: "{{ now().timestamp() }}"
                       target:
-                        entity_id: "{{ last_door_helper_entity_id }}"
+                        entity_id: !input last_door_helper
 
                     - action: homeassistant.turn_on
                       target:
-                        entity_id: "{{ occupancy_helper_entity_id }}"
+                        entity_id: !input occupancy_helper
               default:
                 - action: logbook.log
                   data:
@@ -407,7 +407,7 @@ action:
               then:
                 - action: input_boolean.turn_on
                   target:
-                    entity_id: "{{ occupancy_helper_entity_id }}"
+                    entity_id: !input occupancy_helper
               else:
                 - service: logbook.log
                   data:
@@ -426,7 +426,7 @@ action:
               then:
                 - action: input_boolean.turn_on
                   target:
-                    entity_id: "{{ occupancy_helper_entity_id }}"
+                    entity_id: !input occupancy_helper
               else:
                 - service: logbook.log
                   data:
@@ -447,7 +447,7 @@ action:
                   sequence:
                     - service: input_boolean.turn_off
                       target:
-                        entity_id: "{{ bypass_helper_entity_id }}"
+                        entity_id: !input bypass_helper
                 - alias: "Bypass timer fired but already reset or disabled (expected)"
                   conditions:
                     - condition: template
