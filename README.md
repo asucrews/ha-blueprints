@@ -4,7 +4,7 @@ Blueprints for Home Assistant
 
 ## Stats
 
-![Min HA Version](https://img.shields.io/badge/Min%20HA%20Version-2025.6.0-blue?style=flat&logo=home-assistant&color=blue)
+![Min HA Version](https://img.shields.io/badge/Min%20HA%20Version-2024.6.0-blue?style=flat&logo=home-assistant&color=blue)
 [![HA Blueprint Exchange](https://img.shields.io/badge/HA%20Blueprint%20Exchange-Topics-blue?style=flat&logo=home-assistant&color=blue)](https://community.home-assistant.io/c/blueprints-exchange/53)
 
 [![GitHub License](https://img.shields.io/github/license/asucrews/ha-blueprints?style=flat&logo=github&color=blue)](LICENSE.md)
@@ -17,22 +17,22 @@ Blueprints for Home Assistant
 
 Check out the [automations documentation](https://github.com/asucrews/ha-blueprints/blob/main/automations/README.md) for detailed instructions and examples.
 
-- [Ratdgo 2.5i](https://github.com/asucrews/ha-blueprints/tree/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md) (Last updated: 2025-06-27)
+- [Ratdgo 2.5i](https://github.com/asucrews/ha-blueprints/tree/main/automations/ratgdo_2.5i/ratdgo_2.5i/README.md) (Last updated: 2025-06-28)
 - [Binary Sensor Notifications Plus](https://github.com/asucrews/ha-blueprints/tree/main/automations/not_used/binary_sensor_notifications_plus/binary_sensor_notifications_plus/README.md) (Last updated: 2025-06-27)
 - [Person Status Update](https://github.com/asucrews/ha-blueprints/tree/main/automations/not_used/person_status_update/person_status_update/README.md) (Last updated: 2025-06-27)
 - [Time Of Day](https://github.com/asucrews/ha-blueprints/tree/main/automations/not_used/time_of_day/time_of_day/README.md) (Last updated: 2025-06-27)
-- [Lights At Sunset](https://github.com/asucrews/ha-blueprints/tree/main/automations/lights_sunset/lights_at_sunset/README.md) (Last updated: 2025-06-27)
-- [Car Tag](https://github.com/asucrews/ha-blueprints/tree/main/automations/car_tag/car_tag/README.md) (Last updated: 2025-06-27)
-- [Lock Management New](https://github.com/asucrews/ha-blueprints/tree/main/automations/lock_management/lock_management_new/README.md) (Last updated: 2025-06-27)
+- [Lights At Sunset](https://github.com/asucrews/ha-blueprints/tree/main/automations/lights_sunset/lights_at_sunset/README.md) (Last updated: 2025-06-28)
+- [Car Tag](https://github.com/asucrews/ha-blueprints/tree/main/automations/car_tag/car_tag/README.md) (Last updated: 2025-06-28)
+- [Lock Management New](https://github.com/asucrews/ha-blueprints/tree/main/automations/lock_management/lock_management_new/README.md) (Last updated: 2025-06-28)
 - [Lock Management Old](https://github.com/asucrews/ha-blueprints/tree/main/automations/lock_management/lock_management_old/README.md) (Last updated: 2025-06-16)
-- [Ha Restart](https://github.com/asucrews/ha-blueprints/tree/main/automations/ha_restart/ha_restart/README.md) (Last updated: 2025-06-27)
-- [Flair](https://github.com/asucrews/ha-blueprints/tree/main/automations/flair/flair/README.md) (Last updated: 2025-06-27)
-- [6 Speed Fan](https://github.com/asucrews/ha-blueprints/tree/main/automations/6_speed_fan/6_speed_fan/README.md) (Last updated: 2025-06-27)
+- [Ha Restart](https://github.com/asucrews/ha-blueprints/tree/main/automations/ha_restart/ha_restart/README.md) (Last updated: 2025-06-28)
+- [Flair](https://github.com/asucrews/ha-blueprints/tree/main/automations/flair/flair/README.md) (Last updated: 2025-06-28)
+- [6 Speed Fan](https://github.com/asucrews/ha-blueprints/tree/main/automations/6_speed_fan/6_speed_fan/README.md) (Last updated: 2025-06-28)
 - [Witb Plus](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/witb_plus/README.md) (Last updated: 2024-08-02)
 - [Motion Plus](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/derivatives/motion_plus/README.md) (Last updated: 2025-01-14)
 - [Binary Sensor Plus](https://github.com/asucrews/ha-blueprints/tree/main/automations/witb_plus/derivatives/binary_sensor_plus/binary_sensor_plus/README.md) (Last updated: 2024-08-02)
-- [Smart Dimmer](https://github.com/asucrews/ha-blueprints/tree/main/automations/inovelli/red/smart_dimmer/smart_dimmer/README.md) (Last updated: 2025-06-27)
-- [Lux Sensor](https://github.com/asucrews/ha-blueprints/tree/main/automations/lux_sensor/lux_sensor/README.md) (Last updated: 2025-06-27)
+- [Smart Dimmer](https://github.com/asucrews/ha-blueprints/tree/main/automations/inovelli/red/smart_dimmer/smart_dimmer/README.md) (Last updated: 2025-06-29)
+- [Lux Sensor](https://github.com/asucrews/ha-blueprints/tree/main/automations/lux_sensor/lux_sensor/README.md) (Last updated: 2025-06-28)
 
 ## Feedback
 
