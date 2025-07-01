@@ -154,6 +154,7 @@ variables:
   
   occupancy_helper: !input occupancy_helper
   occupancy_helper_entity_id: "{{ occupancy_helper if occupancy_helper is defined and occupancy_helper else 'input_boolean.none' }}"
+  exit_timeout_seconds: !input exit_timeout_seconds
   
   last_motion_helper: !input last_motion_helper
   last_motion_helper_entity_id: "{{ last_motion_helper if last_motion_helper is defined and last_motion_helper else 'input_datetime.none' }}"
@@ -254,7 +255,7 @@ action:
                 condition: template
                 value_template: >-
                   {{
-                    (as_timestamp(now()) - as_timestamp(states[last_door_helper_entity_id].state)) > motion_clear_timeout
+                    (as_timestamp(now()) - as_timestamp(states[last_door_helper_entity_id].state)) > exit_timeout_seconds
                   }}
             sequence:
               - action: input_datetime.set_datetime
