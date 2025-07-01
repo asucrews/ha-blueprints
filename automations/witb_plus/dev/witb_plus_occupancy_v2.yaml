@@ -104,6 +104,16 @@ blueprint:
               filter:
                 - domain: input_boolean
               multiple: false
+        exit_timeout_seconds:
+          name: Exit Timeout After Door Open
+          description: "Time in seconds after door last opened to assume room is empty if motion stays off."
+          default: 15
+          selector:
+            number:
+              min: 10
+              max: 600
+              step: 5
+              unit_of_measurement: seconds
     advanced_logic:
       name: Advanced Logic
       description: Configure the advanced logic options.
@@ -157,8 +167,6 @@ variables:
   enable_room_idler: !input enable_room_idler
   room_idler_timer: !input room_idler_timer
   room_idler_timer_entity_id: "{{ room_idler_timer if room_idler_timer is defined and room_idler_timer else 'timer.none' }}"
-
-
 
 trigger:
   - trigger: state
@@ -237,10 +245,17 @@ action:
                   entity_id: !input occupancy_helper
 
           - alias: Door Opened
+            condition: and
             conditions:
               - alias: Door opened with no motion
                 condition: trigger
                 id: Door Opened
+              - alias: Enough time has passed
+                condition: template
+                value_template: >-
+                  {{
+                    (as_timestamp(now()) - as_timestamp(states[last_door_helper_entity_id].state)) > motion_clear_timeout
+                  }}
             sequence:
               - action: input_datetime.set_datetime
                 data:
