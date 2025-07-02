@@ -339,9 +339,17 @@ action:
                             target:
                               entity_id: !input room_idler_timer
                   - conditions:
-                      - alias: Door is open
-                        condition: template
-                        value_template: "{{ is_state(door_sensor_entity_id, 'on') }}"
+                      - condition: and
+                        conditions:  
+                        - alias: Door is open
+                          condition: template
+                          value_template: "{{ is_state(door_sensor_entity_id, 'on') }}"
+                        - alias: Enough time has passed
+                          condition: template
+                          value_template: >-
+                            {{
+                              (as_timestamp(now()) - as_timestamp(states[last_door_helper_entity_id].state)) > exit_timeout_seconds
+                            }}
                     sequence:
                       - action: input_datetime.set_datetime
                         data:
