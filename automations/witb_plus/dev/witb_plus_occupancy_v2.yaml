@@ -227,7 +227,7 @@ action:
   - if:
       - alias: Automation Bypass is off
         condition: template
-        value_template: "{{ is_state(bypass_helper_entity_id, 'off') }}"
+        value_template: !input bypass_helper
     then:
       - choose:
           - alias: Door Closed
