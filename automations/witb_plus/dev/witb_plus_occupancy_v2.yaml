@@ -253,16 +253,16 @@ action:
 
           - alias: Door Opened
             condition: and
-            conditions:
-              - alias: Door opened with no motion
-                condition: trigger
-                id: Door Opened
-              - alias: Enough time has passed
-                condition: template
-                value_template: >-
-                  {{
-                    (as_timestamp(now()) - as_timestamp(states[last_door_helper_entity_id].state)) > exit_timeout_seconds
-                  }}
+              conditions:
+                - alias: Door opened with no motion
+                  condition: trigger
+                  id: Door Opened
+                - alias: Enough time has passed
+                  condition: template
+                  value_template: >-
+                    {{
+                      (as_timestamp(now()) - as_timestamp(states[last_door_helper_entity_id].state)) > exit_timeout_seconds
+                    }}
             sequence:
               - action: input_datetime.set_datetime
                 data:
