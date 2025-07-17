@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ Dev Occupancy (2.0.0.rc3)
+  name: WITB+ Dev Occupancy (2.0.0.rc4)
   homeassistant:
     min_version: 2025.6.0
   description: >
@@ -241,9 +241,15 @@ action:
                   timestamp: "{{ now().timestamp() }}"
                 target:
                   entity_id: !input last_door_helper
-              - action: homeassistant.turn_on
-                target:
-                  entity_id: !input occupancy_helper
+              - if:
+                  - alias: "check occupancy state"
+                    condition: state
+                    entity_id: !input occupancy_helper
+                    state: "off"
+                then:
+                  - action: homeassistant.turn_on
+                    target:
+                      entity_id: !input occupancy_helper
 
           - alias: Door Opened
             condition: and
@@ -269,17 +275,29 @@ action:
                         condition: template
                         value_template: "{{ is_state(motion_sensor_entity_id, 'on') }}"
                     sequence:
-                      - action: homeassistant.turn_on
-                        target:
-                          entity_id: !input occupancy_helper
+                      - if:
+                          - alias: "check occupancy state"
+                            condition: state
+                            entity_id: !input occupancy_helper
+                            state: "off"
+                        then:
+                          - action: homeassistant.turn_on
+                            target:
+                              entity_id: !input occupancy_helper
                   - conditions:
                       - alias: "Motion Off"
                         condition: template
                         value_template: "{{ is_state(motion_sensor_entity_id, 'off') }}"
                     sequence:
-                      - action: homeassistant.turn_off
-                        target:
-                          entity_id: !input occupancy_helper
+                      - if:
+                          - alias: "check occupancy state"
+                            condition: state
+                            entity_id: !input occupancy_helper
+                            state: "on"
+                        then:
+                          - action: homeassistant.turn_off
+                            target:
+                              entity_id: !input occupancy_helper
                 default:
                   - alias: "Logbook Entry"
                     action: logbook.log
@@ -298,10 +316,15 @@ action:
                   timestamp: "{{ now().timestamp() }}"
                 target:
                   entity_id: !input last_motion_helper
-              - action: homeassistant.turn_on
-                target:
-                  entity_id: !input occupancy_helper
-
+              - if:
+                  - alias: "check occupancy state"
+                    condition: state
+                    entity_id: !input occupancy_helper
+                    state: "off"
+                then:
+                  - action: homeassistant.turn_on
+                    target:
+                      entity_id: !input occupancy_helper
           - alias: Motion Cleared
             conditions:
               - alias: Motion cleared
@@ -324,9 +347,15 @@ action:
                           timestamp: "{{ now().timestamp() }}"
                         target:
                           entity_id: !input last_door_helper
-                      - action: homeassistant.turn_on
-                        target:
-                          entity_id: !input occupancy_helper
+                      - if:
+                          - alias: "check occupancy state"
+                            condition: state
+                            entity_id: !input occupancy_helper
+                            state: "off"
+                        then:
+                          - action: homeassistant.turn_on
+                            target:
+                              entity_id: !input occupancy_helper
                       - if:
                         - condition: and
                           conditions:
@@ -356,9 +385,15 @@ action:
                           timestamp: "{{ now().timestamp() }}"
                         target:
                           entity_id: !input last_door_helper
-                      - action: homeassistant.turn_off
-                        target:
-                          entity_id: !input occupancy_helper
+                      - if:
+                          - alias: "check occupancy state"
+                            condition: state
+                            entity_id: !input occupancy_helper
+                            state: "on"
+                        then:
+                          - action: homeassistant.turn_off
+                            target:
+                              entity_id: !input occupancy_helper
                 default:
                   - alias: "Logbook Entry"
                     action: logbook.log
@@ -380,9 +415,15 @@ action:
                       - condition: template
                         value_template: "{{ is_state(motion_sensor_entity_id, 'off') }}"
                 then:
-                  - action: input_boolean.turn_off
-                    target:
-                      entity_id: !input occupancy_helper
+                  - if:
+                      - alias: "check occupancy state"
+                        condition: state
+                        entity_id: !input occupancy_helper
+                        state: "on"
+                    then:
+                      - action: homeassistant.turn_off
+                        target:
+                          entity_id: !input occupancy_helper
 
           - alias: Room Idler Finished
             conditions:
