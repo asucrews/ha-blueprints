@@ -4,7 +4,7 @@ blueprint:
     Creates a template fan entity that mirrors helper entities and sends ESPHome
     raw RF codes for On/Off, percentage, preset, and direction.
   domain: template
-  source_url: 
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/templates/esp360remote_fans/esp360remote_tans.yaml
 
   input:
     fan_name:
