@@ -1,5 +1,5 @@
 blueprint:
-  name: Template Fan → ESPHome RF (6 speeds)
+  name: Template Fan ESPHome RF (6 speeds)
   description: >
     Creates a template fan entity that mirrors helper entities and sends ESPHome
     raw RF codes for On/Off, percentage, preset, and direction.
