@@ -1,0 +1,176 @@
+blueprint:
+  name: Template Fan → ESPHome RF (6 speeds)
+  description: >
+    Creates a template fan entity that mirrors helper entities and sends ESPHome
+    raw RF codes for On/Off, percentage, preset, and direction.
+  domain: template
+  source_url: 
+
+  input:
+    fan_name:
+      name: Fan name
+      selector: { text: {} }
+
+    # Helper entities
+    fan_state_boolean:
+      name: Fan state boolean
+      selector: { entity: { domain: input_boolean } }
+    fan_speed_percentage_number:
+      name: Fan speed percentage (0–100)
+      selector: { entity: { domain: input_number } }
+    fan_speed_preset_select:
+      name: Fan speed preset ("Off","1"…"6")
+      selector: { entity: { domain: input_select } }
+    fan_direction_select:
+      name: Fan direction select
+      selector: { entity: { domain: input_select } }
+
+    # ESPHome service (must accept {command: [ints...]})
+    esphome_raw_service:
+      name: ESPHome raw RF service
+      description: e.g. esphome.master_bedroom_esp360_remote_send_rf_raw
+      selector: { text: {} }
+
+    # RF codes (paste YAML lists)
+    code_speed_0:
+      name: RF code – speed 0 / Off
+      selector: { object: {} }
+    code_speed_16:
+      name: RF code – speed 1 (16%)
+      selector: { object: {} }
+    code_speed_33:
+      name: RF code – speed 2 (33%)
+      selector: { object: {} }
+    code_speed_50:
+      name: RF code – speed 3 (50%)
+      selector: { object: {} }
+    code_speed_66:
+      name: RF code – speed 4 (66%)
+      selector: { object: {} }
+    code_speed_83:
+      name: RF code – speed 5 (83%)
+      selector: { object: {} }
+    code_speed_100:
+      name: RF code – speed 6 (100%)
+      selector: { object: {} }
+    code_direction_toggle:
+      name: RF code – direction toggle
+      selector: { object: {} }
+
+# -------- variables usable in templates below --------
+variables:
+  name: !input fan_name
+  fan_state_boolean: !input fan_state_boolean
+  fan_speed_percentage_number: !input fan_speed_percentage_number
+  fan_speed_preset_select: !input fan_speed_preset_select
+  fan_direction_select: !input fan_direction_select
+  esphome_raw_service: !input esphome_raw_service
+
+  code_speed_0: !input code_speed_0
+  code_speed_16: !input code_speed_16
+  code_speed_33: !input code_speed_33
+  code_speed_50: !input code_speed_50
+  code_speed_66: !input code_speed_66
+  code_speed_83: !input code_speed_83
+  code_speed_100: !input code_speed_100
+  code_direction_toggle: !input code_direction_toggle
+
+  pct_to_preset: >
+    {{ {0:"Off",16:"1",33:"2",50:"3",66:"4",83:"5",100:"6"} }}
+  preset_to_pct: >
+    {{ {"Off":0,"1":16,"2":33,"3":50,"4":66,"5":83,"6":100} }}
+
+fan:
+  - name: "{{ name }}"
+    # --- state & attributes ---
+    state: "{{ states(fan_state_boolean) }}"
+    percentage: >
+      {{ (states(fan_speed_percentage_number)|int(0))
+         if is_state(fan_state_boolean,'on') else 0 }}
+    preset_mode: "{{ states(fan_speed_preset_select) }}"
+    direction: "{{ states(fan_direction_select) }}"
+    speed_count: 6
+
+    # --- actions ---
+    turn_on:
+      - service: input_boolean.turn_on
+        target: { entity_id: "{{ fan_state_boolean }}" }
+      - service: "{{ esphome_raw_service }}"
+        data: { command: "{{ code_speed_33 }}" }
+      - service: input_number.set_value
+        target: { entity_id: "{{ fan_speed_percentage_number }}" }
+        data: { value: 33 }
+      - service: input_select.select_option
+        target: { entity_id: "{{ fan_speed_preset_select }}" }
+        data: { option: "2" }
+
+    turn_off:
+      - service: input_boolean.turn_off
+        target: { entity_id: "{{ fan_state_boolean }}" }
+      - service: "{{ esphome_raw_service }}"
+        data: { command: "{{ code_speed_0 }}" }
+      - service: input_number.set_value
+        target: { entity_id: "{{ fan_speed_percentage_number }}" }
+        data: { value: 0 }
+      - service: input_select.select_option
+        target: { entity_id: "{{ fan_speed_preset_select }}" }
+        data: { option: "Off" }
+
+    set_percentage:
+      - service: "input_boolean.turn_{{ 'on' if (percentage|int > 0) else 'off' }}"
+        target: { entity_id: "{{ fan_state_boolean }}" }
+      - service: input_number.set_value
+        target: { entity_id: "{{ fan_speed_percentage_number }}" }
+        data: { value: "{{ percentage|int }}" }
+      - service: input_select.select_option
+        target: { entity_id: "{{ fan_speed_preset_select }}" }
+        data:
+          option: "{{ pct_to_preset[percentage|int] if (percentage|int) in pct_to_preset else 'Off' }}"
+      - choose:
+          - conditions: "{{ (percentage|int) == 0 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_0 }}" } } ]
+          - conditions: "{{ (percentage|int) == 16 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_16 }}" } } ]
+          - conditions: "{{ (percentage|int) == 33 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_33 }}" } } ]
+          - conditions: "{{ (percentage|int) == 50 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_50 }}" } } ]
+          - conditions: "{{ (percentage|int) == 66 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_66 }}" } } ]
+          - conditions: "{{ (percentage|int) == 83 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_83 }}" } } ]
+          - conditions: "{{ (percentage|int) == 100 }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_100 }}" } } ]
+
+    set_preset_mode:
+      - service: "input_boolean.turn_{{ 'on' if preset_mode != 'Off' else 'off' }}"
+        target: { entity_id: "{{ fan_state_boolean }}" }
+      - service: input_select.select_option
+        target: { entity_id: "{{ fan_speed_preset_select }}" }
+        data: { option: "{{ preset_mode }}" }
+      - service: input_number.set_value
+        target: { entity_id: "{{ fan_speed_percentage_number }}" }
+        data:
+          value: "{{ preset_to_pct[preset_mode] if preset_mode in preset_to_pct else 0 }}"
+      - choose:
+          - conditions: "{{ preset_mode == 'Off' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_0 }}" } } ]
+          - conditions: "{{ preset_mode == '1' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_16 }}" } } ]
+          - conditions: "{{ preset_mode == '2' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_33 }}" } } ]
+          - conditions: "{{ preset_mode == '3' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_50 }}" } } ]
+          - conditions: "{{ preset_mode == '4' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_66 }}" } } ]
+          - conditions: "{{ preset_mode == '5' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_83 }}" } } ]
+          - conditions: "{{ preset_mode == '6' }}"
+            sequence: [ { service: "{{ esphome_raw_service }}", data: { command: "{{ code_speed_100 }}" } } ]
+
+    set_direction:
+      - service: input_select.select_option
+        target: { entity_id: "{{ fan_direction_select }}" }
+        data: { option: "{{ direction }}" }
+      - service: "{{ esphome_raw_service }}"
+        data: { command: "{{ code_direction_toggle }}" }
