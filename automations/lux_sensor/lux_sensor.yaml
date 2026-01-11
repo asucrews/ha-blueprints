@@ -1,7 +1,7 @@
 blueprint:
-  name: LUX Sensor Stable (0.4.2)
+  name: LUX Sensor Stable (1.0.0)
   homeassistant:
-    min_version: 2025.6.0
+    min_version: 2026.1.0
   description: <br/>
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lux_sensor/lux_sensor.yaml
@@ -17,8 +17,8 @@ blueprint:
           description: <br/>
           selector:
             entity:
-              filter:
-                - domain: sensor
+              domain:
+                - sensor
               multiple: false
         lux_sensor_delay:
           name: Above LUX level for day time
@@ -31,15 +31,13 @@ blueprint:
               step: 1.0
               unit_of_measurement: s
               mode: slider
-        status_boolean:
-          name: Binary Sensor
+        light_input_number:
+          name: Input Number for Light
           description: <br/>
           selector:
             entity:
-              filter:
-                - domain: input_boolean
-                - domain: light
-                - domain: switch
+              domain:
+                - input_number
               multiple: false
     light_levels:
       name: Light Levels
@@ -101,8 +99,8 @@ blueprint:
           default: cover.none
           selector:
             entity:
-              filter:
-                - domain: cover
+              domain:
+                - cover
               multiple: false
         cover_curtain:
           name: Curtain or Curtain group
@@ -110,13 +108,13 @@ blueprint:
           default: cover.none
           selector:
             entity:
-              filter:
-                - domain: cover
+              domain:
+                - cover
               multiple: false
 variables:
   lux_sensor: !input lux_sensor
   lux_sensor_delay: !input lux_sensor_delay
-  status_boolean: !input status_boolean
+  light_input_number: !input light_input_number
   day_above_lux_level: !input day_above_lux_level
   day_below_lux_level: !input day_below_lux_level
   night_above_lux_level: !input night_above_lux_level
@@ -124,96 +122,97 @@ variables:
   cover_blind: !input cover_blind
   cover_curtain: !input cover_curtain
 trigger:
-- trigger: event
-  event_type: state_changed
-  event_data:
-    entity_id: !input lux_sensor
+  - platform: event
+    event_type: state_changed
+    event_data:
+      entity_id: !input lux_sensor
 action:
-- variables:
-    new_state: '{{ trigger.event.data.new_state.state }}'
-    old_state: '{{ trigger.event.data.old_state.state }}'
-- if:
-  - condition: template
-    value_template: '{{ lux_sensor_delay | float > 0 }}'
-  then:
-  - delay:
-      hours: 0
-      minutes: 0
-      seconds: !input lux_sensor_delay
-      milliseconds: 0
-- if:
-  - condition: state
-    entity_id: binary_sensor.night
-    state: 'on'
-  then:
-  - choose:
-    - conditions:
-      - condition: template
-        value_template: '{{ new_state | float > night_above_lux_level | float }}'
-      sequence:
-      - action: input_boolean.turn_on
-        metadata: {}
-        data: {}
-        target:
-          entity_id: !input status_boolean
-    - conditions:
-      - condition: template
-        value_template: '{{ new_state | float < night_below_lux_level | float }}'
-      sequence:
-      - action: input_boolean.turn_off
-        metadata: {}
-        data: {}
-        target:
-          entity_id: !input status_boolean
-  else:
+  - variables:
+      new_state: "{{ trigger.event.data.new_state.state }}"
+      old_state: "{{ trigger.event.data.old_state.state }}"
   - if:
-    - condition: or
-      conditions:
       - condition: template
-        value_template: '{{ cover_blind != ''cover.none'' and is_state(cover_blind,
-          ''close'') }}'
-      - condition: template
-        value_template: '{{ cover_curtain != ''cover.none'' and is_state(cover_curtain,
-          ''close'') }}'
+        value_template: "{{ lux_sensor_delay | float > 0 }}"
     then:
-    - choose:
-      - conditions:
-        - condition: template
-          value_template: '{{ new_state | float > night_above_lux_level | float }}'
-        sequence:
-        - action: input_boolean.turn_on
-          metadata: {}
-          data: {}
-          target:
-            entity_id: !input status_boolean
-      - conditions:
-        - condition: template
-          value_template: '{{ new_state | float < night_below_lux_level | float }}'
-        sequence:
-        - action: input_boolean.turn_off
-          metadata: {}
-          data: {}
-          target:
-            entity_id: !input status_boolean
+      - delay:
+          hours: 0
+          minutes: 0
+          seconds: !input lux_sensor_delay
+          milliseconds: 0
+  - if:
+      - condition: state
+        entity_id: binary_sensor.night
+        state: "on"
+    then:
+      - choose:
+          - conditions:
+              - condition: template
+                value_template: "{{ new_state | float > night_above_lux_level | float }}"
+            sequence:
+              - action: input_number.set_value
+                target:
+                  entity_id: !input light_input_number
+                data:
+                  value: 100
+          - conditions:
+              - condition: template
+                value_template: "{{ new_state | float < night_below_lux_level | float }}"
+            sequence:
+              - action: input_number.set_value
+                target:
+                  entity_id: !input light_input_number
+                data:
+                  value: 0
     else:
-    - choose:
-      - conditions:
-        - condition: template
-          value_template: '{{ new_state | float > day_above_lux_level | float }}'
-        sequence:
-        - action: input_boolean.turn_on
-          metadata: {}
-          data: {}
-          target:
-            entity_id: !input status_boolean
-      - conditions:
-        - condition: template
-          value_template: '{{ new_state | float < day_below_lux_level | float }}'
-        sequence:
-        - action: input_boolean.turn_off
-          metadata: {}
-          data: {}
-          target:
-            entity_id: !input status_boolean
+      - if:
+          - condition: or
+            conditions:
+              - condition: template
+                value_template:
+                  "{{ cover_blind != 'cover.none' and is_state(cover_blind,
+                  'close') }}"
+              - condition: template
+                value_template:
+                  "{{ cover_curtain != 'cover.none' and is_state(cover_curtain,
+                  'close') }}"
+        then:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float > night_above_lux_level | float }}"
+                sequence:
+                  - action: number.set_value
+                    target:
+                      entity_id: !input light_input_number
+                    data:
+                      value: "100"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float < night_below_lux_level | float }}"
+                sequence:
+                  - action: number.set_value
+                    target:
+                      entity_id: !input light_input_number
+                    data:
+                      value: "0"
+        else:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float > day_above_lux_level | float }}"
+                sequence:
+                  - action: number.set_value
+                    target:
+                      entity_id: !input light_input_number
+                    data:
+                      value: "100"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ new_state | float < day_below_lux_level | float }}"
+                sequence:
+                  - action: number.set_value
+                    target:
+                      entity_id: !input light_input_number
+                    data:
+                      value: "0"
 mode: single
-
