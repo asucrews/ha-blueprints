@@ -1,0 +1,18 @@
+blueprint:
+  name: open or close curtions and blinds
+  author: asucrews
+  description: >
+    A script that gets my TV on and Reciever set-up to correct mode.
+
+    📩 There is not an official version control system for Blueprints. However I have
+    found something that comes pretty close. It is not perfect, but for **MOST**
+    Blueprints, it does just fine. I encourage you to check this script out and use
+    it to easily check if I have updated this blueprint. 🔗 [koter84 Blueprint Update Script](https://github.com/koter84/HomeAssistant_Blueprints_Update/)
+
+
+    [Community link for this blueprint](https://community.home-assistant.io/t/script-blueprint-to-turn-my-tv-on-and-put-it-into-the-correct-mode-for-the-input-device-i-want/338755)
+  source_url: https://github.com/SirGoodenough/HA_Blueprints/blob/master/Scripts/Broadlink_ON_script.yaml
+  domain: script
+  homeassistant:
+    min_version: 2024.8.0
+  input:

@@ -1,0 +1,29 @@
+blueprint:
+  name: Log Motion Detected Time
+  description: >
+    Updates an input_datetime whenever the selected motion sensor detects motion (turns ON).
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/room_presence/log_motion_on.yaml
+  domain: automation
+  input:
+    motion_sensor:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+    motion_on_time:
+      name: Input Datetime for Last Motion ON
+      selector:
+        entity:
+          domain: input_datetime
+
+trigger:
+  - platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+
+action:
+  - action: input_datetime.set_datetime
+    target:
+      entity_id: !input motion_on_time
+    data:
+      timestamp: "{{ now().timestamp() }}"

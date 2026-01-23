@@ -1,0 +1,147 @@
+blueprint:
+  name: Turn Light On ZWave Script (2.0.0)
+  description: >
+    Smart script to turn on lights based on automation bypass and device availability.
+    If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
+    If OFF, the script checks if any lights in 'lights_to_check' are unavailable for over 1 minute,
+    and if so, sets a Z-Wave parameter before turning on the specified switch.
+  domain: script
+  homeassistant:
+    min_version: 2025.6.0
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_on_script_non_zwave.yaml
+  author: Jeremy Crews
+  input:
+    automation_bypass:
+      name: Automation Bypass
+      description:
+        "When ON, bypasses availability checks and disables automation
+        logic."
+      selector:
+        entity:
+          domain:
+            - input_boolean
+          multiple: false
+    lights_to_check:
+      name: Lights to check for "unavailable"
+      default: []
+      selector:
+        entity:
+          domain:
+            - light
+          multiple: true
+    light_switch:
+      name: Light Switch
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - light
+    light_group:
+      name: Light Group
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - light
+    fan:
+      name: Fan
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - fan
+                - light
+    brightness_pct:
+      name: Brightness Level
+      description:
+        "Set the brightness percentage for lights. Defaults to 100% if
+        not specified."
+      default: 100
+      selector:
+        number:
+          min: 1.0
+          max: 100.0
+          unit_of_measurement: "%"
+          mode: slider
+          step: 1.0
+variables:
+  light_switch: !input light_switch
+  light_switch_enitiy_id: >
+    {% if light_switch | length > 0  %}
+      {{ light_switch }}
+    {% else %}
+      "light.none"
+    {% endif %}
+  light_group: !input light_group
+  light_group_enitiy_id: >
+    {% if light_group | length > 0  %}
+      {{ light_group }}
+    {% else %}
+      "light.none"
+    {% endif %}
+  fan_switch: !input fan
+  fan_enitiy_id: >
+    {% if fan_switch | length > 0  %}
+      {{ fan_switch }}
+    {% else %}
+      "fan.none"
+    {% endif %}
+sequence:
+  - variables:
+      unavailable_detected: false
+  - repeat:
+      for_each: !input lights_to_check
+      sequence:
+        - condition: template
+          value_template:
+            "{{ is_state(repeat.item, 'unavailable') and\n  (now() - states[repeat.item].last_changed).total_seconds()
+            > 60 }}\n"
+        - variables:
+            unavailable_detected: true
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input automation_bypass
+            state: "off"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ unavailable_detected }}"
+                sequence:
+                  - action: light.turn_on
+                    target: "{{ light_group_enitiy_id}}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ fan_switch | length > 0 }}"
+                    then:
+                      - action: homeassistant.turn_on
+                        target: "{{ fan_enitiy_id }}"
+            default:
+              - if:
+                  - condition: state
+                    entity_id: switch.circadian_lighting_loft
+                    state: "on"
+                then:
+                  - action: light.turn_on
+                    data:
+                      color_temp_kelvin:
+                        "{{ state_attr('sensor.circadian_values', 'colortemp')
+                        | int }}"
+                      brightness_pct: !input brightness_pct
+                    target: "{{ light_group_enitiy_id }}"
+                else:
+                  - action: light.turn_on
+                    data:
+                      brightness_pct: !input brightness_pct
+                      color_temp_kelvin: 6500
+                    target: "{{ light_group_enitiy_id }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ fan_switch | length > 0 }}"
+                then:
+                  - action: homeassistant.turn_on
+                    target: "{{ fan_enitiy_id }}"

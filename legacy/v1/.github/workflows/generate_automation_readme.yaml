@@ -1,0 +1,57 @@
+name: Update Automation README.md
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # This runs every day at midnight
+  workflow_dispatch: # Allows manual triggering
+
+permissions:
+  contents: write  # Grant write permissions
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Ensure full git history is fetched
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+
+      - name: Run update script
+        run: python python/generate_automation_readme.py
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "no changes"
+            echo "::set-output name=changes::false"
+          else
+            echo "changes"
+            echo "::set-output name=changes::true"
+          fi
+
+      - name: Commit changes
+        if: steps.changes.outputs.changes == 'true'
+        env:
+          GIT_AUTHOR_EMAIL: action@github.com
+          GIT_AUTHOR_NAME: GitHub Action
+          GIT_COMMITTER_EMAIL: action@github.com
+          GIT_COMMITTER_NAME: GitHub Action
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "GitHub Action"
+          git add automations/README.md
+          git commit -m "Update automation readme.md"
+          git push

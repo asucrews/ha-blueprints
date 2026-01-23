@@ -1,0 +1,122 @@
+blueprint:
+  name: Turn Light Off Script Non-ZWave (2.0.0)
+  description: >
+    Smart script to turn off lights based on automation bypass and device
+    availability. If 'automation_bypass' is ON, all automation logic is skipped
+    and the lights are not effected by the automation. If OFF, the script checks if
+    any lights in 'lights_to_check' are unavailable for over 1 minute, and if so,
+    sets a Z-Wave parameter before turning off the specified switch.
+  domain: script
+  homeassistant:
+    min_version: 2024.8.0
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_off_non_zwave_script.yaml
+  author: Jeremy Crews
+  input:
+    automation_bypass:
+      name: Automation Bypass
+      description:
+        "When ON, bypasses availability checks and disables automation
+        logic, allowing lights to be turned off directly without evaluating device
+        conditions.
+
+        "
+      selector:
+        entity:
+          domain:
+            - input_boolean
+          multiple: false
+    lights_to_check:
+      name: Lights to check for "unavailable"
+      default: []
+      selector:
+        entity:
+          domain:
+            - light
+          multiple: true
+    light_switch:
+      name: Light Switch
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - light
+    light_group:
+      name: Light Group
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - light
+    fan:
+      name: Fan
+      default: []
+      selector:
+        target:
+          entity:
+            - domain:
+                - fan
+                - light
+variables:
+  light_switch: !input light_switch
+  light_switch_enitiy_id: >
+    {% if light_switch | length > 0  %}
+      {{ light_switch }}
+    {% else %}
+      "light.none"
+    {% endif %}
+  light_group: !input light_group
+  light_group_enitiy_id: >
+    {% if light_group | length > 0  %}
+      {{ light_group }}
+    {% else %}
+      "light.none"
+    {% endif %}
+  fan_switch: !input fan
+  fan_enitiy_id: >
+    {% if fan_switch | length > 0  %}
+      {{ fan_switch }}
+    {% else %}
+      "fan.none"
+    {% endif %}
+sequence:
+  - variables:
+      unavailable_detected: false
+  - repeat:
+      for_each: !input lights_to_check
+      sequence:
+        - condition: template
+          value_template:
+            "{{ is_state(repeat.item, 'unavailable') and\n  (now() - states[repeat.item].last_changed).total_seconds()
+            > 60 }}\n"
+        - variables:
+            unavailable_detected: true
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input automation_bypass
+            state: "off"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ unavailable_detected }}"
+                sequence:
+                  - service: light.turn_off
+                    target: "{{ light_group_enitiy_id }}"
+                  - if:
+                      - condition: template
+                        value_template: "{{ fan_switch | length > 0 }}"
+                    then:
+                      - action: homeassistant.turn_off
+                        target: "{{ fan_enitiy_id }}"
+            default:
+              - service: light.turn_off
+                target: "{{ light_group_enitiy_id }}"
+              - if:
+                  - condition: template
+                    value_template: "{{ fan_switch | length > 0 }}"
+                then:
+                  - action: homeassistant.turn_off
+                    target: "{{ fan_enitiy_id }}"

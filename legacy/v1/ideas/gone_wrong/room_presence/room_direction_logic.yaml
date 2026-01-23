@@ -1,0 +1,76 @@
+blueprint:
+  name: Determine Entry/Exit and Set Occupancy
+  description: >
+    Compares door and motion timestamps to decide if someone entered or exited a room.
+    Updates an input_boolean (occupancy) and input_select (direction).
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/room_presence/room_direction_logic.yaml
+  domain: automation
+  input:
+    motion_sensor:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+    door_open_time:
+      name: Door Open Timestamp
+      selector:
+        entity:
+          domain: input_datetime
+    motion_on_time:
+      name: Motion Detected Timestamp
+      selector:
+        entity:
+          domain: input_datetime
+    in_room_boolean:
+      name: Room Occupancy Boolean
+      selector:
+        entity:
+          domain: input_boolean
+    direction_select:
+      name: Room Direction Select
+      selector:
+        entity:
+          domain: input_select
+
+trigger:
+  - platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+
+variables:
+  door_open_entity: !input door_open_time
+
+# condition:
+#   - condition: template
+#     value_template: >
+#       {{ (as_timestamp(now()) - (state_attr(door_open_entity, 'timestamp') | float(0))) < 10 }}
+
+action:
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input in_room_boolean
+            state: "off"
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input in_room_boolean
+          - action: input_select.select_option
+            target:
+              entity_id: !input direction_select
+            data:
+              option: "Entered"
+
+      - conditions:
+          - condition: state
+            entity_id: !input in_room_boolean
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: !input in_room_boolean
+          - action: input_select.select_option
+            target:
+              entity_id: !input direction_select
+            data:
+              option: "Exited"
