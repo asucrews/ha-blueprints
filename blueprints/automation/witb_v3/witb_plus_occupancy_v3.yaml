@@ -1,0 +1,570 @@
+blueprint:
+  homeassistant:
+    min_version: 2026.1.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus.yaml
+  name: WITB+ Occupancy v3.2 (Per-room override/force/manual, Safe failsafe, No polling)
+  description: >
+    Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
+      - 1 motion sensor (PIR)
+      - 1 door contact sensor (the room's boundary/exit door)
+
+    Works when:
+      - Door is closed while in use (latches occupancy even if motion stops)
+      - Door is open OR closed when empty (door alone never asserts occupancy)
+
+    Core rules:
+      1) Motion is the only thing that ASSERTS occupied = ON.
+      2) Occupancy clears only when EXIT is possible:
+         - occupied AND door OPEN AND motion OFF for exit_timeout_seconds -> clear.
+      3) Optional SAFE failsafe timer (no polling):
+         - When timer finishes, clear ONLY if door OPEN and motion OFF.
+         - If door CLOSED, do NOT clear (sleeping/sitting still); restart the timer.
+      4) Per-room controls (priority order):
+         - automation_override ON: automation does nothing (hands off).
+         - force_occupied ON: pins occupied ON and blocks clearing.
+         - manual_occupied ON: asserts occupied ON but still allows normal exit-based clearing.
+
+    Notes:
+      - For rooms with multiple doors, create a template binary_sensor for the boundary/exit door behavior
+        you want, and feed that single sensor into this blueprint.
+
+  domain: automation
+
+  input:
+    door_sensor:
+      name: Door Sensor (boundary/exit)
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+
+    motion_sensor:
+      name: Motion Sensor (PIR)
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+
+    occupancy_helper:
+      name: Occupancy Helper (input_boolean)
+      selector:
+        entity:
+          domain: input_boolean
+
+    last_motion_helper:
+      name: Last Motion Helper (input_datetime)
+      description: Stores timestamp of last motion ON.
+      selector:
+        entity:
+          domain: input_datetime
+
+    last_door_helper:
+      name: Last Door Helper (input_datetime)
+      description: Stores timestamp of last door state change.
+      selector:
+        entity:
+          domain: input_datetime
+
+    latched_helper:
+      name: Latched Helper (optional, input_boolean)
+      description: >
+        Optional debug/helper: ON when door is closed while occupied.
+        OFF when door opens or occupancy clears.
+      default: []
+      selector:
+        entity:
+          domain: input_boolean
+
+    exit_timeout_seconds:
+      name: Exit Timeout (seconds)
+      description: When occupied and door is OPEN, if no motion for this long -> clear occupancy.
+      default: 60
+      selector:
+        number:
+          min: 5
+          max: 600
+          unit_of_measurement: seconds
+          mode: slider
+
+    # Per-room controls
+    automation_override:
+      name: Automation Override (optional)
+      description: If ON, this automation does nothing (hands off).
+      default: []
+      selector:
+        entity:
+          domain: input_boolean
+
+    force_occupied:
+      name: Force Occupied (optional)
+      description: If ON, pins occupancy ON and blocks clearing.
+      default: []
+      selector:
+        entity:
+          domain: input_boolean
+
+    manual_occupied:
+      name: Manual Occupied (optional)
+      description: If ON, asserts occupancy ON but still allows normal exit-based clearing.
+      default: []
+      selector:
+        entity:
+          domain: input_boolean
+
+    # Optional entry gating (prevents "walk-by" false positives in open-door sightlines)
+    require_door_for_entry:
+      name: Require recent door event for entry
+      description: >
+        If enabled, motion will assert occupancy only if a door event occurred within entry_window_seconds,
+        OR the door is currently CLOSED, OR occupancy is already ON.
+      default: false
+      selector:
+        boolean: {}
+
+    entry_window_seconds:
+      name: Entry window (seconds)
+      description: How recent a door change must be to accept motion as an entry when gating is enabled.
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: seconds
+          mode: slider
+
+    # Safe failsafe (optional)
+    enable_failsafe:
+      name: Enable failsafe timer
+      description: >
+        If enabled, uses a timer (no polling) to prevent stuck occupied states.
+        SAFE behavior: failsafe will never clear while door is CLOSED.
+      default: true
+      selector:
+        boolean: {}
+
+    failsafe_timer:
+      name: Failsafe Timer (optional, required if enabled)
+      description: Create one per room (e.g., timer.toilet_failsafe). Only used when failsafe is enabled.
+      default: []
+      selector:
+        entity:
+          domain: timer
+
+    failsafe_minutes:
+      name: Failsafe duration (minutes)
+      description: >
+        Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
+        Toilet suggestion: 90-180. Bedroom suggestion: 720-1440.
+      default: 180
+      selector:
+        number:
+          min: 5
+          max: 1440
+          unit_of_measurement: minutes
+          mode: slider
+
+mode: restart
+max_exceeded: silent
+
+variables:
+  door: !input door_sensor
+  motion: !input motion_sensor
+  occ: !input occupancy_helper
+  last_motion: !input last_motion_helper
+  last_door: !input last_door_helper
+  latch: !input latched_helper
+
+  exit_s: !input exit_timeout_seconds
+
+  # Controls
+  ov: !input automation_override
+  force: !input force_occupied
+  manual: !input manual_occupied
+
+  # Entry gating
+  require_door: !input require_door_for_entry
+  entry_s: !input entry_window_seconds
+
+  # Failsafe
+  enable_fs: !input enable_failsafe
+  fs_timer: !input failsafe_timer
+  fs_min: !input failsafe_minutes
+
+  # Helpers
+  latch_enabled: "{{ latch is string and latch|length > 0 }}"
+  ov_on: >-
+    {% if ov is string and ov|length > 0 %}
+      {{ is_state(ov, 'on') }}
+    {% else %}
+      false
+    {% endif %}
+  force_on: >-
+    {% if force is string and force|length > 0 %}
+      {{ is_state(force, 'on') }}
+    {% else %}
+      false
+    {% endif %}
+  manual_on: >-
+    {% if manual is string and manual|length > 0 %}
+      {{ is_state(manual, 'on') }}
+    {% else %}
+      false
+    {% endif %}
+
+  # minutes -> HH:MM:SS
+  fs_duration_hms: >-
+    {% set m = (fs_min | int) %}
+    {% set h = (m // 60) %}
+    {% set mm = (m % 60) %}
+    {{ '%02d:%02d:00' | format(h, mm) }}
+
+  # For entry gating: seconds since last door change
+  last_door_ts: >-
+    {% set v = states(last_door) %}
+    {% if v in ['unknown','unavailable','none',''] %}
+      0
+    {% else %}
+      {{ as_timestamp(v) | int }}
+    {% endif %}
+  seconds_since_door: "{{ (now().timestamp() | int) - (last_door_ts | int) }}"
+
+trigger:
+  - id: motion_on
+    platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+
+  - id: door_change
+    platform: state
+    entity_id: !input door_sensor
+
+  - id: door_open
+    platform: state
+    entity_id: !input door_sensor
+    to: "on"
+
+  - id: motion_off_for
+    platform: state
+    entity_id: !input motion_sensor
+    to: "off"
+    for:
+      seconds: !input exit_timeout_seconds
+
+  # Control toggles (act immediately)
+  - id: override_off
+    platform: state
+    entity_id: !input automation_override
+    to: "off"
+
+  - id: force_on
+    platform: state
+    entity_id: !input force_occupied
+    to: "on"
+
+  - id: force_off
+    platform: state
+    entity_id: !input force_occupied
+    to: "off"
+
+  - id: manual_on
+    platform: state
+    entity_id: !input manual_occupied
+    to: "on"
+
+  - id: manual_off
+    platform: state
+    entity_id: !input manual_occupied
+    to: "off"
+
+  # Optional failsafe completion
+  - id: failsafe_done
+    platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input failsafe_timer
+
+# If override is ON, do nothing at all
+condition:
+  - condition: template
+    value_template: "{{ not ov_on }}"
+
+action:
+  # 1) Keep last_door updated on any door change (for debugging + entry gating)
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: door_change
+        sequence:
+          - service: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_door }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+    default: []
+
+  # 2) Force Occupied: pin ON and block clearing
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ force_on }}"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ occ }}"
+          - service: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_motion }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ latch_enabled and is_state(door, 'off') }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ latch }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
+            default: []
+          # Stop here; do not run normal clearing logic when forced
+          - stop: "Force occupied active"
+    default: []
+
+  # 3) Manual Occupied: assert ON (soft); allow normal exit-based clearing
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ manual_on }}"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: "{{ occ }}"
+          - service: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_motion }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ latch_enabled and is_state(door, 'off') }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ latch }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
+            default: []
+    default: []
+
+  # 4) Motion ON asserts occupancy (with optional entry gating)
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: motion_on
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {% if not require_door %}
+                        true
+                      {% else %}
+                        {{ is_state(door,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
+                      {% endif %}
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ occ }}"
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_motion }}"
+                    data:
+                      timestamp: "{{ now().timestamp() }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ latch_enabled and is_state(door,'off') }}"
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ latch }}"
+                    default: []
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                        sequence:
+                          - service: timer.start
+                            target:
+                              entity_id: "{{ fs_timer }}"
+                            data:
+                              duration: "{{ fs_duration_hms }}"
+                    default: []
+            default: []
+    default: []
+
+  # 5) Door open: delayed exit evaluation (handles quick open/close)
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: door_open
+        sequence:
+          - delay:
+              seconds: !input exit_timeout_seconds
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
+          - condition: state
+            entity_id: !input door_sensor
+            state: "on"
+          - condition: state
+            entity_id: !input motion_sensor
+            state: "off"
+          - service: input_boolean.turn_off
+            target:
+              entity_id: "{{ occ }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ latch_enabled }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ latch }}"
+            default: []
+    default: []
+
+  # 6) Motion OFF for exit timeout: attempt clear (only if door is open)
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: motion_off_for
+        sequence:
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
+          - condition: state
+            entity_id: !input door_sensor
+            state: "on"
+          - service: input_boolean.turn_off
+            target:
+              entity_id: "{{ occ }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ latch_enabled }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ latch }}"
+            default: []
+    default: []
+
+  # 7) Keep latch helper in sync on door changes (debugging only)
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: door_change
+          - condition: template
+            value_template: "{{ latch_enabled }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                  - condition: state
+                    entity_id: !input door_sensor
+                    state: "off"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ latch }}"
+              - conditions:
+                  - condition: state
+                    entity_id: !input door_sensor
+                    state: "on"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ latch }}"
+            default: []
+    default: []
+
+  # 8) SAFE failsafe: only clears when exit is possible (door open) and motion is off.
+  #    Otherwise, if still occupied, restart timer (no clearing while door closed).
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: failsafe_done
+          - condition: template
+            value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: state
+                            entity_id: !input door_sensor
+                            state: "on"
+                          - condition: state
+                            entity_id: !input motion_sensor
+                            state: "off"
+                        sequence:
+                          - service: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ occ }}"
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ latch_enabled }}"
+                                sequence:
+                                  - service: input_boolean.turn_off
+                                    target:
+                                      entity_id: "{{ latch }}"
+                            default: []
+                      - conditions:
+                          - condition: template
+                            value_template: "true"
+                        sequence:
+                          - service: timer.start
+                            target:
+                              entity_id: "{{ fs_timer }}"
+                            data:
+                              duration: "{{ fs_duration_hms }}"
+                    default: []
+            default: []
+    default: []
+
+  # 9) When override is turned OFF, we don't force anything immediately; next door/motion will update.
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: override_off
+        sequence: []
+    default: []
