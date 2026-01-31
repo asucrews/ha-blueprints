@@ -17,7 +17,6 @@ def slugify(name: str) -> str:
 
 
 def q(s: str) -> str:
-    # Always quote friendly names to avoid YAML edge cases
     return '"' + s.replace('"', '\\"') + '"'
 
 
@@ -31,21 +30,15 @@ class Room:
     name: str
     slug: str
     package_key: str
-    door_entity: str
-    motion_entity: str
 
 
-def build_room(
-    name: str,
-    door_pattern: str,
-    motion_pattern: str,
-    key_suffix: str,
-) -> Room:
+def build_room(name: str, key_suffix: str) -> Room:
     slug = slugify(name)
-    package_key = f"{slug}{key_suffix}"  # e.g. master_bedroom_witb
-    door = door_pattern.format(slug=slug)
-    motion = motion_pattern.format(slug=slug)
-    return Room(name=name, slug=slug, package_key=package_key, door_entity=door, motion_entity=motion)
+    return Room(
+        name=name,
+        slug=slug,
+        package_key=f"{slug}{key_suffix}",
+    )
 
 
 def helpers_block(room: Room, include_controls: bool, include_latched: bool, include_failsafe: bool) -> str:
@@ -158,77 +151,13 @@ def templates_block(room: Room, include_controls: bool) -> str:
     return "\n".join(lines)
 
 
-def automation_block(
-    room: Room,
-    blueprint_path: str,
-    include_controls: bool,
-    include_latched: bool,
-    include_failsafe: bool,
-    exit_timeout: int,
-    entry_gating: bool,
-    entry_window: int,
-    failsafe_minutes: int,
-) -> str:
-    lines: list[str] = []
-    lines += [
-        "automation:",
-        f'  - alias: "WITB - {room.name}"',
-        f'    description: "Occupancy for {room.name} using WITB blueprint"',
-        "    use_blueprint:",
-        f"      path: {blueprint_path}",
-        "      input:",
-        f"        door_sensor: {room.door_entity}",
-        f"        motion_sensor: {room.motion_entity}",
-        "",
-        f"        occupancy_helper: input_boolean.{room.slug}_occupied",
-        f"        last_motion_helper: input_datetime.{room.slug}_last_motion",
-        f"        last_door_helper: input_datetime.{room.slug}_last_door",
-    ]
-
-    if include_latched:
-        lines += [f"        latched_helper: input_boolean.{room.slug}_latched"]
-
-    if include_controls:
-        lines += [
-            "",
-            f"        automation_override: input_boolean.{room.slug}_automation_override",
-            f"        force_occupied: input_boolean.{room.slug}_force_occupied",
-            f"        manual_occupied: input_boolean.{room.slug}_manual_occupied",
-        ]
-
-    lines += [
-        "",
-        f"        exit_timeout_seconds: {exit_timeout}",
-        f"        require_door_for_entry: {'true' if entry_gating else 'false'}",
-        f"        entry_window_seconds: {entry_window}",
-    ]
-
-    if include_failsafe:
-        lines += [
-            "",
-            "        enable_failsafe: true",
-            f"        failsafe_timer: timer.{room.slug}_failsafe",
-            f"        failsafe_minutes: {failsafe_minutes}",
-        ]
-    else:
-        lines += ["", "        enable_failsafe: false"]
-
-    return "\n".join(lines)
-
-
 def build_package_file(
     room: Room,
-    blueprint_path: str,
     include_helpers: bool,
     include_templates: bool,
-    include_automation: bool,
     include_controls: bool,
     include_latched: bool,
     include_failsafe: bool,
-    exit_timeout: int,
-    entry_gating: bool,
-    entry_window: int,
-    failsafe_minutes: int,
 ) -> str:
     blocks: list[str] = []
 
@@ -236,26 +165,9 @@ def build_package_file(
         blocks.append(helpers_block(room, include_controls, include_latched, include_failsafe))
     if include_templates:
         blocks.append(templates_block(room, include_controls))
-    if include_automation:
-        blocks.append(
-            automation_block(
-                room,
-                blueprint_path,
-                include_controls,
-                include_latched,
-                include_failsafe,
-                exit_timeout,
-                entry_gating,
-                entry_window,
-                failsafe_minutes,
-            )
-        )
 
     inner = "\n\n".join(blocks).rstrip() + "\n"
 
-    # This is the critical merge_named package wrapper the HA docs describe:
-    # <package_name>:
-    #   <domains...>
     return (
         "---\n"
         f"{room.package_key}:\n"
@@ -264,41 +176,27 @@ def build_package_file(
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Generate merge_named Home Assistant package files for WITB rooms.")
-    ap.add_argument("--rooms", nargs="+", required=True, help='Room names e.g. --rooms "Master Bedroom" "Loft"')
-    ap.add_argument("--out", required=True, help="Output directory (e.g. ./packages/ or ./config/packages/)")
-    ap.add_argument("--blueprint", required=True, help='Blueprint path used by use_blueprint.path (e.g. "asucrews/witb_plus_occupancy_v3_2.yaml")')
+    ap = argparse.ArgumentParser(
+        description="Generate Home Assistant WITB helper-only package files (no automation)."
+    )
 
+    ap.add_argument("--rooms", nargs="+", required=True, help='Room names e.g. --rooms "Master Bedroom" "Loft"')
+    ap.add_argument("--out", required=True, help="Output directory (e.g. ./packages/)")
     ap.add_argument("--key-suffix", default="_witb", help='Suffix for the package key (default: "_witb")')
 
-    ap.add_argument("--door-pattern", default="binary_sensor.REPLACE_DOOR_SENSOR",
-                    help='Door entity id pattern supports {slug} (default placeholder).')
-    ap.add_argument("--motion-pattern", default="binary_sensor.REPLACE_MOTION_SENSOR",
-                    help='Motion entity id pattern supports {slug} (default placeholder).')
+    ap.add_argument("--emit-helpers", action="store_true", help="Emit helper definitions")
+    ap.add_argument("--emit-templates", action="store_true", help="Emit template sensors")
 
-    # Emit controls
-    ap.add_argument("--emit-helpers", action="store_true")
-    ap.add_argument("--emit-templates", action="store_true")
-    ap.add_argument("--emit-automation", action="store_true")
+    ap.add_argument("--no-controls", action="store_true", help="Omit override/force/manual")
+    ap.add_argument("--no-latched", action="store_true", help="Omit latched helper/input")
+    ap.add_argument("--no-failsafe", action="store_true", help="Omit failsafe timer/input")
 
-    # Feature toggles
-    ap.add_argument("--no-controls", action="store_true")
-    ap.add_argument("--no-latched", action="store_true")
-    ap.add_argument("--no-failsafe", action="store_true")
-
-    # Defaults / tuning
-    ap.add_argument("--exit-timeout", type=int, default=45)
-    ap.add_argument("--entry-gating", action="store_true")
-    ap.add_argument("--entry-window", type=int, default=15)
-    ap.add_argument("--failsafe-minutes", type=int, default=180)
-
-    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--dry-run", action="store_true", help="Print YAML instead of writing files")
 
     args = ap.parse_args()
 
-    # If user didn't specify emit flags, default to all (nice dev behavior)
-    if not (args.emit_helpers or args.emit_templates or args.emit_automation):
-        args.emit_helpers = args.emit_templates = args.emit_automation = True
+    if not (args.emit_helpers or args.emit_templates):
+        args.emit_helpers = args.emit_templates = True
 
     include_controls = not args.no_controls
     include_latched = not args.no_latched
@@ -309,25 +207,15 @@ def main() -> int:
         out_dir.mkdir(parents=True, exist_ok=True)
 
     for name in args.rooms:
-        room = build_room(
-            name=name,
-            door_pattern=args.door_pattern,
-            motion_pattern=args.motion_pattern,
-            key_suffix=args.key_suffix,
-        )
+        room = build_room(name, args.key_suffix)
+
         content = build_package_file(
             room=room,
-            blueprint_path=args.blueprint,
             include_helpers=args.emit_helpers,
             include_templates=args.emit_templates,
-            include_automation=args.emit_automation,
             include_controls=include_controls,
             include_latched=include_latched,
             include_failsafe=include_failsafe,
-            exit_timeout=args.exit_timeout,
-            entry_gating=args.entry_gating,
-            entry_window=args.entry_window,
-            failsafe_minutes=args.failsafe_minutes,
         )
 
         file_path = out_dir / f"{room.slug}.yaml"
