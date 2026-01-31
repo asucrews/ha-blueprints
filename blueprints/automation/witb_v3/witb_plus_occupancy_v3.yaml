@@ -28,9 +28,6 @@ blueprint:
     Notes:
       - For rooms with multiple doors, create a template binary_sensor for the boundary/exit door behavior
         you want, and feed that single sensor into this blueprint.
-
-  domain: automation
-
   input:
     door_sensor:
       name: Door Sensor (boundary/exit)
