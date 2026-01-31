@@ -1,0 +1,125 @@
+###############################################################################
+# EXAMPLE PACKAGE (REFERENCE ONLY)
+# WITB Room Package Pattern
+#
+# This file is meant as a template for users to copy/rename into their own repo.
+# Replace all placeholders like:
+#   binary_sensor.REPLACE_DOOR
+#   binary_sensor.REPLACE_MOTION
+#   room_slug
+#   Room Friendly Name
+#
+# Requires blueprint (install separately):
+#   config/blueprints/automation/your_namespace/witb_plus_v3.yaml
+###############################################################################
+
+# -------------------------
+# Room identity (example)
+# -------------------------
+# room_slug: room_slug
+# room name: "Room Friendly Name"
+
+# ---- Helpers ----
+input_boolean:
+  room_slug_occupied:
+    name: "Room Friendly Name Occupied"
+    icon: mdi:account
+
+  room_slug_automation_override:
+    name: "Room Friendly Name Automation Override"
+    icon: mdi:toggle-switch-off-outline
+
+  room_slug_force_occupied:
+    name: "Room Friendly Name Force Occupied"
+    icon: mdi:lock
+
+  room_slug_manual_occupied:
+    name: "Room Friendly Name Manual Occupied"
+    icon: mdi:hand
+
+  room_slug_latched:
+    name: "Room Friendly Name Latched"
+    icon: mdi:door-closed-lock
+
+input_datetime:
+  room_slug_last_motion:
+    name: "Room Friendly Name Last Motion"
+    has_date: true
+    has_time: true
+
+  room_slug_last_door:
+    name: "Room Friendly Name Last Door"
+    has_date: true
+    has_time: true
+
+timer:
+  room_slug_failsafe:
+    name: "Room Friendly Name Failsafe"
+
+# ---- Optional template sensors (dashboard/debug convenience) ----
+template:
+  - binary_sensor:
+      - name: "Room Friendly Name Occupied Effective"
+        unique_id: room_slug_occupied_effective
+        device_class: occupancy
+        state: >
+          {{ is_state('input_boolean.room_slug_occupied','on')
+             or is_state('input_boolean.room_slug_force_occupied','on')
+             or is_state('input_boolean.room_slug_manual_occupied','on') }}
+
+      - name: "Room Friendly Name WITB Override Active"
+        unique_id: room_slug_witb_override_active
+        state: >
+          {{ is_state('input_boolean.room_slug_automation_override','on')
+             or is_state('input_boolean.room_slug_force_occupied','on')
+             or is_state('input_boolean.room_slug_manual_occupied','on') }}
+        icon: mdi:shield-check
+
+  - sensor:
+      - name: "Room Friendly Name Minutes Since Motion"
+        unique_id: room_slug_minutes_since_motion
+        unit_of_measurement: "min"
+        state: >
+          {% set v = states('input_datetime.room_slug_last_motion') %}
+          {% if v in ['unknown','unavailable','none',''] %}
+            999999
+          {% else %}
+            {{ ((as_timestamp(now()) - as_timestamp(v)) / 60) | int }}
+          {% endif %}
+
+# ---- Automation (uses the blueprint) ----
+automation:
+  - alias: "WITB - Room Friendly Name"
+    description: "Occupancy for Room Friendly Name using WITB v3.2 (override/force/manual + safe failsafe)"
+    use_blueprint:
+      # Replace with YOUR blueprint path in HA
+      path: your_namespace/witb_plus_occupancy_v3_2.yaml
+      input:
+        # Replace with your actual entities
+        door_sensor: binary_sensor.REPLACE_DOOR
+        motion_sensor: binary_sensor.REPLACE_MOTION
+
+        # Required helpers
+        occupancy_helper: input_boolean.room_slug_occupied
+        last_motion_helper: input_datetime.room_slug_last_motion
+        last_door_helper: input_datetime.room_slug_last_door
+
+        # Optional helper (recommended)
+        latched_helper: input_boolean.room_slug_latched
+
+        # Per-room controls (your requested pattern)
+        automation_override: input_boolean.room_slug_automation_override
+        force_occupied: input_boolean.room_slug_force_occupied
+        manual_occupied: input_boolean.room_slug_manual_occupied
+
+        # Tuning defaults (adjust per room type)
+        exit_timeout_seconds: 45
+
+        # Entry gating (set true if motion can be triggered from outside doorway)
+        require_door_for_entry: false
+        entry_window_seconds: 15
+
+        # Safe failsafe (recommended)
+        enable_failsafe: true
+        failsafe_timer: timer.room_slug_failsafe
+        failsafe_minutes: 180
