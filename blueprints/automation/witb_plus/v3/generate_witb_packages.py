@@ -113,16 +113,16 @@ def templates_block(room: Room, include_controls: bool) -> str:
             f"        unique_id: {room.slug}_occupied_effective",
             "        device_class: occupancy",
             "        state: >",
-            f"          {{ {{ is_state('input_boolean.{room.slug}_occupied','on')",
+            f"          {{{{ is_state('input_boolean.{room.slug}_occupied','on')",
             f"             or is_state('input_boolean.{room.slug}_force_occupied','on')",
-            f"             or is_state('input_boolean.{room.slug}_manual_occupied','on') }} }}",
+            f"             or is_state('input_boolean.{room.slug}_manual_occupied','on') }}}}",
             "",
             f"      - name: {q(room.name + ' WITB Override Active')}",
             f"        unique_id: {room.slug}_witb_override_active",
             "        state: >",
-            f"          {{ {{ is_state('input_boolean.{room.slug}_automation_override','on')",
+            f"          {{{{ is_state('input_boolean.{room.slug}_automation_override','on')",
             f"             or is_state('input_boolean.{room.slug}_force_occupied','on')",
-            f"             or is_state('input_boolean.{room.slug}_manual_occupied','on') }} }}",
+            f"             or is_state('input_boolean.{room.slug}_manual_occupied','on') }}}}",
             "        icon: mdi:shield-check",
         ]
     else:
@@ -131,7 +131,7 @@ def templates_block(room: Room, include_controls: bool) -> str:
             f"        unique_id: {room.slug}_occupied_effective",
             "        device_class: occupancy",
             "        state: >",
-            f"          {{ {{ is_state('input_boolean.{room.slug}_occupied','on') }} }}",
+            f"          {{{{ is_state('input_boolean.{room.slug}_occupied','on') }}}}",
         ]
 
     lines += [

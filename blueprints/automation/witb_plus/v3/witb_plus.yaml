@@ -3,38 +3,54 @@ blueprint:
     min_version: 2026.1.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ Occupancy v3.2 (Per-room override/force/manual, Safe failsafe, No polling)
+  name: WITB+ Occupancy v3.3 (Seal door + Transition doors) (Per-room override/force/manual, Safe failsafe, No polling)
   description: >
     Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
       - 1 motion sensor (PIR)
-      - 1 door contact sensor (the room's boundary/exit door)
+      - 1+ transition door contact sensors (boundary crossings)
+      - 1 seal door contact sensor (main/privacy door)
 
     Works when:
-      - Door is closed while in use (latches occupancy even if motion stops)
+      - Seal door is closed while in use (prevents clearing even if motion stops)
       - Door is open OR closed when empty (door alone never asserts occupancy)
 
     Core rules:
       1) Motion is the only thing that ASSERTS occupied = ON.
       2) Occupancy clears only when EXIT is possible:
-         - occupied AND door OPEN AND motion OFF for exit_timeout_seconds -> clear.
+         - occupied AND any transition door OPEN AND motion OFF for exit_timeout_seconds -> clear.
+           (Clearing is blocked while seal door is CLOSED.)
       3) Optional SAFE failsafe timer (no polling):
-         - When timer finishes, clear ONLY if door OPEN and motion OFF.
-         - If door CLOSED, do NOT clear (sleeping/sitting still); restart the timer.
+         - When timer finishes, clear ONLY if SEAL door OPEN and motion OFF.
+         - If SEAL door CLOSED, do NOT clear (sleeping/sitting still); restart the timer.
       4) Per-room controls (priority order):
          - automation_override ON: automation does nothing (hands off).
          - force_occupied ON: pins occupied ON and blocks clearing.
          - manual_occupied ON: asserts occupied ON but still allows normal exit-based clearing.
 
     Notes:
-      - For rooms with multiple doors, create a template binary_sensor for the boundary/exit door behavior
-        you want, and feed that single sensor into this blueprint.
+      - Configure transition_doors as the doors that represent leaving/entering this room's zone.
+      - Configure seal_door as the main/privacy door that should block clearing while closed.
   input:
-    door_sensor:
-      name: Door Sensor (boundary/exit)
+    seal_door:
+      name: Seal Door (main/privacy door)
+      description: >
+        The room's MAIN door used for "sealed" semantics (failsafe / still-occupant protection).
+        Sealed means this door is CLOSED. This door does NOT have to be the only transition door.
       selector:
         entity:
           domain: binary_sensor
           device_class: door
+
+    transition_doors:
+      name: Transition Doors (1+)
+      description: >
+        Doors that represent leaving/entering this room's zone (movement/transition semantics).
+        Select one or more. Include the seal door here if it is also a transition door.
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: door
+          multiple: true
 
     motion_sensor:
       name: Motion Sensor (PIR)
@@ -66,8 +82,8 @@ blueprint:
     latched_helper:
       name: Latched Helper (optional, input_boolean)
       description: >
-        Optional debug/helper: ON when door is closed while occupied.
-        OFF when door opens or occupancy clears.
+        Optional debug/helper: ON when the SEAL door is closed while occupied.
+        OFF when the SEAL door opens or occupancy clears.
       default: []
       selector:
         entity:
@@ -165,7 +181,8 @@ mode: restart
 max_exceeded: silent
 
 variables:
-  door: !input door_sensor
+  seal: !input seal_door
+  doors: !input transition_doors
   motion: !input motion_sensor
   occ: !input occupancy_helper
   last_motion: !input last_motion_helper
@@ -187,6 +204,18 @@ variables:
   enable_fs: !input enable_failsafe
   fs_timer: !input failsafe_timer
   fs_min: !input failsafe_minutes
+
+  # Door semantics
+  sealed_now: "{{ is_state(seal, 'off') }}"
+  any_transition_open: >-
+    {% set ds = doors if doors is not string else [doors] %}
+    {% set ns = namespace(open=false) %}
+    {% for d in ds %}
+      {% if is_state(d, 'on') %}
+        {% set ns.open = true %}
+      {% endif %}
+    {% endfor %}
+    {{ ns.open }}
 
   # Helpers
   latch_enabled: "{{ latch is string and latch|length > 0 }}"
@@ -232,13 +261,22 @@ trigger:
     entity_id: !input motion_sensor
     to: "on"
 
-  - id: door_change
+  - id: transition_change
     platform: state
-    entity_id: !input door_sensor
+    entity_id: !input transition_doors
 
-  - id: door_open
+  - id: transition_open
     platform: state
-    entity_id: !input door_sensor
+    entity_id: !input transition_doors
+    to: "on"
+
+  - id: seal_change
+    platform: state
+    entity_id: !input seal_door
+
+  - id: seal_open
+    platform: state
+    entity_id: !input seal_door
     to: "on"
 
   - id: motion_off_for
@@ -290,8 +328,8 @@ action:
   # 1) Keep last_door updated on any door change (for debugging + entry gating)
   - choose:
       - conditions:
-          - condition: trigger
-            id: door_change
+          - condition: template
+            value_template: "{{ trigger.id in ['transition_change','seal_change'] }}"
         sequence:
           - service: input_datetime.set_datetime
             target:
@@ -317,7 +355,7 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ latch_enabled and is_state(door, 'off') }}"
+                    value_template: "{{ latch_enabled and is_state(seal, 'off') }}"
                 sequence:
                   - service: input_boolean.turn_on
                     target:
@@ -355,7 +393,7 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ latch_enabled and is_state(door, 'off') }}"
+                    value_template: "{{ latch_enabled and is_state(seal, 'off') }}"
                 sequence:
                   - service: input_boolean.turn_on
                     target:
@@ -387,7 +425,7 @@ action:
                       {% if not require_door %}
                         true
                       {% else %}
-                        {{ is_state(door,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
+                        {{ is_state(seal,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
                       {% endif %}
                 sequence:
                   - service: input_boolean.turn_on
@@ -401,7 +439,7 @@ action:
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ latch_enabled and is_state(door,'off') }}"
+                            value_template: "{{ latch_enabled and is_state(seal,'off') }}"
                         sequence:
                           - service: input_boolean.turn_on
                             target:
@@ -424,20 +462,20 @@ action:
   # 5) Door open: delayed exit evaluation (handles quick open/close)
   - choose:
       - conditions:
-          - condition: trigger
-            id: door_open
+          - condition: template
+            value_template: "{{ trigger.id in ['transition_open','seal_open'] }}"
         sequence:
           - delay:
               seconds: !input exit_timeout_seconds
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
-          - condition: state
-            entity_id: !input door_sensor
-            state: "on"
-          - condition: state
-            entity_id: !input motion_sensor
-            state: "off"
+          - condition: template
+            value_template: "{{ any_transition_open }}"
+          - condition: template
+            value_template: "{{ not sealed_now }}"
+          - condition: template
+            value_template: "{{ is_state(motion, 'off') }}"
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
@@ -461,9 +499,10 @@ action:
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
-          - condition: state
-            entity_id: !input door_sensor
-            state: "on"
+          - condition: template
+            value_template: "{{ any_transition_open }}"
+          - condition: template
+            value_template: "{{ not sealed_now }}"
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
@@ -478,30 +517,23 @@ action:
             default: []
     default: []
 
-  # 7) Keep latch helper in sync on door changes (debugging only)
+  # 7) Keep latch helper in sync on seal door changes (debugging only)
   - choose:
       - conditions:
-          - condition: trigger
-            id: door_change
           - condition: template
-            value_template: "{{ latch_enabled }}"
+            value_template: "{{ (trigger.id in ['transition_change','seal_change']) and latch_enabled }}"
         sequence:
           - choose:
               - conditions:
-                  - condition: state
-                    entity_id: !input occupancy_helper
-                    state: "on"
-                  - condition: state
-                    entity_id: !input door_sensor
-                    state: "off"
+                  - condition: template
+                    value_template: "{{ is_state(occ, 'on') and sealed_now }}"
                 sequence:
                   - service: input_boolean.turn_on
                     target:
                       entity_id: "{{ latch }}"
               - conditions:
-                  - condition: state
-                    entity_id: !input door_sensor
-                    state: "on"
+                  - condition: template
+                    value_template: "{{ (not sealed_now) or is_state(occ, 'off') }}"
                 sequence:
                   - service: input_boolean.turn_off
                     target:
@@ -526,12 +558,10 @@ action:
                 sequence:
                   - choose:
                       - conditions:
-                          - condition: state
-                            entity_id: !input door_sensor
-                            state: "on"
-                          - condition: state
-                            entity_id: !input motion_sensor
-                            state: "off"
+                          - condition: template
+                            value_template: "{{ not sealed_now }}"
+                          - condition: template
+                            value_template: "{{ is_state(motion, 'off') }}"
                         sequence:
                           - service: input_boolean.turn_off
                             target:
