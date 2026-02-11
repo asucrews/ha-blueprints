@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.1.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ Occupancy v3.3 (Seal door + Transition doors) (Per-room override/force/manual, Safe failsafe, No polling)
+  name: WITB+ Occupancy v3.4 (Seal door + Transition doors) (Per-room override/force/manual, Safe failsafe, No polling)
   description: >
     Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
       - 1 motion sensor (PIR)
@@ -78,6 +78,31 @@ blueprint:
       selector:
         entity:
           domain: input_datetime
+
+
+    last_exit_door_helper:
+      name: Last Exit Door Helper (optional, input_datetime)
+      description: >
+        Optional helper used to support "door can close after leaving" rooms.
+        This stores the timestamp when a transition/seal door OPENED while the room was already occupied.
+        If set, the automation can clear occupancy after the door closes behind you (garage/bedroom style).
+      default: []
+      selector:
+        entity:
+          domain: input_datetime
+
+    exit_recent_window_seconds:
+      name: Exit-Close Window (seconds)
+      description: >
+        How long after a door OPENED while occupied we still treat exit as possible, even if the door is now closed.
+        Must be >= Exit Timeout to cover "open -> close -> motion stops" sequences.
+      default: 180
+      selector:
+        number:
+          min: 30
+          max: 900
+          unit_of_measurement: seconds
+          mode: slider
 
     latched_helper:
       name: Latched Helper (optional, input_boolean)
@@ -255,6 +280,26 @@ variables:
     {% endif %}
   seconds_since_door: "{{ (now().timestamp() | int) - (last_door_ts | int) }}"
 
+
+  # For "door can close after leaving": timestamp when a door OPENED while already occupied
+  last_exit: !input last_exit_door_helper
+  exit_win_s: !input exit_recent_window_seconds
+  exit_enabled: "{{ last_exit is string and last_exit|length > 0 }}"
+  last_exit_ts: >-
+    {% if exit_enabled %}
+      {% set v = states(last_exit) %}
+      {% if v in ['unknown','unavailable','none',''] %}
+        0
+      {% else %}
+        {{ as_timestamp(v) | int }}
+      {% endif %}
+    {% else %}
+      0
+    {% endif %}
+  seconds_since_exit: "{{ (now().timestamp() | int) - (last_exit_ts | int) }}"
+  exit_recent: "{{ exit_enabled and (seconds_since_exit | int) <= (exit_win_s | int) }}"
+
+
 trigger:
   - id: motion_on
     platform: state
@@ -337,6 +382,25 @@ action:
             data:
               timestamp: "{{ now().timestamp() }}"
     default: []
+
+
+  # 1b) Mark a "possible exit" when a door OPENS while already occupied.
+  #     This enables clearing even if the door closes behind you.
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id in ['transition_open','seal_open'] and exit_enabled }}"
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
+        sequence:
+          - service: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_exit }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+    default: []
+
 
   # 2) Force Occupied: pin ON and block clearing
   - choose:
@@ -471,9 +535,9 @@ action:
             entity_id: !input occupancy_helper
             state: "on"
           - condition: template
-            value_template: "{{ any_transition_open }}"
+            value_template: "{{ any_transition_open or exit_recent }}"
           - condition: template
-            value_template: "{{ not sealed_now }}"
+            value_template: "{{ (not sealed_now) or exit_recent }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - service: input_boolean.turn_off
@@ -488,6 +552,18 @@ action:
                     target:
                       entity_id: "{{ latch }}"
             default: []
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ exit_enabled }}"
+                sequence:
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_exit }}"
+                    data:
+                      timestamp: 0
+            default: []
     default: []
 
   # 6) Motion OFF for exit timeout: attempt clear (only if door is open)
@@ -500,9 +576,9 @@ action:
             entity_id: !input occupancy_helper
             state: "on"
           - condition: template
-            value_template: "{{ any_transition_open }}"
+            value_template: "{{ any_transition_open or exit_recent }}"
           - condition: template
-            value_template: "{{ not sealed_now }}"
+            value_template: "{{ (not sealed_now) or exit_recent }}"
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
@@ -514,6 +590,18 @@ action:
                   - service: input_boolean.turn_off
                     target:
                       entity_id: "{{ latch }}"
+            default: []
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ exit_enabled }}"
+                sequence:
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_exit }}"
+                    data:
+                      timestamp: 0
             default: []
     default: []
 
@@ -559,7 +647,7 @@ action:
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ not sealed_now }}"
+                            value_template: "{{ (not sealed_now) or exit_recent }}"
                           - condition: template
                             value_template: "{{ is_state(motion, 'off') }}"
                         sequence:
@@ -574,6 +662,17 @@ action:
                                   - service: input_boolean.turn_off
                                     target:
                                       entity_id: "{{ latch }}"
+                            default: []
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ exit_enabled }}"
+                                sequence:
+                                  - service: input_datetime.set_datetime
+                                    target:
+                                      entity_id: "{{ last_exit }}"
+                                    data:
+                                      timestamp: 0
                             default: []
                       - conditions:
                           - condition: template
