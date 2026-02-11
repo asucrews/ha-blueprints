@@ -53,7 +53,7 @@ input_datetime:
     has_time: true
 
   room_last_exit_door:
-    name: "Master Bathroom Last Exit Door"
+    name: "Room Last Exit Door"
     has_date: true
     has_time: true
 
