@@ -3,41 +3,30 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yam
-  name: "WITB+ v3.5 Actions - Lights + Fan (single automation) v1.3"
+  name: "WITB+ Actions - Lights + Fan v1.4.1"
   description: >
-    Version: 1.3
+    Version: 1.4.1 (patch)
 
-    Improvements over v1.2:
-      - Fan run-on can start AFTER lights turn off (so the fan gets the full run-on time).
-      - Optional startup cleanup: after HA restarts, if the room is vacant and auto-tags are ON,
-        this can turn off lights/fan that were previously auto-controlled (helps when timer.finished
-        would have occurred while HA was down).
+    Adds "tune from dashboard" support:
+      - Optional input_number helpers can override:
+          * illuminance_threshold (lux)
+          * humidity_high / humidity_low (%)
+          * fan_on_delay (seconds)
 
-    Room actions blueprint intended to pair with WITB+ v3.5 (mmWave + exit-latch).
-    This blueprint keys off the room's *effective* occupancy sensor:
+    v1.4 features included:
+      - Fan ON delay (avoid starting exhaust fans for very short trips).
+      - Humidity hold for fan (keeps fan running if humidity is still high; uses hysteresis + max hold time).
+      - Optional lux-based light gating (use a room illuminance sensor instead of sun position).
 
+    Pair with WITB+ v3.5. Use the room's effective occupancy sensor:
       - binary_sensor.<slug>_occupied_effective
-
-    Behavior:
-      - Occupied (ON for on_debounce): turns ON lights (with optional dark + day/night brightness rules)
-        and optionally turns ON a fan (fan.* with optional percentage/preset) or on/off fan switches (switch.*).
-
-      - Vacant:
-          * Lights: turn OFF after lights_off_delay.
-          * Fan: if fan_runon_timer is provided, starts a fan run-on timer (default: after lights turn off),
-            then turns the fan OFF when the timer finishes (only if the room is still vacant).
-            If no fan_runon_timer is provided, fan OFF falls back to lights_off_delay.
 
     Safety / "don't fight me" rules:
       - automation_override ON => do nothing (no ON, no OFF).
       - force_occupied OR manual_occupied ON => blocks vacancy OFF actions.
       - Auto-tag booleans (recommended): if provided, OFF actions only happen when the tag is ON.
         This prevents turning off lights/fans that were turned on manually.
-
-    Night window:
-      - night_start .. night_end is treated as the "night" period (supports crossing midnight).
-      - fan_disable_during_night can prevent turning ON the fan during the night window while still
-        allowing lights to turn on dimly.
+      - Humidity-hold only applies when auto_tag_fan is provided and ON (so we don't interfere with manual fan runs).
 
   domain: automation
 
@@ -70,12 +59,50 @@ blueprint:
         entity:
           domain: input_boolean
 
+    # --- Light gating (sun / lux) ---
     turn_on_only_if_dark:
-      name: "Lights: only turn ON when dark"
-      description: "If true, lights will only be turned on when sun is below the horizon."
+      name: "Lights: only turn ON when dark (sun)"
+      description: "If true and no lux sensor is configured, lights will only be turned on when sun is below the horizon."
       default: true
       selector:
         boolean:
+
+    illuminance_entity:
+      name: "Lights: illuminance sensor (optional)"
+      description: >
+        Optional. If set and use_illuminance_gate is true, this replaces the sun-based dark check.
+        Example: sensor.<slug>_illuminance (lux).
+      default: ""
+      selector:
+        entity:
+          domain: sensor
+
+    use_illuminance_gate:
+      name: "Lights: use illuminance sensor gate"
+      description: "If true and illuminance_entity is set, only turn lights on when lux is below the (static or helper) threshold."
+      default: true
+      selector:
+        boolean:
+
+    illuminance_threshold:
+      name: "Lights: illuminance threshold (lux) (static)"
+      description: "Used when illuminance_threshold_helper is not provided."
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 5000
+          mode: box
+
+    illuminance_threshold_helper:
+      name: "Lights: illuminance threshold helper (optional input_number)"
+      description: >
+        Optional. If set, this input_number overrides illuminance_threshold at runtime (so you can tune in dashboards).
+        Example: input_number.<slug>_actions_lux_threshold
+      default: ""
+      selector:
+        entity:
+          domain: input_number
 
     use_night_profile:
       name: "Lights: use night brightness profile"
@@ -192,6 +219,23 @@ blueprint:
       selector:
         boolean:
 
+    fan_on_delay:
+      name: "Fan: ON delay after occupancy (static)"
+      description: "Wait this long after occupied before turning the fan ON (used when fan_on_delay_seconds_helper is not provided)."
+      default: "00:00:00"
+      selector:
+        duration:
+
+    fan_on_delay_seconds_helper:
+      name: "Fan: ON delay helper (optional input_number seconds)"
+      description: >
+        Optional. If set, this input_number (seconds) overrides fan_on_delay at runtime (tune from dashboards).
+        Example: input_number.<slug>_actions_fan_on_delay_seconds
+      default: ""
+      selector:
+        entity:
+          domain: input_number
+
     fan_turn_off_on_vacant:
       name: "Fan: turn OFF when vacant"
       description: >
@@ -237,6 +281,67 @@ blueprint:
       default: true
       selector:
         boolean:
+
+    # --- Fan humidity hold (optional) ---
+    humidity_entity:
+      name: "Fan: humidity sensor (optional)"
+      description: >
+        Optional. Provide a bathroom humidity sensor (percent). If set, the fan can stay on after run-on
+        while humidity remains high (requires auto_tag_fan).
+      default: ""
+      selector:
+        entity:
+          domain: sensor
+
+    humidity_high:
+      name: "Fan: humidity high threshold (%) (static)"
+      description: "Used when humidity_high_helper is not provided."
+      default: 65
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+
+    humidity_low:
+      name: "Fan: humidity low threshold (%) (static)"
+      description: "Used when humidity_low_helper is not provided. (Hysteresis; should be lower than high.)"
+      default: 55
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+
+    humidity_high_helper:
+      name: "Fan: humidity high helper (optional input_number)"
+      description: "Optional. If set, overrides humidity_high at runtime."
+      default: ""
+      selector:
+        entity:
+          domain: input_number
+
+    humidity_low_helper:
+      name: "Fan: humidity low helper (optional input_number)"
+      description: "Optional. If set, overrides humidity_low at runtime."
+      default: ""
+      selector:
+        entity:
+          domain: input_number
+
+    humidity_check_interval:
+      name: "Fan: humidity re-check interval"
+      description: "How often to re-check humidity while holding the fan on."
+      default: "00:02:00"
+      selector:
+        duration:
+
+    humidity_hold_max:
+      name: "Fan: max humidity hold time"
+      description: "Maximum time to keep the fan running due to humidity after the off point."
+      default: "01:00:00"
+      selector:
+        duration:
 
     fan_use_night_profile:
       name: "Fan: use night profile (percentage/preset)"
@@ -353,8 +458,7 @@ blueprint:
       selector:
         duration:
 
-mode: queued
-max: 10
+mode: restart
 max_exceeded: silent
 
 trigger:
@@ -377,9 +481,7 @@ trigger:
 
   - platform: event
     event_type: timer.finished
-    event_data:
-      entity_id: !input fan_runon_timer
-    id: fan_runon_done
+    id: timer_finished
 
   - platform: homeassistant
     event: start
@@ -401,7 +503,13 @@ variables:
 
   cooldown_t: !input cooldown_timer
 
+  # Light gating
   turn_on_only_if_dark: !input turn_on_only_if_dark
+  lux_entity: !input illuminance_entity
+  use_lux_gate: !input use_illuminance_gate
+  lux_threshold_static: !input illuminance_threshold
+  lux_threshold_helper: !input illuminance_threshold_helper
+
   use_night_profile: !input use_night_profile
   night_start: !input night_start
   night_end: !input night_end
@@ -409,12 +517,24 @@ variables:
   brightness_day: !input brightness_day_pct
   brightness_night: !input brightness_night_pct
 
+  # Fan timing and behavior
   fan_turn_on_on_occupy: !input fan_turn_on_on_occupy
+  fan_on_delay_static: !input fan_on_delay
+  fan_on_delay_seconds_helper: !input fan_on_delay_seconds_helper
   fan_turn_off_on_vacant: !input fan_turn_off_on_vacant
   fan_disable_during_night: !input fan_disable_during_night
   fan_runon_t: !input fan_runon_timer
   fan_runon_duration: !input fan_runon_duration
   fan_runon_after_lights: !input fan_runon_starts_after_lights_off
+
+  # Humidity hold
+  humidity_entity: !input humidity_entity
+  humidity_high_static: !input humidity_high
+  humidity_low_static: !input humidity_low
+  humidity_high_helper: !input humidity_high_helper
+  humidity_low_helper: !input humidity_low_helper
+  humidity_check_interval: !input humidity_check_interval
+  humidity_hold_max: !input humidity_hold_max
 
   fan_use_night_profile: !input fan_use_night_profile
   fan_pct_day: !input fan_percentage_day
@@ -452,6 +572,27 @@ variables:
       {{ now() >= start or now() < end }}
     {% endif %}
 
+  lux_value: >-
+    {% if lux_entity != '' %}
+      {{ states(lux_entity) | float(999999) }}
+    {% else %}
+      999999
+    {% endif %}
+
+  lux_threshold: >-
+    {% if lux_threshold_helper != '' %}
+      {{ states(lux_threshold_helper) | float(lux_threshold_static) }}
+    {% else %}
+      {{ lux_threshold_static | float }}
+    {% endif %}
+
+  lights_ok_to_turn_on: >-
+    {% if lux_entity != '' and use_lux_gate %}
+      {{ lux_value < lux_threshold }}
+    {% else %}
+      {{ (not turn_on_only_if_dark) or is_dark }}
+    {% endif %}
+
   light_brightness_pct: >-
     {% if use_night_profile and is_night %}
       {{ brightness_night }}
@@ -471,6 +612,13 @@ variables:
       {{ fan_preset_night }}
     {% else %}
       {{ fan_preset_day }}
+    {% endif %}
+
+  fan_on_delay_seconds: >-
+    {% if fan_on_delay_seconds_helper != '' %}
+      {{ states(fan_on_delay_seconds_helper) | float(0) }}
+    {% else %}
+      {{ as_timedelta(fan_on_delay_static).total_seconds() }}
     {% endif %}
 
   any_light_on: >-
@@ -494,8 +642,29 @@ variables:
   tag_fan_ok_to_off: >-
     {{ auto_tag_fan == '' or is_state(auto_tag_fan, 'on') }}
 
+  humidity_high: >-
+    {% if humidity_high_helper != '' %}
+      {{ states(humidity_high_helper) | float(humidity_high_static) }}
+    {% else %}
+      {{ humidity_high_static | float }}
+    {% endif %}
+
+  humidity_low: >-
+    {% if humidity_low_helper != '' %}
+      {{ states(humidity_low_helper) | float(humidity_low_static) }}
+    {% else %}
+      {{ humidity_low_static | float }}
+    {% endif %}
+
+  humidity_hold_enabled: >-
+    {{ humidity_entity != '' and auto_tag_fan != '' and is_state(auto_tag_fan, 'on') }}
+
+  humidity_hold_max_seconds: >-
+    {{ as_timedelta(humidity_hold_max).total_seconds() }}
+
 action:
   - choose:
+      # ================= OCCUPIED -> ON =================
       - conditions:
           - condition: trigger
             id: occupied_on
@@ -504,6 +673,7 @@ action:
           - condition: template
             value_template: "{{ not cooldown_active }}"
         sequence:
+          # Cancel fan run-on timer if present (prevents timer turning fan off while occupied)
           - choose:
               - conditions:
                   - condition: template
@@ -513,12 +683,13 @@ action:
                     target:
                       entity_id: "{{ fan_runon_t }}"
 
+          # ---- Lights ON ----
           - choose:
               - conditions:
                   - condition: template
                     value_template: "{{ lights | length > 0 }}"
                   - condition: template
-                    value_template: "{{ (not turn_on_only_if_dark) or is_dark }}"
+                    value_template: "{{ lights_ok_to_turn_on }}"
                   - condition: template
                     value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
                 sequence:
@@ -537,6 +708,7 @@ action:
                             target:
                               entity_id: "{{ auto_tag_lights }}"
 
+          # ---- Fan ON (with optional delay) ----
           - choose:
               - conditions:
                   - condition: template
@@ -544,6 +716,15 @@ action:
                   - condition: template
                     value_template: "{{ (not fan_disable_during_night) or (not is_night) }}"
                 sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_on_delay_seconds | float(0) > 0 }}"
+                        sequence:
+                          - delay:
+                              seconds: "{{ fan_on_delay_seconds | int(0) }}"
+                          - condition: template
+                            value_template: "{{ is_state(occ, 'on') and override_ok }}"
                   - choose:
                       - conditions:
                           - condition: template
@@ -599,6 +780,7 @@ action:
                                     target:
                                       entity_id: "{{ auto_tag_fan }}"
 
+          # ---- Cooldown timer ----
           - choose:
               - conditions:
                   - condition: template
@@ -610,6 +792,7 @@ action:
                     data:
                       duration: !input cooldown_duration
 
+      # ================= VACANT -> LIGHTS OFF (+ start fan run-on if configured to start after lights) =================
       - conditions:
           - condition: trigger
             id: lights_off
@@ -618,6 +801,7 @@ action:
           - condition: template
             value_template: "{{ force_ok and manual_ok }}"
         sequence:
+          # Lights OFF
           - choose:
               - conditions:
                   - condition: template
@@ -637,6 +821,7 @@ action:
                             target:
                               entity_id: "{{ auto_tag_lights }}"
 
+          # Start fan run-on AFTER lights off (recommended behavior)
           - choose:
               - conditions:
                   - condition: template
@@ -650,11 +835,29 @@ action:
                     data:
                       duration: !input fan_runon_duration
 
+          # Fallback: no fan timer -> fan off with lights_off point (humidity hold may extend)
           - choose:
               - conditions:
                   - condition: template
                     value_template: "{{ fan_turn_off_on_vacant and tag_fan_ok_to_off and fan_runon_t == '' }}"
                 sequence:
+                  - variables:
+                      hold_start: "{{ now() }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ humidity_hold_enabled and (states(humidity_entity)|float(0)) >= humidity_high }}"
+                        sequence:
+                          - repeat:
+                              while:
+                                - condition: template
+                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok and manual_ok }}"
+                                - condition: template
+                                  value_template: "{{ (states(humidity_entity)|float(0)) > humidity_low }}"
+                                - condition: template
+                                  value_template: "{{ (now() - hold_start).total_seconds() < humidity_hold_max_seconds }}"
+                              sequence:
+                                - delay: !input humidity_check_interval
                   - choose:
                       - conditions:
                           - condition: template
@@ -679,6 +882,7 @@ action:
                             target:
                               entity_id: "{{ auto_tag_fan }}"
 
+      # ================= VACANT -> START FAN RUN-ON (if configured to start immediately) =================
       - conditions:
           - condition: trigger
             id: vacancy_began
@@ -701,9 +905,12 @@ action:
             data:
               duration: !input fan_runon_duration
 
+      # ================= FAN RUN-ON DONE -> FAN OFF (humidity hold may extend) =================
       - conditions:
           - condition: trigger
-            id: fan_runon_done
+            id: timer_finished
+          - condition: template
+            value_template: "{{ fan_runon_t != '' and trigger.event.data.entity_id == fan_runon_t }}"
           - condition: template
             value_template: "{{ override_ok }}"
           - condition: template
@@ -713,6 +920,24 @@ action:
           - condition: template
             value_template: "{{ force_ok and manual_ok }}"
         sequence:
+          - variables:
+              hold_start: "{{ now() }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ humidity_hold_enabled and (states(humidity_entity)|float(0)) >= humidity_high }}"
+                sequence:
+                  - repeat:
+                      while:
+                        - condition: template
+                          value_template: "{{ is_state(occ,'off') and override_ok and force_ok and manual_ok }}"
+                        - condition: template
+                          value_template: "{{ (states(humidity_entity)|float(0)) > humidity_low }}"
+                        - condition: template
+                          value_template: "{{ (now() - hold_start).total_seconds() < humidity_hold_max_seconds }}"
+                      sequence:
+                        - delay: !input humidity_check_interval
+
           - choose:
               - conditions:
                   - condition: template
@@ -737,6 +962,7 @@ action:
                     target:
                       entity_id: "{{ auto_tag_fan }}"
 
+      # ================= STARTUP CLEANUP =================
       - conditions:
           - condition: trigger
             id: ha_start

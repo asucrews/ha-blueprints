@@ -1,0 +1,94 @@
+---
+master_bathroom_toilet_witb_actions:
+  input_boolean:
+    master_bathroom_toilet_auto_lights_on:
+      name: "Master Bathroom Toilet auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+
+    master_bathroom_toilet_auto_fan_on:
+      name: "Master Bathroom Toilet auto fan on (tag)"
+      icon: mdi:fan-auto
+
+  timer:
+    master_bathroom_toilet_fan_runon:
+      name: "Master Bathroom Toilet fan run-on"
+      restore: true
+
+    master_bathroom_toilet_actions_cooldown:
+      name: "Master Bathroom Toilet actions cooldown"
+      restore: true
+
+  input_datetime:
+    master_bathroom_toilet_actions_night_start:
+      name: "Master Bathroom Toilet night start"
+      has_date: false
+      has_time: true
+
+    master_bathroom_toilet_actions_night_end:
+      name: "Master Bathroom Toilet night end"
+      has_date: false
+      has_time: true
+
+  input_number:
+    master_bathroom_toilet_actions_brightness_day_pct:
+      name: "Master Bathroom Toilet brightness day %"
+      min: 1
+      max: 100
+      step: 1
+      mode: slider
+
+    master_bathroom_toilet_actions_brightness_night_pct:
+      name: "Master Bathroom Toilet brightness night %"
+      min: 1
+      max: 100
+      step: 1
+      mode: slider
+
+    master_bathroom_toilet_actions_fan_pct_day:
+      name: "Master Bathroom Toilet fan day %"
+      min: 0
+      max: 100
+      step: 5
+      mode: slider
+
+    master_bathroom_toilet_actions_fan_pct_night:
+      name: "Master Bathroom Toilet fan night %"
+      min: 0
+      max: 100
+      step: 5
+      mode: slider
+
+    master_bathroom_toilet_actions_fan_runon_minutes:
+      name: "Master Bathroom Toilet fan run-on (minutes)"
+      min: 0
+      max: 60
+      step: 1
+      mode: slider
+
+    master_bathroom_toilet_actions_lux_threshold:
+      name: "Master Bathroom Toilet lux threshold"
+      min: 0
+      max: 500
+      step: 1
+      mode: slider
+
+    master_bathroom_toilet_actions_humidity_high:
+      name: "Master Bathroom Toilet humidity high %"
+      min: 30
+      max: 100
+      step: 1
+      mode: slider
+
+    master_bathroom_toilet_actions_humidity_low:
+      name: "Master Bathroom Toilet humidity low %"
+      min: 30
+      max: 100
+      step: 1
+      mode: slider
+      
+    master_bathroom_toilet_actions_fan_on_delay_seconds:
+      name: "Master Bathroom Toilet fan ON delay (sec)"
+      min: 0
+      max: 180
+      step: 5
+      mode: slider

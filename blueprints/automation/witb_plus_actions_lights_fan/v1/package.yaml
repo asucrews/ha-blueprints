@@ -10,13 +10,15 @@ room_witb_actions:
       icon: mdi:fan-auto
 
   timer:
-    room_slug_fan_runon:
-      name: "Room fan run-on"
-      duration: "00:10:00"
-
     room_slug_actions_cooldown:
       name: "Room actions cooldown"
       duration: "00:00:30"
+      restore: true
+
+    room_slug_fan_runon:
+      name: "Room fan run-on"
+      duration: "00:05:00"
+      restore: true
 
   input_datetime:
     room_slug_actions_night_start:
@@ -57,10 +59,30 @@ room_witb_actions:
       max: 100
       step: 5
       mode: slider
-
-    room_slug_actions_fan_runon_minutes:
-      name: "Room fan run-on (minutes)"
+    room_slug_actions_lux_threshold:
+      name: "Room lux threshold"
       min: 0
-      max: 60
+      max: 500
       step: 1
+      mode: slider
+
+    room_slug_actions_humidity_high:
+      name: "Room humidity high %"
+      min: 30
+      max: 100
+      step: 1
+      mode: slider
+
+    room_slug_actions_humidity_low:
+      name: "Room humidity low %"
+      min: 30
+      max: 100
+      step: 1
+      mode: slider
+
+    room_slug_actions_fan_on_delay_seconds:
+      name: "Room fan ON delay (sec)"
+      min: 0
+      max: 180
+      step: 5
       mode: slider
