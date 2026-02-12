@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ v3.5
+  name: WITB+ v3.6 (with input sections)
   description: >
     Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
       - 1 motion sensor (PIR)
@@ -30,205 +30,275 @@ blueprint:
     Notes:
       - Configure transition_doors as the doors that represent leaving/entering this room's zone.
       - Configure seal_door as the main/privacy door that should block clearing while closed.
+
+    UI:
+      - Inputs are grouped into sections for easier setup (HA 2024.6+ input sections feature).
   input:
-    seal_door:
-      name: Seal Door (main/privacy door)
+    doors_and_motion:
+      name: Doors & Motion (required)
+      icon: mdi:door
       description: >
-        The room's MAIN door used for "sealed" semantics (failsafe / still-occupant protection).
-        Sealed means this door is CLOSED. This door does NOT have to be the only transition door.
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: door
+        Required sensors for the room:
+          - seal_door: main/privacy door used for "sealed" semantics
+          - transition_doors: door(s) representing boundary crossings
+          - motion_sensor: PIR that asserts occupancy
+      input:
+        seal_door:
+          name: Seal Door (main/privacy door)
+          description: >
+            The room's MAIN door used for "sealed" semantics (failsafe / still-occupant protection).
+            Sealed means this door is CLOSED. This door does NOT have to be the only transition door.
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: door
 
-    transition_doors:
-      name: Transition Doors (1+)
+        transition_doors:
+          name: Transition Doors (1+)
+          description: >
+            Doors that represent leaving/entering this room's zone (movement/transition semantics).
+            Select one or more. Include the seal door here if it is also a transition door.
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: door
+              multiple: true
+
+        motion_sensor:
+          name: Motion Sensor (PIR)
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: motion
+
+    mmwave:
+      name: mmWave (optional)
+      icon: mdi:radar
+      collapsed: true
       description: >
-        Doors that represent leaving/entering this room's zone (movement/transition semantics).
-        Select one or more. Include the seal door here if it is also a transition door.
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: door
-          multiple: true
+        Optional presence/occupancy sensor (e.g., mmWave). Recommended usage:
+          - blocks clearing while ON (mmwave_blocks_clear: true)
+          - only allow asserting occupancy if you trust its room isolation
+      input:
+        mmwave_sensor:
+          name: mmWave Presence Sensor (optional)
+          description: >
+            Optional presence/occupancy binary_sensor (e.g., mmWave).
+            When configured, it can block clearing while ON (recommended), and can optionally
+            assert occupancy when ON (if enabled below).
+          default: []
+          selector:
+            entity:
+              domain: binary_sensor
 
-    motion_sensor:
-      name: Motion Sensor (PIR)
-      selector:
-        entity:
-          domain: binary_sensor
-          device_class: motion
+        mmwave_blocks_clear:
+          name: mmWave blocks clearing while ON
+          description: >
+            If enabled and mmWave is configured, occupancy will not clear while mmWave is ON.
+          default: true
+          selector:
+            boolean: {}
 
+        mmwave_asserts_occupied:
+          name: Allow mmWave to assert occupancy
+          description: >
+            If enabled and mmWave is configured, mmWave ON can assert occupied ON (subject to entry gating if enabled).
+            Leave disabled if your mmWave can see through walls or adjacent rooms.
+          default: false
+          selector:
+            boolean: {}
 
-    mmwave_sensor:
-      name: mmWave Presence Sensor (optional)
+    helpers_required:
+      name: Helpers (required)
+      icon: mdi:form-textbox
       description: >
-        Optional presence/occupancy binary_sensor (e.g., mmWave).
-        When configured, it can block clearing while ON (recommended), and can optionally
-        assert occupancy when ON (if enabled below).
-      default: []
-      selector:
-        entity:
-          domain: binary_sensor
+        Required helpers per room. These are typically created in your per-room package.
+      input:
+        occupancy_helper:
+          name: Occupancy Helper (input_boolean)
+          selector:
+            entity:
+              domain: input_boolean
 
-    mmwave_blocks_clear:
-      name: mmWave blocks clearing while ON
+        last_motion_helper:
+          name: Last Motion Helper (input_datetime)
+          description: Stores timestamp of last motion ON.
+          selector:
+            entity:
+              domain: input_datetime
+
+        last_door_helper:
+          name: Last Door Helper (input_datetime)
+          description: Stores timestamp of last door state change.
+          selector:
+            entity:
+              domain: input_datetime
+
+    exit_close_after_exit:
+      name: Door closes behind you (optional)
+      icon: mdi:door-closed
+      collapsed: true
       description: >
-        If enabled and mmWave is configured, occupancy will not clear while mmWave is ON.
-      default: true
-      selector:
-        boolean: {}
+        Optional helper + window to support rooms where you can leave and then the door closes behind you
+        (bedroom/garage style): open -> close -> motion stops still counts as exit for a short window.
+      input:
+        last_exit_door_helper:
+          name: Last Exit Door Helper (optional, input_datetime)
+          description: >
+            Optional helper used to support "door can close after leaving" rooms.
+            This stores the timestamp when a transition/seal door OPENED while the room was already occupied.
+            If set, the automation can clear occupancy after the door closes behind you (garage/bedroom style).
+          default: []
+          selector:
+            entity:
+              domain: input_datetime
 
-    mmwave_asserts_occupied:
-      name: Allow mmWave to assert occupancy
+        exit_recent_window_seconds:
+          name: Exit-Close Window (seconds)
+          description: >
+            How long after a door OPENED while occupied we still treat exit as possible, even if the door is now closed.
+            Must be >= Exit Timeout to cover "open -> close -> motion stops" sequences.
+          default: 180
+          selector:
+            number:
+              min: 30
+              max: 900
+              unit_of_measurement: seconds
+              mode: slider
+
+    latched_debug:
+      name: Latch helper (optional)
+      icon: mdi:door-closed-lock
+      collapsed: true
       description: >
-        If enabled and mmWave is configured, mmWave ON can assert occupied ON (subject to entry gating if enabled).
-        Leave disabled if your mmWave can see through walls or adjacent rooms.
-      default: false
-      selector:
-        boolean: {}
-    occupancy_helper:
-      name: Occupancy Helper (input_boolean)
-      selector:
-        entity:
-          domain: input_boolean
+        Optional debug/helper: latched is ON when the seal door is closed while occupied.
+      input:
+        latched_helper:
+          name: Latched Helper (optional, input_boolean)
+          description: >
+            Optional debug/helper: ON when the SEAL door is closed while occupied.
+            OFF when the SEAL door opens or occupancy clears.
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
 
-    last_motion_helper:
-      name: Last Motion Helper (input_datetime)
-      description: Stores timestamp of last motion ON.
-      selector:
-        entity:
-          domain: input_datetime
-
-    last_door_helper:
-      name: Last Door Helper (input_datetime)
-      description: Stores timestamp of last door state change.
-      selector:
-        entity:
-          domain: input_datetime
-
-
-    last_exit_door_helper:
-      name: Last Exit Door Helper (optional, input_datetime)
+    clearing_and_timeouts:
+      name: Clearing & Timeouts
+      icon: mdi:timer-outline
       description: >
-        Optional helper used to support "door can close after leaving" rooms.
-        This stores the timestamp when a transition/seal door OPENED while the room was already occupied.
-        If set, the automation can clear occupancy after the door closes behind you (garage/bedroom style).
-      default: []
-      selector:
-        entity:
-          domain: input_datetime
+        Exit timeout controls how long we wait after motion stops to clear (when exit is possible).
+      input:
+        exit_timeout_seconds:
+          name: Exit Timeout (seconds)
+          description: When occupied and door is OPEN, if no motion for this long -> clear occupancy.
+          default: 60
+          selector:
+            number:
+              min: 5
+              max: 600
+              unit_of_measurement: seconds
+              mode: slider
 
-    exit_recent_window_seconds:
-      name: Exit-Close Window (seconds)
+    controls:
+      name: Controls (optional)
+      icon: mdi:shield
+      collapsed: true
       description: >
-        How long after a door OPENED while occupied we still treat exit as possible, even if the door is now closed.
-        Must be >= Exit Timeout to cover "open -> close -> motion stops" sequences.
-      default: 180
-      selector:
-        number:
-          min: 30
-          max: 900
-          unit_of_measurement: seconds
-          mode: slider
+        Optional per-room control helpers.
+        If you do not use these, leave them empty/undefined in your package and do not wire them in the automation instance.
+      input:
+        automation_override:
+          name: Automation Override (optional)
+          description: If ON, this automation does nothing (hands off).
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
 
-    latched_helper:
-      name: Latched Helper (optional, input_boolean)
+        force_occupied:
+          name: Force Occupied (optional)
+          description: If ON, pins occupancy ON and blocks clearing.
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
+
+        manual_occupied:
+          name: Manual Occupied (optional)
+          description: If ON, asserts occupancy ON but still allows normal exit-based clearing.
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
+
+    entry_gating:
+      name: Entry gating (optional)
+      icon: mdi:walk
+      collapsed: true
       description: >
-        Optional debug/helper: ON when the SEAL door is closed while occupied.
-        OFF when the SEAL door opens or occupancy clears.
-      default: []
-      selector:
-        entity:
-          domain: input_boolean
+        Prevents "walk-by" false positives in open-door sightlines.
+        When enabled, motion asserts occupancy only if a door event occurred recently
+        (or the seal door is closed, or occupancy is already on).
+      input:
+        require_door_for_entry:
+          name: Require recent door event for entry
+          description: >
+            If enabled, motion will assert occupancy only if a door event occurred within entry_window_seconds,
+            OR the door is currently CLOSED, OR occupancy is already ON.
+          default: false
+          selector:
+            boolean: {}
 
-    exit_timeout_seconds:
-      name: Exit Timeout (seconds)
-      description: When occupied and door is OPEN, if no motion for this long -> clear occupancy.
-      default: 60
-      selector:
-        number:
-          min: 5
-          max: 600
-          unit_of_measurement: seconds
-          mode: slider
+        entry_window_seconds:
+          name: Entry window (seconds)
+          description: How recent a door change must be to accept motion as an entry when gating is enabled.
+          default: 15
+          selector:
+            number:
+              min: 1
+              max: 60
+              unit_of_measurement: seconds
+              mode: slider
 
-    # Per-room controls
-    automation_override:
-      name: Automation Override (optional)
-      description: If ON, this automation does nothing (hands off).
-      default: []
-      selector:
-        entity:
-          domain: input_boolean
-
-    force_occupied:
-      name: Force Occupied (optional)
-      description: If ON, pins occupancy ON and blocks clearing.
-      default: []
-      selector:
-        entity:
-          domain: input_boolean
-
-    manual_occupied:
-      name: Manual Occupied (optional)
-      description: If ON, asserts occupancy ON but still allows normal exit-based clearing.
-      default: []
-      selector:
-        entity:
-          domain: input_boolean
-
-    # Optional entry gating (prevents "walk-by" false positives in open-door sightlines)
-    require_door_for_entry:
-      name: Require recent door event for entry
+    failsafe:
+      name: Failsafe (optional)
+      icon: mdi:timer-alert-outline
+      collapsed: true
       description: >
-        If enabled, motion will assert occupancy only if a door event occurred within entry_window_seconds,
-        OR the door is currently CLOSED, OR occupancy is already ON.
-      default: false
-      selector:
-        boolean: {}
+        SAFE failsafe timer (no polling):
+          - When timer finishes, clear ONLY if seal door is OPEN (or exit_recent) and motion is OFF.
+          - If seal door is CLOSED, do NOT clear; restart timer.
+      input:
+        enable_failsafe:
+          name: Enable failsafe timer
+          description: >
+            If enabled, uses a timer (no polling) to prevent stuck occupied states.
+            SAFE behavior: failsafe will never clear while door is CLOSED.
+          default: true
+          selector:
+            boolean: {}
 
-    entry_window_seconds:
-      name: Entry window (seconds)
-      description: How recent a door change must be to accept motion as an entry when gating is enabled.
-      default: 15
-      selector:
-        number:
-          min: 1
-          max: 60
-          unit_of_measurement: seconds
-          mode: slider
+        failsafe_timer:
+          name: Failsafe Timer (optional, required if enabled)
+          description: Create one per room (e.g., timer.toilet_failsafe). Only used when failsafe is enabled.
+          default: []
+          selector:
+            entity:
+              domain: timer
 
-    # Safe failsafe (optional)
-    enable_failsafe:
-      name: Enable failsafe timer
-      description: >
-        If enabled, uses a timer (no polling) to prevent stuck occupied states.
-        SAFE behavior: failsafe will never clear while door is CLOSED.
-      default: true
-      selector:
-        boolean: {}
-
-    failsafe_timer:
-      name: Failsafe Timer (optional, required if enabled)
-      description: Create one per room (e.g., timer.toilet_failsafe). Only used when failsafe is enabled.
-      default: []
-      selector:
-        entity:
-          domain: timer
-
-    failsafe_minutes:
-      name: Failsafe duration (minutes)
-      description: >
-        Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
-        Toilet suggestion: 90-180. Bedroom suggestion: 720-1440.
-      default: 180
-      selector:
-        number:
-          min: 5
-          max: 1440
-          unit_of_measurement: minutes
-          mode: slider
+        failsafe_minutes:
+          name: Failsafe duration (minutes)
+          description: >
+            Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
+            Toilet suggestion: 90-180. Bedroom suggestion: 720-1440.
+          default: 180
+          selector:
+            number:
+              min: 5
+              max: 1440
+              unit_of_measurement: minutes
+              mode: slider
 
 mode: restart
 max_exceeded: silent
@@ -629,6 +699,7 @@ action:
                     default: []
             default: []
     default: []
+
   # 5) Door open: delayed exit evaluation (handles quick open/close)
   - choose:
       - conditions:
@@ -756,6 +827,7 @@ action:
                       timestamp: 0
             default: []
     default: []
+
   # 7) Keep latch helper in sync on seal door changes (debugging only)
   - choose:
       - conditions:
