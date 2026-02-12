@@ -87,6 +87,12 @@ def helpers_block(room: Room, include_controls: bool, include_latched: bool, inc
         f"    name: {q(room.name + ' Last Door')}",
         "    has_date: true",
         "    has_time: true",
+        "",
+        f"  {room.slug}_last_exit_door:",
+        f"    name: {q(room.name + ' Last Exit Door')}",
+        f"   has_date: true",
+        f"   has_time: true",
+        "",
     ]
 
     if include_failsafe:
