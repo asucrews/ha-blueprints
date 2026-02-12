@@ -1,0 +1,78 @@
+---
+roomba_vacjob:
+  input_boolean:
+    roomba_vacjob_enabled:
+      name: Roomba VacJob Enabled
+    roomba_vacjob_requested:
+      name: Roomba VacJob Requested
+    roomba_vacjob_active:
+      name: Roomba VacJob Active
+    roomba_vacjob_error:
+      name: Roomba VacJob Error
+
+  input_button:
+    roomba_vacjob_run_now:
+      name: Roomba Run Now
+
+  input_select:
+    roomba_vacjob_phase:
+      name: Roomba VacJob Phase
+      options:
+        - idle
+        - queued
+        - cleaning
+        - paused
+        - returning
+        - docked
+        - completed
+        - canceled
+        - error
+        - unavailable
+        - unknown
+
+  input_datetime:
+    roomba_vacjob_last_start:
+      name: Roomba VacJob Last Start
+      has_date: true
+      has_time: true
+    roomba_vacjob_last_end:
+      name: Roomba VacJob Last End
+      has_date: true
+      has_time: true
+
+  counter:
+    roomba_vacjob_failures:
+      name: Roomba VacJob Failures
+
+  input_number:
+    roomba_vacjob_max_runtime_min:
+      name: Roomba VacJob Max Runtime (min)
+      min: 15
+      max: 600
+      step: 5
+      mode: slider
+      unit_of_measurement: min
+      initial: 240
+
+    roomba_vacjob_base_successful:
+      name: Roomba Base Successful Missions
+      min: 0
+      max: 99999
+      step: 1
+      mode: box
+    roomba_vacjob_base_failed:
+      name: Roomba Base Failed Missions
+      min: 0
+      max: 99999
+      step: 1
+      mode: box
+    roomba_vacjob_base_canceled:
+      name: Roomba Base Canceled Missions
+      min: 0
+      max: 99999
+      step: 1
+      mode: box
+
+  timer:
+    roomba_vacjob_watchdog:
+      name: Roomba VacJob Watchdog

@@ -1,0 +1,422 @@
+blueprint:
+  name: Vacuum Job Manager (iRobot) - Button + Schedule + Mission Completion
+  description: >
+    Roomba-safe job manager. Does NOT treat 'docked' as complete.
+    Completes only when mission counters increment (successful/failed/canceled).
+  domain: automation
+
+  input:
+    vacuum_entity:
+      name: Vacuum Entity
+      selector:
+        entity:
+          domain: vacuum
+
+    # Helpers (from package)
+    enabled_boolean:
+      name: Enabled helper
+      selector: { entity: { domain: input_boolean } }
+
+    requested_boolean:
+      name: Requested helper
+      selector: { entity: { domain: input_boolean } }
+
+    active_boolean:
+      name: Active helper
+      selector: { entity: { domain: input_boolean } }
+
+    error_boolean:
+      name: Error helper
+      selector: { entity: { domain: input_boolean } }
+
+    phase_select:
+      name: Phase helper
+      selector: { entity: { domain: input_select } }
+
+    last_start_datetime:
+      name: Last start helper
+      selector: { entity: { domain: input_datetime } }
+
+    last_end_datetime:
+      name: Last end helper
+      selector: { entity: { domain: input_datetime } }
+
+    failures_counter:
+      name: Failures counter
+      selector: { entity: { domain: counter } }
+
+    watchdog_timer:
+      name: Watchdog timer
+      selector: { entity: { domain: timer } }
+
+    max_runtime_min:
+      name: Max runtime (minutes)
+      selector: { entity: { domain: input_number } }
+
+    request_button:
+      name: Request Run button
+      selector: { entity: { domain: input_button } }
+
+    # Schedule
+    use_schedule:
+      name: Enable schedule
+      default: false
+      selector: { boolean: {} }
+
+    schedule_time:
+      name: Schedule time
+      default: "10:00:00"
+      selector: { time: {} }
+
+    schedule_days:
+      name: Schedule days
+      default: [mon, tue, wed, thu, fri]
+      selector:
+        select:
+          multiple: true
+          options:
+            - { label: Monday, value: mon }
+            - { label: Tuesday, value: tue }
+            - { label: Wednesday, value: wed }
+            - { label: Thursday, value: thu }
+            - { label: Friday, value: fri }
+            - { label: Saturday, value: sat }
+            - { label: Sunday, value: sun }
+
+    notify_service:
+      name: Notify service (optional, e.g. notify.mobile_app_phone)
+      default: ""
+      selector: { text: {} }
+
+    # iRobot mission sensors
+    successful_missions_sensor:
+      name: Successful missions sensor
+      selector: { entity: { domain: sensor } }
+
+    failed_missions_sensor:
+      name: Failed missions sensor
+      selector: { entity: { domain: sensor } }
+
+    canceled_missions_sensor:
+      name: Canceled missions sensor
+      selector: { entity: { domain: sensor } }
+
+    # Baseline helpers (input_number)
+    base_successful_input:
+      name: Baseline successful helper
+      selector: { entity: { domain: input_number } }
+
+    base_failed_input:
+      name: Baseline failed helper
+      selector: { entity: { domain: input_number } }
+
+    base_canceled_input:
+      name: Baseline canceled helper
+      selector: { entity: { domain: input_number } }
+
+mode: queued
+max: 10
+
+variables:
+  notify: !input notify_service
+  s_success: !input successful_missions_sensor
+  s_failed: !input failed_missions_sensor
+  s_canceled: !input canceled_missions_sensor
+  b_success: !input base_successful_input
+  b_failed: !input base_failed_input
+  b_canceled: !input base_canceled_input
+  max_runtime: !input max_runtime_min
+
+trigger:
+  - id: button_request
+    platform: state
+    entity_id: !input request_button
+
+  - id: schedule_request
+    platform: time
+    at: !input schedule_time
+    enabled: !input use_schedule
+
+  - id: vacuum_state
+    platform: state
+    entity_id: !input vacuum_entity
+
+  - id: watchdog_done
+    platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input watchdog_timer
+
+  - id: success_changed
+    platform: state
+    entity_id: !input successful_missions_sensor
+
+  - id: failed_changed
+    platform: state
+    entity_id: !input failed_missions_sensor
+
+  - id: canceled_changed
+    platform: state
+    entity_id: !input canceled_missions_sensor
+
+action:
+  # Try "start when ready" on every run (cheap), before mapping states.
+  - choose:
+
+      # A) Button request -> queue
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'button_request' }}"
+          - condition: state
+            entity_id: !input active_boolean
+            state: "off"
+        sequence:
+          - service: input_boolean.turn_on
+            target: { entity_id: !input requested_boolean }
+          - service: input_select.select_option
+            target: { entity_id: !input phase_select }
+            data: { option: queued }
+
+      # B) Schedule request -> queue
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'schedule_request' }}"
+          - condition: time
+            weekday: !input schedule_days
+          - condition: state
+            entity_id: !input enabled_boolean
+            state: "on"
+          - condition: state
+            entity_id: !input active_boolean
+            state: "off"
+        sequence:
+          - service: input_boolean.turn_on
+            target: { entity_id: !input requested_boolean }
+          - service: input_select.select_option
+            target: { entity_id: !input phase_select }
+            data: { option: queued }
+
+      # C) Watchdog timeout -> return to base + notify (does NOT end job)
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'watchdog_done' }}"
+          - condition: state
+            entity_id: !input active_boolean
+            state: "on"
+        sequence:
+          - service: vacuum.return_to_base
+            target: { entity_id: !input vacuum_entity }
+          - choose:
+              - conditions: "{{ notify != '' }}"
+                sequence:
+                  - service: "{{ notify }}"
+                    data:
+                      title: "Vacuum watchdog"
+                      message: >
+                        Max runtime exceeded ({{ states(max_runtime) | int }} min). Sent return_to_base.
+
+      # D) Mission counters changed -> true completion (recharge-safe)
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id in ['success_changed','failed_changed','canceled_changed'] }}"
+          - condition: state
+            entity_id: !input active_boolean
+            state: "on"
+        sequence:
+          - variables:
+              base_s: "{{ states(b_success) | int(0) }}"
+              base_f: "{{ states(b_failed) | int(0) }}"
+              base_c: "{{ states(b_canceled) | int(0) }}"
+              now_s: "{{ states(s_success) | int(0) }}"
+              now_f: "{{ states(s_failed) | int(0) }}"
+              now_c: "{{ states(s_canceled) | int(0) }}"
+          - choose:
+
+              # Failed -> error
+              - conditions: "{{ now_f > base_f }}"
+                sequence:
+                  - service: timer.cancel
+                    target: { entity_id: !input watchdog_timer }
+                  - service: input_boolean.turn_on
+                    target: { entity_id: !input error_boolean }
+                  - service: counter.increment
+                    target: { entity_id: !input failures_counter }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input active_boolean }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input requested_boolean }
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: error }
+                  - service: input_datetime.set_datetime
+                    target: { entity_id: !input last_end_datetime }
+                    data:
+                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                  - choose:
+                      - conditions: "{{ notify != '' }}"
+                        sequence:
+                          - service: "{{ notify }}"
+                            data:
+                              title: "Vacuum failed"
+                              message: "Mission marked failed by iRobot."
+
+              # Canceled -> canceled (and count as failure)
+              - conditions: "{{ now_c > base_c }}"
+                sequence:
+                  - service: timer.cancel
+                    target: { entity_id: !input watchdog_timer }
+                  - service: counter.increment
+                    target: { entity_id: !input failures_counter }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input active_boolean }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input requested_boolean }
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: canceled }
+                  - service: input_datetime.set_datetime
+                    target: { entity_id: !input last_end_datetime }
+                    data:
+                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                  - choose:
+                      - conditions: "{{ notify != '' }}"
+                        sequence:
+                          - service: "{{ notify }}"
+                            data:
+                              title: "Vacuum canceled"
+                              message: "Mission marked canceled by iRobot."
+
+              # Successful -> completed
+              - conditions: "{{ now_s > base_s }}"
+                sequence:
+                  - service: timer.cancel
+                    target: { entity_id: !input watchdog_timer }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input active_boolean }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input requested_boolean }
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: completed }
+                  - service: input_datetime.set_datetime
+                    target: { entity_id: !input last_end_datetime }
+                    data:
+                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+
+    default: []
+
+  # Start when requested + ready (runs on *any* trigger)
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input enabled_boolean
+            state: "on"
+          - condition: state
+            entity_id: !input requested_boolean
+            state: "on"
+          - condition: state
+            entity_id: !input active_boolean
+            state: "off"
+          - condition: state
+            entity_id: !input vacuum_entity
+            state: "docked"
+        sequence:
+          # Snapshot baselines at start
+          - service: input_number.set_value
+            target: { entity_id: !input base_successful_input }
+            data: { value: "{{ states(s_success) | int(0) }}" }
+          - service: input_number.set_value
+            target: { entity_id: !input base_failed_input }
+            data: { value: "{{ states(s_failed) | int(0) }}" }
+          - service: input_number.set_value
+            target: { entity_id: !input base_canceled_input }
+            data: { value: "{{ states(s_canceled) | int(0) }}" }
+
+          - service: input_boolean.turn_on
+            target: { entity_id: !input active_boolean }
+          - service: input_boolean.turn_off
+            target: { entity_id: !input error_boolean }
+          - service: input_select.select_option
+            target: { entity_id: !input phase_select }
+            data: { option: cleaning }
+          - service: input_datetime.set_datetime
+            target: { entity_id: !input last_start_datetime }
+            data:
+              datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+          - service: timer.start
+            target: { entity_id: !input watchdog_timer }
+            data:
+              duration: "{{ (states(max_runtime) | int(240) * 60) | int }}"
+          - service: vacuum.start
+            target: { entity_id: !input vacuum_entity }
+    default: []
+
+  # Map vacuum state -> phase, but ONLY while job is active/requested
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger.id == 'vacuum_state' }}"
+          - condition: or
+            conditions:
+              - condition: state
+                entity_id: !input active_boolean
+                state: "on"
+              - condition: state
+                entity_id: !input requested_boolean
+                state: "on"
+        sequence:
+          - variables:
+              st: "{{ trigger.to_state.state }}"
+          - choose:
+              - conditions: "{{ st == 'cleaning' }}"
+                sequence:
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: cleaning }
+              - conditions: "{{ st in ['paused','idle'] }}"
+                sequence:
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: paused }
+              - conditions: "{{ st == 'returning' }}"
+                sequence:
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: returning }
+              - conditions: "{{ st == 'docked' }}"
+                sequence:
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: docked }
+              - conditions: "{{ st in ['unavailable','unknown'] }}"
+                sequence:
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: "{{ st }}" }
+              - conditions: "{{ st == 'error' }}"
+                sequence:
+                  - service: timer.cancel
+                    target: { entity_id: !input watchdog_timer }
+                  - service: input_boolean.turn_on
+                    target: { entity_id: !input error_boolean }
+                  - service: counter.increment
+                    target: { entity_id: !input failures_counter }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input active_boolean }
+                  - service: input_boolean.turn_off
+                    target: { entity_id: !input requested_boolean }
+                  - service: input_select.select_option
+                    target: { entity_id: !input phase_select }
+                    data: { option: error }
+                  - service: input_datetime.set_datetime
+                    target: { entity_id: !input last_end_datetime }
+                    data:
+                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                  - choose:
+                      - conditions: "{{ notify != '' }}"
+                        sequence:
+                          - service: "{{ notify }}"
+                            data:
+                              title: "Vacuum error"
+                              message: "Vacuum entered ERROR state."
+    default: []
