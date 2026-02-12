@@ -1,25 +1,4 @@
-###############################################################################
-# EXAMPLE PACKAGE (REFERENCE ONLY)
-# WITB Room Package Pattern
-#
-# This file is meant as a template for users to copy/rename into their own repo.
-# Replace all placeholders like:
-#   binary_sensor.REPLACE_DOOR
-#   binary_sensor.REPLACE_MOTION
-#   room_slug
-#   Room Friendly Name
-#
-# Requires blueprint (install separately):
-#   config/blueprints/automation/your_namespace/witb_plus_v3.yaml
-###############################################################################
 
-# -------------------------
-# Room identity (example)
-# -------------------------
-# room_slug: room_slug
-# room name: "Room Friendly Name"
-
-# ---- Helpers ----
 input_boolean:
   room_slug_occupied:
     name: "Room Friendly Name Occupied"

@@ -15,7 +15,8 @@ It does not assume any specific repository layout.
 The blueprint contains all occupancy logic.
 
 It infers room occupancy using:
-- A boundary **door sensor**
+- A **seal door** (main/privacy door)
+- One or more **transition doors**
 - A **motion sensor** (PIR or mmWave)
 - Helper entities provided by the package file
 
@@ -62,6 +63,7 @@ Each package file **must** start with a package key:
 - `input_boolean.<slug>_latched`
 - `input_datetime.<slug>_last_motion`
 - `input_datetime.<slug>_last_door`
+- `input_datetime.<slug>_last_exit_door` (optional, supports "door closes behind you" exits)
 - `timer.<slug>_failsafe` (optional)
 
 ### Template sensors
@@ -76,7 +78,7 @@ These helpers and sensors are selected when creating the automation from the blu
 
 ## 3. Generator Script
 
-**File:** `generate_witb_packages_helpers_only.py`
+**File:** `generate_witb_packages.py`
 
 This script generates **package YAML files** containing:
 - helpers
@@ -87,7 +89,7 @@ It intentionally does **not** generate automations.
 ### Example usage
 
 ```bash
-python3 generate_witb_packages_helpers_only.py \
+python3 generate_witb_packages.py \
   --rooms "Master Bedroom" "Loft" "Master Bathroom Toilet" \
   --out ./packages
 ```
@@ -105,7 +107,8 @@ For each room:
 3. Choose **Blueprint**
 4. Select the WITB blueprint
 5. Bind:
-   - Door sensor
+   - Seal door
+   - Transition door(s)
    - Motion sensor
    - Helpers from the package file
 6. Save
