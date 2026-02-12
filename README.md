@@ -6,6 +6,9 @@ This repository currently centers on a two-blueprint WITB+ workflow:
 - Occupancy inference (`WITB+ v3`)
 - Actions control for lights/fan (`WITB+ Actions - Lights + Fan`)
 
+Detailed blueprint docs:
+- `docs/blueprints/README.md`
+
 ## Active Blueprints
 
 1. `blueprints/automation/witb_plus/v3/witb_plus.yaml`
