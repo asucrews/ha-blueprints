@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.1.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ Occupancy v3.4 (Seal door + Transition doors) (Per-room override/force/manual, Safe failsafe, No polling)
+  name: WITB+ Occupancy v3.5 (Seal door + Transition doors) (Per-room override/force/manual, Safe failsafe, No polling)
   description: >
     Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
       - 1 motion sensor (PIR)
@@ -15,7 +15,7 @@ blueprint:
       - Door is open OR closed when empty (door alone never asserts occupancy)
 
     Core rules:
-      1) Motion is the only thing that ASSERTS occupied = ON.
+      1) PIR motion is the default signal that ASSERTS occupied = ON (mmWave can optionally assert if enabled).
       2) Occupancy clears only when EXIT is possible:
          - occupied AND any transition door OPEN AND motion OFF for exit_timeout_seconds -> clear.
            (Clearing is blocked while seal door is CLOSED.)
@@ -59,6 +59,34 @@ blueprint:
           domain: binary_sensor
           device_class: motion
 
+
+    mmwave_sensor:
+      name: mmWave Presence Sensor (optional)
+      description: >
+        Optional presence/occupancy binary_sensor (e.g., mmWave).
+        When configured, it can block clearing while ON (recommended), and can optionally
+        assert occupancy when ON (if enabled below).
+      default: []
+      selector:
+        entity:
+          domain: binary_sensor
+
+    mmwave_blocks_clear:
+      name: mmWave blocks clearing while ON
+      description: >
+        If enabled and mmWave is configured, occupancy will not clear while mmWave is ON.
+      default: true
+      selector:
+        boolean: {}
+
+    mmwave_asserts_occupied:
+      name: Allow mmWave to assert occupancy
+      description: >
+        If enabled and mmWave is configured, mmWave ON can assert occupied ON (subject to entry gating if enabled).
+        Leave disabled if your mmWave can see through walls or adjacent rooms.
+      default: false
+      selector:
+        boolean: {}
     occupancy_helper:
       name: Occupancy Helper (input_boolean)
       selector:
@@ -209,6 +237,12 @@ variables:
   seal: !input seal_door
   doors: !input transition_doors
   motion: !input motion_sensor
+  mm: !input mmwave_sensor
+  mm_block: !input mmwave_blocks_clear
+  mm_assert: !input mmwave_asserts_occupied
+  mm_enabled: "{{ mm is string and mm|length > 0 }}"
+  mm_on: "{{ mm_enabled and is_state(mm, 'on') }}"
+  mm_clear_ok: "{{ (not mm_enabled) or (not mm_block) or is_state(mm, 'off') }}"
   occ: !input occupancy_helper
   last_motion: !input last_motion_helper
   last_door: !input last_door_helper
@@ -305,6 +339,16 @@ trigger:
     platform: state
     entity_id: !input motion_sensor
     to: "on"
+
+  - id: mmwave_on
+    platform: template
+    value_template: "{{ mm_enabled and is_state(mm, 'on') }}"
+
+  - id: mmwave_off_for
+    platform: template
+    value_template: "{{ mm_enabled and is_state(mm, 'off') }}"
+    for:
+      seconds: !input exit_timeout_seconds
 
   - id: transition_change
     platform: state
@@ -523,6 +567,68 @@ action:
             default: []
     default: []
 
+  # 4b) mmWave ON (optional): refresh presence; optionally assert occupancy
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: mmwave_on
+        sequence:
+          # If allowed, mmWave can assert occupancy (subject to entry gating).
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ mm_assert }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: >
+                              {% if not require_door %}
+                                true
+                              {% else %}
+                                {{ is_state(seal,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
+                              {% endif %}
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ occ }}"
+                    default: []
+            default: []
+
+          # Refresh timestamps/failsafe when occupied (including right after asserting)
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                sequence:
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_motion }}"
+                    data:
+                      timestamp: "{{ now().timestamp() }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ latch_enabled and is_state(seal,'off') }}"
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ latch }}"
+                    default: []
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                        sequence:
+                          - service: timer.start
+                            target:
+                              entity_id: "{{ fs_timer }}"
+                            data:
+                              duration: "{{ fs_duration_hms }}"
+                    default: []
+            default: []
+    default: []
   # 5) Door open: delayed exit evaluation (handles quick open/close)
   - choose:
       - conditions:
@@ -540,6 +646,8 @@ action:
             value_template: "{{ (not sealed_now) or exit_recent }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
+          - condition: template
+            value_template: "{{ mm_clear_ok }}"
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
@@ -579,6 +687,8 @@ action:
             value_template: "{{ any_transition_open or exit_recent }}"
           - condition: template
             value_template: "{{ (not sealed_now) or exit_recent }}"
+          - condition: template
+            value_template: "{{ mm_clear_ok }}"
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
@@ -605,6 +715,47 @@ action:
             default: []
     default: []
 
+  # 6b) mmWave OFF for exit timeout: attempt clear (requires PIR off too)
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: mmwave_off_for
+        sequence:
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
+          - condition: template
+            value_template: "{{ any_transition_open or exit_recent }}"
+          - condition: template
+            value_template: "{{ (not sealed_now) or exit_recent }}"
+          - condition: template
+            value_template: "{{ is_state(motion, 'off') }}"
+          - condition: template
+            value_template: "{{ mm_clear_ok }}"
+          - service: input_boolean.turn_off
+            target:
+              entity_id: "{{ occ }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ latch_enabled }}"
+                sequence:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ latch }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ exit_enabled }}"
+                sequence:
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_exit }}"
+                    data:
+                      timestamp: 0
+            default: []
+    default: []
   # 7) Keep latch helper in sync on seal door changes (debugging only)
   - choose:
       - conditions:
@@ -650,6 +801,8 @@ action:
                             value_template: "{{ (not sealed_now) or exit_recent }}"
                           - condition: template
                             value_template: "{{ is_state(motion, 'off') }}"
+                          - condition: template
+                            value_template: "{{ mm_clear_ok }}"
                         sequence:
                           - service: input_boolean.turn_off
                             target:
