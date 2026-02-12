@@ -1,0 +1,70 @@
+- id: witb_plus_actions_v1_office
+  alias: WITB+ Actions - Office Lights and Fan
+  description: Example actions automation paired with WITB+ v3 occupancy.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
+    input:
+      occupied_effective: binary_sensor.office_occupied_effective
+
+      lights:
+        - light.office_ceiling
+        - light.office_lamp
+      auto_tag_lights: input_boolean.office_auto_lights_on
+      turn_on_only_if_dark: true
+      illuminance_entity: sensor.office_illuminance
+      use_illuminance_gate: true
+      illuminance_threshold: 40
+      illuminance_threshold_helper: input_number.office_actions_lux_threshold
+      use_night_profile: true
+      night_start: "22:00:00"
+      night_end: "06:30:00"
+      brightness_day_pct: 100
+      brightness_night_pct: 20
+      transition_on: 1
+      transition_off: 2
+      skip_on_if_any_light_on: true
+      lights_off_delay:
+        minutes: 2
+
+      fan_entity: fan.office_ceiling_fan
+      fan_switches: []
+      auto_tag_fan: input_boolean.office_auto_fan_on
+      fan_turn_on_on_occupy: false
+      fan_turn_off_on_vacant: true
+      fan_disable_during_night: false
+      fan_runon_timer: timer.office_fan_runon
+      fan_runon_duration:
+        minutes: 8
+      fan_runon_starts_after_lights_off: true
+      fan_use_night_profile: true
+      fan_percentage_day: 35
+      fan_percentage_night: 20
+      fan_preset_day: ""
+      fan_preset_night: ""
+      fan_skip_on_if_already_on: true
+      fan_on_delay:
+        seconds: 0
+      fan_on_delay_seconds_helper: input_number.office_actions_fan_on_delay_seconds
+
+      humidity_entity: ""
+      humidity_high: 65
+      humidity_low: 55
+      humidity_high_helper: input_number.office_actions_humidity_high
+      humidity_low_helper: input_number.office_actions_humidity_low
+      humidity_check_interval:
+        minutes: 2
+      humidity_hold_max:
+        minutes: 30
+
+      startup_cleanup: true
+      startup_cleanup_delay:
+        seconds: 10
+      automation_override: input_boolean.office_automation_override
+      force_occupied: input_boolean.office_force_occupied
+      manual_occupied: input_boolean.office_manual_occupied
+      on_debounce:
+        seconds: 0
+      cooldown_timer: timer.office_actions_cooldown
+      cooldown_duration:
+        seconds: 30

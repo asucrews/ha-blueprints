@@ -1,0 +1,86 @@
+---
+office_witb_actions:
+  input_boolean:
+    office_auto_lights_on:
+      name: "Office auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+
+    office_auto_fan_on:
+      name: "Office auto fan on (tag)"
+      icon: mdi:fan-auto
+
+  timer:
+    office_fan_runon:
+      name: "Office fan run-on"
+      restore: true
+
+    office_actions_cooldown:
+      name: "Office actions cooldown"
+      restore: true
+
+  input_datetime:
+    office_actions_night_start:
+      name: "Office night start"
+      has_date: false
+      has_time: true
+
+    office_actions_night_end:
+      name: "Office night end"
+      has_date: false
+      has_time: true
+
+  input_number:
+    office_actions_brightness_day_pct:
+      name: "Office brightness day %"
+      min: 1
+      max: 100
+      step: 1
+      mode: slider
+    office_actions_brightness_night_pct:
+      name: "Office brightness night %"
+      min: 1
+      max: 100
+      step: 1
+      mode: slider
+    office_actions_fan_pct_day:
+      name: "Office fan day %"
+      min: 0
+      max: 100
+      step: 5
+      mode: slider
+    office_actions_fan_pct_night:
+      name: "Office fan night %"
+      min: 0
+      max: 100
+      step: 5
+      mode: slider
+    office_actions_fan_runon_minutes:
+      name: "Office fan run-on (minutes)"
+      min: 0
+      max: 60
+      step: 1
+      mode: slider
+    office_actions_lux_threshold:
+      name: "Office lux threshold"
+      min: 0
+      max: 500
+      step: 1
+      mode: slider
+    office_actions_humidity_high:
+      name: "Office humidity high %"
+      min: 30
+      max: 100
+      step: 1
+      mode: slider
+    office_actions_humidity_low:
+      name: "Office humidity low %"
+      min: 30
+      max: 100
+      step: 1
+      mode: slider
+    office_actions_fan_on_delay_seconds:
+      name: "Office fan ON delay (sec)"
+      min: 0
+      max: 180
+      step: 5
+      mode: slider

@@ -1,0 +1,73 @@
+---
+office_witb:
+  input_boolean:
+    office_occupied:
+      name: "Office Occupied"
+      icon: mdi:account
+
+    office_automation_override:
+      name: "Office Automation Override"
+      icon: mdi:toggle-switch-off-outline
+
+    office_force_occupied:
+      name: "Office Force Occupied"
+      icon: mdi:lock
+
+    office_manual_occupied:
+      name: "Office Manual Occupied"
+      icon: mdi:hand
+
+    office_latched:
+      name: "Office Latched"
+      icon: mdi:door-closed-lock
+
+  input_datetime:
+    office_last_motion:
+      name: "Office Last Motion"
+      has_date: true
+      has_time: true
+
+    office_last_door:
+      name: "Office Last Door"
+      has_date: true
+      has_time: true
+
+    office_last_exit_door:
+      name: "Office Last Exit Door"
+      has_date: true
+      has_time: true
+
+
+  timer:
+    office_failsafe:
+      name: "Office Failsafe"
+
+  template:
+    - binary_sensor:
+        - name: "Office Occupied Effective"
+          unique_id: office_occupied_effective
+          device_class: occupancy
+          state: >
+            {{ is_state('input_boolean.office_occupied','on')
+               or is_state('input_boolean.office_force_occupied','on')
+               or is_state('input_boolean.office_manual_occupied','on') }}
+
+        - name: "Office WITB Override Active"
+          unique_id: office_witb_override_active
+          state: >
+            {{ is_state('input_boolean.office_automation_override','on')
+               or is_state('input_boolean.office_force_occupied','on')
+               or is_state('input_boolean.office_manual_occupied','on') }}
+          icon: mdi:shield-check
+
+    - sensor:
+        - name: "Office Minutes Since Motion"
+          unique_id: office_minutes_since_motion
+          unit_of_measurement: "min"
+          state: >
+            {% set v = states('input_datetime.office_last_motion') %}
+            {% if v in ['unknown','unavailable','none',''] %}
+              999999
+            {% else %}
+              {{ ((as_timestamp(now()) - as_timestamp(v)) / 60) | int }}
+            {% endif %}

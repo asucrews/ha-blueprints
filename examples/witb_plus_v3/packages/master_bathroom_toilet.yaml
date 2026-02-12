@@ -1,0 +1,73 @@
+---
+master_bathroom_toilet_witb:
+  input_boolean:
+    master_bathroom_toilet_occupied:
+      name: "Master Bathroom Toilet Occupied"
+      icon: mdi:account
+
+    master_bathroom_toilet_automation_override:
+      name: "Master Bathroom Toilet Automation Override"
+      icon: mdi:toggle-switch-off-outline
+
+    master_bathroom_toilet_force_occupied:
+      name: "Master Bathroom Toilet Force Occupied"
+      icon: mdi:lock
+
+    master_bathroom_toilet_manual_occupied:
+      name: "Master Bathroom Toilet Manual Occupied"
+      icon: mdi:hand
+
+    master_bathroom_toilet_latched:
+      name: "Master Bathroom Toilet Latched"
+      icon: mdi:door-closed-lock
+
+  input_datetime:
+    master_bathroom_toilet_last_motion:
+      name: "Master Bathroom Toilet Last Motion"
+      has_date: true
+      has_time: true
+
+    master_bathroom_toilet_last_door:
+      name: "Master Bathroom Toilet Last Door"
+      has_date: true
+      has_time: true
+
+    master_bathroom_toilet_last_exit_door:
+      name: "Master Bathroom Toilet Last Exit Door"
+      has_date: true
+      has_time: true
+
+
+  timer:
+    master_bathroom_toilet_failsafe:
+      name: "Master Bathroom Toilet Failsafe"
+
+  template:
+    - binary_sensor:
+        - name: "Master Bathroom Toilet Occupied Effective"
+          unique_id: master_bathroom_toilet_occupied_effective
+          device_class: occupancy
+          state: >
+            {{ is_state('input_boolean.master_bathroom_toilet_occupied','on')
+               or is_state('input_boolean.master_bathroom_toilet_force_occupied','on')
+               or is_state('input_boolean.master_bathroom_toilet_manual_occupied','on') }}
+
+        - name: "Master Bathroom Toilet WITB Override Active"
+          unique_id: master_bathroom_toilet_witb_override_active
+          state: >
+            {{ is_state('input_boolean.master_bathroom_toilet_automation_override','on')
+               or is_state('input_boolean.master_bathroom_toilet_force_occupied','on')
+               or is_state('input_boolean.master_bathroom_toilet_manual_occupied','on') }}
+          icon: mdi:shield-check
+
+    - sensor:
+        - name: "Master Bathroom Toilet Minutes Since Motion"
+          unique_id: master_bathroom_toilet_minutes_since_motion
+          unit_of_measurement: "min"
+          state: >
+            {% set v = states('input_datetime.master_bathroom_toilet_last_motion') %}
+            {% if v in ['unknown','unavailable','none',''] %}
+              999999
+            {% else %}
+              {{ ((as_timestamp(now()) - as_timestamp(v)) / 60) | int }}
+            {% endif %}
