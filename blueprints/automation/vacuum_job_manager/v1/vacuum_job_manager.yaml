@@ -1,11 +1,14 @@
 blueprint:
+  homeassistant:
+    min_version: 2026.2.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml
   name: Vacuum Job Manager (iRobot) v1.1 - WITB Override + Lights
   description: >
     Roomba-safe job manager. Does NOT treat 'docked' as complete.
     Completes only when mission counters increment (successful/failed/canceled).
-    v1.1 adds: turn ON lights/switches and enable WITB automation_override booleans
-    during job; on job end, disable overrides and turn OFF lights if NOT occupied.
-  domain: automation
+    v1.1: turn ON lights/switches + enable WITB automation_override booleans during job;
+    on job end, disable overrides and turn OFF lights if NOT occupied.
 
   input:
     vacuum_entity:
@@ -14,7 +17,6 @@ blueprint:
         entity:
           domain: vacuum
 
-    # Core helpers (from your vacjob package)
     enabled_boolean:
       name: Enabled helper
       selector: { entity: { domain: input_boolean } }
@@ -90,7 +92,7 @@ blueprint:
       default: ""
       selector: { text: {} }
 
-    # iRobot mission sensors (per vacuum)
+    # iRobot mission sensors
     successful_missions_sensor:
       name: Successful missions sensor
       selector: { entity: { domain: sensor } }
@@ -103,7 +105,7 @@ blueprint:
       name: Canceled missions sensor
       selector: { entity: { domain: sensor } }
 
-    # Baseline helpers (input_number) to snapshot mission counters at job start
+    # Baseline helpers (input_number)
     base_successful_input:
       name: Baseline successful helper
       selector: { entity: { domain: input_number } }
@@ -116,7 +118,7 @@ blueprint:
       name: Baseline canceled helper
       selector: { entity: { domain: input_number } }
 
-    # v1.1: Lights/switches to force ON during vacuum job
+    # v1.1: lights/switches to force ON during job
     vacuum_lighting_entities:
       name: Lights / switches to turn ON during job
       default: []
@@ -124,7 +126,7 @@ blueprint:
         entity:
           multiple: true
 
-    # v1.1: WITB automation_override booleans (these are your "locks")
+    # v1.1: WITB automation_override booleans (locks)
     witb_automation_override_booleans:
       name: WITB automation_override booleans to enable during job
       default: []
@@ -133,7 +135,7 @@ blueprint:
           domain: input_boolean
           multiple: true
 
-    # v1.1: Occupancy entities (if ANY is on, don't turn lights off at job end)
+    # v1.1: occupancy entities gate (if ANY on, do not turn lights off at job end)
     occupancy_entities:
       name: Occupancy entities (rooms/area)
       default: []
@@ -146,12 +148,15 @@ max: 10
 
 variables:
   notify: !input notify_service
+
   s_success: !input successful_missions_sensor
   s_failed: !input failed_missions_sensor
   s_canceled: !input canceled_missions_sensor
+
   b_success: !input base_successful_input
   b_failed: !input base_failed_input
   b_canceled: !input base_canceled_input
+
   max_runtime: !input max_runtime_min
 
   lights_targets: !input vacuum_lighting_entities
@@ -167,6 +172,12 @@ trigger:
     platform: time
     at: !input schedule_time
     enabled: !input use_schedule
+
+  # IMPORTANT: this makes button->request->start reliable
+  - id: requested_on
+    platform: state
+    entity_id: !input requested_boolean
+    to: "on"
 
   - id: vacuum_state
     platform: state
@@ -191,10 +202,10 @@ trigger:
     entity_id: !input canceled_missions_sensor
 
 action:
-  # 1) Handle request + watchdog + completion
+  # 1) Requests / watchdog / completion
   - choose:
 
-      # A) Button request -> queue
+      # Button request -> queue
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'button_request' }}"
@@ -208,7 +219,7 @@ action:
             target: { entity_id: !input phase_select }
             data: { option: queued }
 
-      # B) Schedule request -> queue
+      # Schedule request -> queue
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'schedule_request' }}"
@@ -227,7 +238,7 @@ action:
             target: { entity_id: !input phase_select }
             data: { option: queued }
 
-      # C) Watchdog timeout -> return to base + notify (does NOT end job)
+      # Watchdog -> return to base (does NOT end job)
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'watchdog_done' }}"
@@ -246,7 +257,7 @@ action:
                       message: >
                         Max runtime exceeded ({{ states(max_runtime) | int }} min). Sent return_to_base.
 
-      # D) Mission counters changed -> true job end (recharge-safe)
+      # Mission counters changed -> true end (recharge-safe)
       - conditions:
           - condition: template
             value_template: "{{ trigger.id in ['success_changed','failed_changed','canceled_changed'] }}"
@@ -262,6 +273,8 @@ action:
               now_f: "{{ states(s_failed) | int(0) }}"
               now_c: "{{ states(s_canceled) | int(0) }}"
               any_occ_on: "{{ expand(occ_ents) | selectattr('state','eq','on') | list | length > 0 }}"
+              overrides_ids: "{{ overrides | join(',') }}"
+              lights_ids: "{{ lights_targets | join(',') }}"
           - choose:
 
               # Failed -> error
@@ -270,19 +283,23 @@ action:
                   - service: timer.cancel
                     target: { entity_id: !input watchdog_timer }
 
-                  # v1.1 END: disable WITB overrides
+                  # unlock overrides
                   - choose:
                       - conditions: "{{ overrides | length > 0 }}"
                         sequence:
                           - service: input_boolean.turn_off
-                            target: { entity_id: overrides }
+                            target:
+                              entity_id: "{{ overrides_ids }}"
+                            continue_on_error: true
 
-                  # v1.1 END: turn off lights only if NOT occupied
+                  # lights off only if not occupied
                   - choose:
                       - conditions: "{{ (lights_targets | length > 0) and (not any_occ_on) }}"
                         sequence:
                           - service: homeassistant.turn_off
-                            target: { entity_id: lights_targets }
+                            target:
+                              entity_id: "{{ lights_ids }}"
+                            continue_on_error: true
 
                   - service: input_boolean.turn_on
                     target: { entity_id: !input error_boolean }
@@ -310,13 +327,17 @@ action:
                       - conditions: "{{ overrides | length > 0 }}"
                         sequence:
                           - service: input_boolean.turn_off
-                            target: { entity_id: overrides }
+                            target:
+                              entity_id: "{{ overrides_ids }}"
+                            continue_on_error: true
 
                   - choose:
                       - conditions: "{{ (lights_targets | length > 0) and (not any_occ_on) }}"
                         sequence:
                           - service: homeassistant.turn_off
-                            target: { entity_id: lights_targets }
+                            target:
+                              entity_id: "{{ lights_ids }}"
+                            continue_on_error: true
 
                   - service: counter.increment
                     target: { entity_id: !input failures_counter }
@@ -342,13 +363,17 @@ action:
                       - conditions: "{{ overrides | length > 0 }}"
                         sequence:
                           - service: input_boolean.turn_off
-                            target: { entity_id: overrides }
+                            target:
+                              entity_id: "{{ overrides_ids }}"
+                            continue_on_error: true
 
                   - choose:
                       - conditions: "{{ (lights_targets | length > 0) and (not any_occ_on) }}"
                         sequence:
                           - service: homeassistant.turn_off
-                            target: { entity_id: lights_targets }
+                            target:
+                              entity_id: "{{ lights_ids }}"
+                            continue_on_error: true
 
                   - service: input_boolean.turn_off
                     target: { entity_id: !input active_boolean }
@@ -364,7 +389,7 @@ action:
 
     default: []
 
-  # 2) Start when requested + ready (runs on any trigger)
+  # 2) Start when requested + ready (runs on any trigger, including requested_on)
   - choose:
       - conditions:
           - condition: state
@@ -380,19 +405,28 @@ action:
             entity_id: !input vacuum_entity
             state: "docked"
         sequence:
-          # v1.1 START: enable WITB overrides + lights on
+          - variables:
+              overrides_ids: "{{ overrides | join(',') }}"
+              lights_ids: "{{ lights_targets | join(',') }}"
+
+          # enable overrides + lights ON
           - choose:
               - conditions: "{{ overrides | length > 0 }}"
                 sequence:
                   - service: input_boolean.turn_on
-                    target: { entity_id: overrides }
+                    target:
+                      entity_id: "{{ overrides_ids }}"
+                    continue_on_error: true
+
           - choose:
               - conditions: "{{ lights_targets | length > 0 }}"
                 sequence:
                   - service: homeassistant.turn_on
-                    target: { entity_id: lights_targets }
+                    target:
+                      entity_id: "{{ lights_ids }}"
+                    continue_on_error: true
 
-          # Snapshot baselines at start
+          # snapshot baselines
           - service: input_number.set_value
             target: { entity_id: !input base_successful_input }
             data: { value: "{{ states(s_success) | int(0) }}" }
@@ -422,7 +456,7 @@ action:
             target: { entity_id: !input vacuum_entity }
     default: []
 
-  # 3) Map vacuum state -> phase (only while job active/requested)
+  # 3) Phase mapping while job active/requested
   - choose:
       - conditions:
           - condition: template
@@ -464,29 +498,4 @@ action:
                   - service: input_select.select_option
                     target: { entity_id: !input phase_select }
                     data: { option: "{{ st }}" }
-              - conditions: "{{ st == 'error' }}"
-                sequence:
-                  # End immediately on vacuum error state
-                  - service: timer.cancel
-                    target: { entity_id: !input watchdog_timer }
-                  - choose:
-                      - conditions: "{{ overrides | length > 0 }}"
-                        sequence:
-                          - service: input_boolean.turn_off
-                            target: { entity_id: overrides }
-                  - service: input_boolean.turn_on
-                    target: { entity_id: !input error_boolean }
-                  - service: counter.increment
-                    target: { entity_id: !input failures_counter }
-                  - service: input_boolean.turn_off
-                    target: { entity_id: !input active_boolean }
-                  - service: input_boolean.turn_off
-                    target: { entity_id: !input requested_boolean }
-                  - service: input_select.select_option
-                    target: { entity_id: !input phase_select }
-                    data: { option: error }
-                  - service: input_datetime.set_datetime
-                    target: { entity_id: !input last_end_datetime }
-                    data:
-                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
     default: []

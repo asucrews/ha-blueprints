@@ -1,4 +1,8 @@
 blueprint:
+  homeassistant:
+    min_version: 2026.2.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
   name: WITB+ Actions - Lights + Fan (single automation) v1.5
   description: |
     Version: 1.5
@@ -23,7 +27,6 @@ blueprint:
       - Auto-tag booleans (recommended): if provided, OFF actions only happen when the tag is ON.
         This prevents turning off lights/fans that were turned on manually.
       - Humidity-hold only applies when auto_tag_fan is provided and ON (so we don't interfere with manual fan runs).
-  domain: automation
   input:
     core:
       name: Core
