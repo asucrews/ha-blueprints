@@ -1,5 +1,5 @@
 blueprint:
-  name: WITB+ v3.5 Actions - Lights + Fan (single automation) v1.4.2
+  name: WITB+ Actions - Lights + Fan (single automation) v1.5
   description: |
     Version: 1.5
       Adds input sections (requires Home Assistant 2024.6.0+).
