@@ -1,0 +1,516 @@
+blueprint:
+  name: "WITB+ v3.5 Actions - Lights + Fan (one automation)"
+  description: >
+    Drives lights + fan based on WITB+ v3.5 effective occupancy.
+    Lights get brightness rules; fan can be fan.* (percentage/preset) or switch.* (on/off).
+    Respects automation_override and doesn't fight force/manual occupied on vacancy.
+    Optional auto-tags prevent turning off things that were turned on manually.
+  domain: automation
+
+  input:
+    occupied_effective:
+      name: Effective occupancy sensor (WITB+)
+      selector:
+        entity:
+          domain: binary_sensor
+
+    # ===== Lights =====
+    lights:
+      name: Lights to control
+      default: []
+      selector:
+        entity:
+          domain: light
+          multiple: true
+
+    auto_tag_lights:
+      name: "Auto-tag boolean for lights (optional)"
+      description: >
+        If provided, blueprint sets it ON when it turns lights ON.
+        On vacancy, it will only turn lights OFF if this tag is ON, then clears it.
+      default: ""
+      selector:
+        entity:
+          domain: input_boolean
+
+    turn_on_only_if_dark:
+      name: "Lights: only turn ON when dark"
+      default: true
+      selector:
+        boolean:
+
+    use_night_profile:
+      name: "Lights: use night brightness profile"
+      default: true
+      selector:
+        boolean:
+
+    night_start:
+      name: "Night start"
+      default: "00:00:00"
+      selector:
+        time:
+
+    night_end:
+      name: "Night end"
+      default: "06:00:00"
+      selector:
+        time:
+
+    brightness_day_pct:
+      name: "Lights: day brightness %"
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: slider
+
+    brightness_night_pct:
+      name: "Lights: night brightness %"
+      default: 20
+      selector:
+        number:
+          min: 1
+          max: 100
+          mode: slider
+
+    transition_on:
+      name: "Lights: ON transition seconds"
+      default: 1
+      selector:
+        number:
+          min: 0
+          max: 30
+          mode: slider
+
+    transition_off:
+      name: "Lights: OFF transition seconds"
+      default: 2
+      selector:
+        number:
+          min: 0
+          max: 60
+          mode: slider
+
+    skip_on_if_any_light_on:
+      name: "Lights: skip turning ON if any target light already ON (prevents resetting brightness)"
+      default: true
+      selector:
+        boolean:
+
+    # ===== Fan =====
+    fan_entity:
+      name: "Fan entity (optional) - supports percentage/preset"
+      default: ""
+      selector:
+        entity:
+          domain: fan
+
+    fan_switches:
+      name: "Fan switches (optional) - on/off only"
+      default: []
+      selector:
+        entity:
+          domain: switch
+          multiple: true
+
+    auto_tag_fan:
+      name: "Auto-tag boolean for fan/switches (optional)"
+      description: >
+        If provided, blueprint sets it ON when it turns fan/switches ON.
+        On vacancy, it will only turn fan/switches OFF if this tag is ON, then clears it.
+      default: ""
+      selector:
+        entity:
+          domain: input_boolean
+
+    fan_turn_on_on_occupy:
+      name: "Fan: turn ON on occupancy"
+      default: true
+      selector:
+        boolean:
+
+    fan_turn_off_on_vacant:
+      name: "Fan: turn OFF on vacancy (after off_delay)"
+      default: true
+      selector:
+        boolean:
+
+    fan_disable_during_night:
+      name: "Fan: disable turning ON during night window"
+      description: >
+        If true, fan/switches will NOT be turned ON during the night window (night_start..night_end).
+        Vacancy OFF behavior is unchanged (still controlled by fan_turn_off_on_vacant + auto_tag_fan).
+      default: false
+      selector:
+        boolean:
+
+    fan_use_night_profile:
+      name: "Fan: use night profile (percentage/preset)"
+      default: false
+      selector:
+        boolean:
+
+    fan_percentage_day:
+      name: "Fan: day percentage (0 = don't set)"
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+
+    fan_percentage_night:
+      name: "Fan: night percentage (0 = don't set)"
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 100
+          mode: slider
+
+    fan_preset_day:
+      name: "Fan: day preset_mode (optional text, leave blank to skip)"
+      default: ""
+      selector:
+        text:
+
+    fan_preset_night:
+      name: "Fan: night preset_mode (optional text, leave blank to skip)"
+      default: ""
+      selector:
+        text:
+
+    fan_skip_on_if_already_on:
+      name: "Fan: skip ON if already ON"
+      default: true
+      selector:
+        boolean:
+
+    # ===== Overrides =====
+    automation_override:
+      name: Automation override (optional - when ON, do nothing)
+      default: ""
+      selector:
+        entity:
+          domain: input_boolean
+
+    force_occupied:
+      name: Force occupied (optional - blocks turning OFF)
+      default: ""
+      selector:
+        entity:
+          domain: input_boolean
+
+    manual_occupied:
+      name: Manual occupied (optional - blocks turning OFF)
+      default: ""
+      selector:
+        entity:
+          domain: input_boolean
+
+    # ===== Timing =====
+    on_debounce:
+      name: "Occupied debounce"
+      default: "00:00:00"
+      selector:
+        duration:
+
+    off_delay:
+      name: "Vacancy off-delay"
+      default: "00:05:00"
+      selector:
+        duration:
+
+    cooldown_timer:
+      name: "Cooldown timer entity (optional - blocks repeated ON actions while active)"
+      default: ""
+      selector:
+        entity:
+          domain: timer
+
+    cooldown_duration:
+      name: "Cooldown duration (used when starting cooldown_timer)"
+      default: "00:00:30"
+      selector:
+        duration:
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input occupied_effective
+    to: "on"
+    for: !input on_debounce
+    id: occupied_on
+
+  - platform: state
+    entity_id: !input occupied_effective
+    to: "off"
+    for: !input off_delay
+    id: occupied_off
+
+variables:
+  lights: !input lights
+  fan_entity: !input fan_entity
+  fan_switches: !input fan_switches
+
+  override_b: !input automation_override
+  force_b: !input force_occupied
+  manual_b: !input manual_occupied
+
+  auto_tag_lights: !input auto_tag_lights
+  auto_tag_fan: !input auto_tag_fan
+
+  cooldown_t: !input cooldown_timer
+
+  turn_on_only_if_dark: !input turn_on_only_if_dark
+  use_night_profile: !input use_night_profile
+  night_start: !input night_start
+  night_end: !input night_end
+
+  brightness_day: !input brightness_day_pct
+  brightness_night: !input brightness_night_pct
+
+  fan_turn_on_on_occupy: !input fan_turn_on_on_occupy
+  fan_turn_off_on_vacant: !input fan_turn_off_on_vacant
+  fan_disable_during_night: !input fan_disable_during_night
+  fan_use_night_profile: !input fan_use_night_profile
+  fan_pct_day: !input fan_percentage_day
+  fan_pct_night: !input fan_percentage_night
+  fan_preset_day: !input fan_preset_day
+  fan_preset_night: !input fan_preset_night
+  fan_skip_on_if_already_on: !input fan_skip_on_if_already_on
+
+  skip_on_if_any_light_on: !input skip_on_if_any_light_on
+
+  override_ok: >-
+    {{ override_b == '' or is_state(override_b, 'off') }}
+
+  force_ok: >-
+    {{ force_b == '' or is_state(force_b, 'off') }}
+
+  manual_ok: >-
+    {{ manual_b == '' or is_state(manual_b, 'off') }}
+
+  cooldown_active: >-
+    {{ cooldown_t != '' and is_state(cooldown_t, 'active') }}
+
+  is_dark: >-
+    {{ is_state('sun.sun', 'below_horizon') }}
+
+  is_night: >-
+    {% set start = today_at(night_start) %}
+    {% set end = today_at(night_end) %}
+    {% if start <= end %}
+      {{ start <= now() < end }}
+    {% else %}
+      {{ now() >= start or now() < end }}
+    {% endif %}
+
+  light_brightness_pct: >-
+    {% if use_night_profile and is_night %}
+      {{ brightness_night }}
+    {% else %}
+      {{ brightness_day }}
+    {% endif %}
+
+  fan_pct: >-
+    {% if fan_use_night_profile and is_night %}
+      {{ fan_pct_night }}
+    {% else %}
+      {{ fan_pct_day }}
+    {% endif %}
+
+  fan_preset: >-
+    {% if fan_use_night_profile and is_night %}
+      {{ fan_preset_night }}
+    {% else %}
+      {{ fan_preset_day }}
+    {% endif %}
+
+  any_light_on: >-
+    {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
+
+  fan_is_on: >-
+    {{ fan_entity != '' and is_state(fan_entity, 'on') }}
+
+  tag_lights_ok_to_off: >-
+    {{ auto_tag_lights == '' or is_state(auto_tag_lights, 'on') }}
+
+  tag_fan_ok_to_off: >-
+    {{ auto_tag_fan == '' or is_state(auto_tag_fan, 'on') }}
+
+action:
+  - choose:
+      # ================= OCCUPIED -> ON =================
+      - conditions:
+          - condition: trigger
+            id: occupied_on
+          - condition: template
+            value_template: "{{ override_ok }}"
+          - condition: template
+            value_template: "{{ not cooldown_active }}"
+        sequence:
+          # ---- Lights ON ----
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights | length > 0 }}"
+                  - condition: template
+                    value_template: "{{ (not turn_on_only_if_dark) or is_dark }}"
+                  - condition: template
+                    value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
+                sequence:
+                  - service: light.turn_on
+                    target:
+                      entity_id: !input lights
+                    data:
+                      brightness_pct: "{{ light_brightness_pct }}"
+                      transition: !input transition_on
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_lights != '' }}"
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ auto_tag_lights }}"
+
+          # ---- Fan ON ----
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ fan_turn_on_on_occupy }}"
+                  - condition: template
+                    value_template: "{{ (not fan_disable_during_night) or (not is_night) }}"
+                sequence:
+                  # fan.* entity path (supports percentage/preset)
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_entity != '' }}"
+                          - condition: template
+                            value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
+                        sequence:
+                          - service: fan.turn_on
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ fan_pct | int > 0 }}"
+                                sequence:
+                                  - service: fan.set_percentage
+                                    target:
+                                      entity_id: "{{ fan_entity }}"
+                                    data:
+                                      percentage: "{{ fan_pct | int }}"
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ fan_preset is string and fan_preset | length > 0 }}"
+                                sequence:
+                                  - service: fan.set_preset_mode
+                                    target:
+                                      entity_id: "{{ fan_entity }}"
+                                    data:
+                                      preset_mode: "{{ fan_preset }}"
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ auto_tag_fan != '' }}"
+                                sequence:
+                                  - service: input_boolean.turn_on
+                                    target:
+                                      entity_id: "{{ auto_tag_fan }}"
+
+                      # switch.* fallback path (on/off only)
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                        sequence:
+                          - service: switch.turn_on
+                            target:
+                              entity_id: !input fan_switches
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ auto_tag_fan != '' }}"
+                                sequence:
+                                  - service: input_boolean.turn_on
+                                    target:
+                                      entity_id: "{{ auto_tag_fan }}"
+
+          # ---- Cooldown timer ----
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ cooldown_t != '' }}"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: "{{ cooldown_t }}"
+                    data:
+                      duration: !input cooldown_duration
+
+      # ================= VACANT -> OFF =================
+      - conditions:
+          - condition: trigger
+            id: occupied_off
+          - condition: template
+            value_template: "{{ override_ok }}"
+          - condition: template
+            value_template: "{{ force_ok and manual_ok }}"
+        sequence:
+          # ---- Lights OFF ----
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights | length > 0 and tag_lights_ok_to_off }}"
+                sequence:
+                  - service: light.turn_off
+                    target:
+                      entity_id: !input lights
+                    data:
+                      transition: !input transition_off
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_lights != '' }}"
+                        sequence:
+                          - service: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ auto_tag_lights }}"
+
+          # ---- Fan OFF ----
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ fan_turn_off_on_vacant and tag_fan_ok_to_off }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_entity != '' }}"
+                        sequence:
+                          - service: fan.turn_off
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                        sequence:
+                          - service: switch.turn_off
+                            target:
+                              entity_id: !input fan_switches
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_fan != '' }}"
+                        sequence:
+                          - service: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ auto_tag_fan }}"
