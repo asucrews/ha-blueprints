@@ -1,0 +1,63 @@
+---
+<slug>_witb:
+  # ===== REQUIRED (recommended in practice) =====
+  # Auto-tags let the actions automation only turn OFF what it turned ON,
+  # so it won’t fight manual control.
+  input_boolean:
+    room_slug_auto_lights_on:
+      name: "Room auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+
+    room_slug_auto_fan_on:
+      name: "Room auto fan on (tag)"
+      icon: mdi:fan-auto
+
+  # ===== OPTIONAL =====
+  timer:
+    room_slug_actions_cooldown:
+      name: "Room actions cooldown"
+      duration: "00:00:30"
+
+  # ===== OPTIONAL UI TUNING HELPERS =====
+  # Only add these if you want to adjust settings from the dashboard
+  # without editing the automation YAML / blueprint inputs.
+  #
+  input_datetime:
+    room_slug_actions_night_start:
+      name: "Room night start"
+      has_date: false
+      has_time: true
+  
+    room_slug_actions_night_end:
+      name: "Room night end"
+      has_date: false
+      has_time: true
+  
+  input_number:
+    room_slug_actions_brightness_day_pct:
+      name: "Room brightness day %"
+      min: 1
+      max: 100
+      step: 1
+      mode: slider
+  
+    room_slug_actions_brightness_night_pct:
+      name: "Room brightness night %"
+      min: 1
+      max: 100
+      step: 1
+      mode: slider
+  
+    room_slug_actions_fan_pct_day:
+      name: "Room fan day %"
+      min: 0
+      max: 100
+      step: 5
+      mode: slider
+  
+    room_slug_actions_fan_pct_night:
+      name: "Room fan night %"
+      min: 0
+      max: 100
+      step: 5
+      mode: slider

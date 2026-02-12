@@ -1,11 +1,14 @@
 blueprint:
+  homeassistant:
+    min_version: 2026.2.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
   name: "WITB+ v3.5 Actions - Lights + Fan (one automation)"
   description: >
     Drives lights + fan based on WITB+ v3.5 effective occupancy.
     Lights get brightness rules; fan can be fan.* (percentage/preset) or switch.* (on/off).
     Respects automation_override and doesn't fight force/manual occupied on vacancy.
     Optional auto-tags prevent turning off things that were turned on manually.
-  domain: automation
 
   input:
     occupied_effective:
