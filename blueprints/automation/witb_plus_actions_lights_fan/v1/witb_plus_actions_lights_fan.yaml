@@ -2,17 +2,35 @@ blueprint:
   homeassistant:
     min_version: 2026.2.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
-  name: "WITB+ v3.5 Actions - Lights + Fan (one automation)"
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yam
+  name: "WITB+ v3.5 Actions - Lights + Fan (single automation) v1.1"
   description: >
-    Drives lights + fan based on WITB+ v3.5 effective occupancy.
-    Lights get brightness rules; fan can be fan.* (percentage/preset) or switch.* (on/off).
-    Respects automation_override and doesn't fight force/manual occupied on vacancy.
-    Optional auto-tags prevent turning off things that were turned on manually.
+    Version: 1.1
+    Room actions blueprint intended to pair with WITB+ v3.5 (mmWave + exit-latch).
+    This blueprint keys off the room's *effective* occupancy sensor:
+
+      - binary_sensor.<slug>_occupied_effective
+
+    Behavior:
+      - Occupied (ON for on_debounce): turns ON lights (with optional dark + day/night brightness rules)
+        and optionally turns ON a fan (fan.* with optional percentage/preset) or on/off fan switches (switch.*).
+      - Vacant (OFF for off_delay): turns OFF lights/fan, unless blocked by force/manual occupied.
+
+    Safety / "don't fight me" rules:
+      - automation_override ON => do nothing (no ON, no OFF).
+      - force_occupied OR manual_occupied ON => blocks vacancy OFF actions.
+      - Auto-tag booleans (recommended): if provided, OFF actions only happen when the tag is ON.
+        This prevents turning off lights/fans that were turned on manually.
+
+    Night window:
+      - night_start .. night_end is treated as the "night" period (supports crossing midnight).
+      - fan_disable_during_night can prevent turning ON the fan during the night window while still
+        allowing lights to turn on dimly.
 
   input:
     occupied_effective:
       name: Effective occupancy sensor (WITB+)
+      description: "Use the room's effective occupancy sensor (binary_sensor.<slug>_occupied_effective)."
       selector:
         entity:
           domain: binary_sensor
@@ -20,6 +38,7 @@ blueprint:
     # ===== Lights =====
     lights:
       name: Lights to control
+      description: "Lights this automation may turn on/off. Leave empty to disable light control."
       default: []
       selector:
         entity:
@@ -27,10 +46,11 @@ blueprint:
           multiple: true
 
     auto_tag_lights:
-      name: "Auto-tag boolean for lights (optional)"
+      name: "Auto-tag boolean for lights (recommended)"
       description: >
-        If provided, blueprint sets it ON when it turns lights ON.
-        On vacancy, it will only turn lights OFF if this tag is ON, then clears it.
+        Optional. If provided, this tag is set ON when this automation turns lights ON.
+        On vacancy, lights will only be turned OFF if this tag is ON, then the tag is cleared.
+        This prevents turning off lights that were turned on manually.
       default: ""
       selector:
         entity:
@@ -38,30 +58,35 @@ blueprint:
 
     turn_on_only_if_dark:
       name: "Lights: only turn ON when dark"
+      description: "If true, lights will only be turned on when sun is below the horizon."
       default: true
       selector:
         boolean:
 
     use_night_profile:
       name: "Lights: use night brightness profile"
+      description: "If true, uses brightness_night_pct during the night window; otherwise uses brightness_day_pct."
       default: true
       selector:
         boolean:
 
     night_start:
       name: "Night start"
+      description: "Start time for night window (used by night brightness profile and optional fan night disable)."
       default: "00:00:00"
       selector:
         time:
 
     night_end:
       name: "Night end"
+      description: "End time for night window (supports crossing midnight)."
       default: "06:00:00"
       selector:
         time:
 
     brightness_day_pct:
       name: "Lights: day brightness %"
+      description: "Brightness percent used outside the night window (1-100)."
       default: 100
       selector:
         number:
@@ -71,6 +96,7 @@ blueprint:
 
     brightness_night_pct:
       name: "Lights: night brightness %"
+      description: "Brightness percent used during the night window (1-100)."
       default: 20
       selector:
         number:
@@ -80,6 +106,7 @@ blueprint:
 
     transition_on:
       name: "Lights: ON transition seconds"
+      description: "Fade time when turning lights ON."
       default: 1
       selector:
         number:
@@ -89,6 +116,7 @@ blueprint:
 
     transition_off:
       name: "Lights: OFF transition seconds"
+      description: "Fade time when turning lights OFF."
       default: 2
       selector:
         number:
@@ -97,21 +125,28 @@ blueprint:
           mode: slider
 
     skip_on_if_any_light_on:
-      name: "Lights: skip turning ON if any target light already ON (prevents resetting brightness)"
+      name: "Lights: skip turning ON if any target light is already ON"
+      description: "If true, prevents resetting brightness if someone already turned a target light on."
       default: true
       selector:
         boolean:
 
     # ===== Fan =====
     fan_entity:
-      name: "Fan entity (optional) - supports percentage/preset"
+      name: "Fan entity (optional) - fan.*"
+      description: >
+        Optional. Use a fan.* entity when you want speed/percentage or preset_mode control.
+        If set, it takes precedence over fan_switches.
       default: ""
       selector:
         entity:
           domain: fan
 
     fan_switches:
-      name: "Fan switches (optional) - on/off only"
+      name: "Fan switches (optional) - switch.* (on/off only)"
+      description: >
+        Optional. Use for bathroom fans or any fan controlled by a relay/wall switch.
+        Only ON/OFF is supported. Ignored if fan_entity is set.
       default: []
       selector:
         entity:
@@ -119,10 +154,11 @@ blueprint:
           multiple: true
 
     auto_tag_fan:
-      name: "Auto-tag boolean for fan/switches (optional)"
+      name: "Auto-tag boolean for fan (recommended)"
       description: >
-        If provided, blueprint sets it ON when it turns fan/switches ON.
-        On vacancy, it will only turn fan/switches OFF if this tag is ON, then clears it.
+        Optional. If provided, this tag is set ON when this automation turns the fan/switches ON.
+        On vacancy, fan/switches will only be turned OFF if this tag is ON, then the tag is cleared.
+        This prevents turning off a fan that was turned on manually.
       default: ""
       selector:
         entity:
@@ -130,20 +166,22 @@ blueprint:
 
     fan_turn_on_on_occupy:
       name: "Fan: turn ON on occupancy"
+      description: "If true, attempts to turn on fan_entity or fan_switches on occupied."
       default: true
       selector:
         boolean:
 
     fan_turn_off_on_vacant:
-      name: "Fan: turn OFF on vacancy (after off_delay)"
+      name: "Fan: turn OFF on vacancy"
+      description: "If true, attempts to turn off fan_entity or fan_switches after off_delay (subject to override/force/manual rules)."
       default: true
       selector:
         boolean:
 
     fan_disable_during_night:
-      name: "Fan: disable turning ON during night window"
+      name: "Fan: do NOT turn ON during night window"
       description: >
-        If true, fan/switches will NOT be turned ON during the night window (night_start..night_end).
+        If true, the fan ON action is skipped during the night window.
         Vacancy OFF behavior is unchanged (still controlled by fan_turn_off_on_vacant + auto_tag_fan).
       default: false
       selector:
@@ -151,12 +189,14 @@ blueprint:
 
     fan_use_night_profile:
       name: "Fan: use night profile (percentage/preset)"
+      description: "If true and using fan_entity, uses the night fan percentage/preset during the night window."
       default: false
       selector:
         boolean:
 
     fan_percentage_day:
       name: "Fan: day percentage (0 = don't set)"
+      description: "If using fan_entity: 1-100 sets percentage after turning on; 0 means skip setting percentage."
       default: 0
       selector:
         number:
@@ -166,6 +206,7 @@ blueprint:
 
     fan_percentage_night:
       name: "Fan: night percentage (0 = don't set)"
+      description: "If using fan_entity + fan_use_night_profile: 1-100 sets percentage at night; 0 means skip."
       default: 0
       selector:
         number:
@@ -174,40 +215,46 @@ blueprint:
           mode: slider
 
     fan_preset_day:
-      name: "Fan: day preset_mode (optional text, leave blank to skip)"
+      name: "Fan: day preset_mode (optional)"
+      description: "If using fan_entity: preset_mode string to set after turning on. Leave blank to skip."
       default: ""
       selector:
         text:
 
     fan_preset_night:
-      name: "Fan: night preset_mode (optional text, leave blank to skip)"
+      name: "Fan: night preset_mode (optional)"
+      description: "If using fan_entity + fan_use_night_profile: preset_mode string to set at night. Leave blank to skip."
       default: ""
       selector:
         text:
 
     fan_skip_on_if_already_on:
       name: "Fan: skip ON if already ON"
+      description: "If true and fan_entity is already on, skips turning it on / setting speed again."
       default: true
       selector:
         boolean:
 
     # ===== Overrides =====
     automation_override:
-      name: Automation override (optional - when ON, do nothing)
+      name: Automation override (optional)
+      description: "If set and ON, the blueprint performs no actions (no ON, no OFF)."
       default: ""
       selector:
         entity:
           domain: input_boolean
 
     force_occupied:
-      name: Force occupied (optional - blocks turning OFF)
+      name: Force occupied (optional)
+      description: "If set and ON, blocks vacancy OFF actions."
       default: ""
       selector:
         entity:
           domain: input_boolean
 
     manual_occupied:
-      name: Manual occupied (optional - blocks turning OFF)
+      name: Manual occupied (optional)
+      description: "If set and ON, blocks vacancy OFF actions."
       default: ""
       selector:
         entity:
@@ -216,25 +263,31 @@ blueprint:
     # ===== Timing =====
     on_debounce:
       name: "Occupied debounce"
+      description: "Require occupied_effective to be ON for this long before running ON actions."
       default: "00:00:00"
       selector:
         duration:
 
     off_delay:
       name: "Vacancy off-delay"
+      description: "Require occupied_effective to be OFF for this long before running OFF actions."
       default: "00:05:00"
       selector:
         duration:
 
     cooldown_timer:
-      name: "Cooldown timer entity (optional - blocks repeated ON actions while active)"
+      name: "Cooldown timer (optional)"
+      description: >
+        Optional. If set, this blueprint starts the timer after running ON actions.
+        While the timer is active, additional ON triggers are ignored (prevents rapid toggles).
       default: ""
       selector:
         entity:
           domain: timer
 
     cooldown_duration:
-      name: "Cooldown duration (used when starting cooldown_timer)"
+      name: "Cooldown duration"
+      description: "Duration used when starting cooldown_timer."
       default: "00:00:30"
       selector:
         duration:
