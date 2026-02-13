@@ -1,0 +1,102 @@
+blueprint:
+  name: "WITB Lights ON Hook (v1)"
+  description: >
+    Script blueprint used as a hook for WITB+ Actions.
+    Expects WITB to call this script and pass:
+      - lights (list of light entity_ids)
+      - brightness_pct (0-100, optional)
+      - transition (seconds, optional)
+      - is_night, lux_value, lux_threshold, reason (optional)
+
+    v1 behavior: directly calls light.turn_on on the passed lights.
+  domain: script
+  homeassistant:
+    min_version: 2024.6.0
+
+mode: restart
+
+fields:
+  lights:
+    name: Lights to control
+    description: "List of light entity_ids to turn on. (Passed by WITB+ Actions)"
+    required: true
+    selector:
+      entity:
+        domain: light
+        multiple: true
+  brightness_pct:
+    name: Brightness (%)
+    description: "Brightness percent (0-100). Optional; defaults to 100."
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 100
+        mode: slider
+        step: 1
+  transition:
+    name: Transition (seconds)
+    description: "Transition time in seconds. Optional; defaults to 0."
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 60
+        mode: slider
+        step: 0.5
+  is_night:
+    name: is_night
+    description: "Optional context from WITB."
+    required: false
+    selector:
+      boolean: {}
+  lux_value:
+    name: lux_value
+    description: "Optional context from WITB."
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 100000
+        mode: box
+        step: 1
+  lux_threshold:
+    name: lux_threshold
+    description: "Optional context from WITB."
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 100000
+        mode: box
+        step: 1
+  reason:
+    name: reason
+    description: "Optional context from WITB (e.g., occupied_on)."
+    required: false
+    selector:
+      text: {}
+
+sequence:
+  - variables:
+      _brightness_pct: "{{ brightness_pct | default(100) | int(100) }}"
+      _transition: "{{ transition | default(0) | float(0) }}"
+      _lights: >-
+        {% set v = lights | default([]) %}
+        {% if v is string %}
+          {{ [v] }}
+        {% elif v is mapping and v.entity_id is defined %}
+          {{ v.entity_id }}
+        {% else %}
+          {{ v }}
+        {% endif %}
+
+  - condition: template
+    value_template: "{{ _lights is defined and (_lights | length > 0) }}"
+
+  - action: light.turn_on
+    target:
+      entity_id: "{{ _lights }}"
+    data:
+      brightness_pct: "{{ _brightness_pct }}"
+      transition: "{{ _transition }}"
