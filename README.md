@@ -10,31 +10,31 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
 
 ## Quick Links
 
-- Blueprint docs index: `docs/blueprints/README.md`
-- Example configs: `examples/README.md`
-- Reference links: `references/README.md`
-- Doc backlog: `todo.md`
+- Blueprint docs index: [`docs/blueprints/README.md`](docs/blueprints/README.md)
+- Example configs: [`examples/README.md`](examples/README.md)
+- Reference links: [`references/README.md`](references/README.md)
+- Doc backlog: [`todo.md`](todo.md)
 
 ## Active Blueprint Files
 
-1. `blueprints/automation/witb_plus/v3/witb_plus.yaml`
-   - Docs: `blueprints/automation/witb_plus/v3/README.md`
+1. [`blueprints/automation/witb_plus/v3/witb_plus.yaml`](blueprints/automation/witb_plus/v3/witb_plus.yaml)
+   - Docs: [`blueprints/automation/witb_plus/v3/README.md`](blueprints/automation/witb_plus/v3/README.md)
    - Purpose: room occupancy inference from doors + motion (+ optional mmWave).
 
-2. `blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml`
-   - Docs: `blueprints/automation/witb_plus_actions_lights_fan/v1/README.md`
+2. [`blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml)
+   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v1/README.md`](blueprints/automation/witb_plus_actions_lights_fan/v1/README.md)
    - Purpose: occupancy-driven light/fan actions with safety tags, run-on, and optional humidity/lux tuning.
 
-3. `blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`
-   - Docs: `blueprints/automation/vacuum_job_manager/v1/README.md`
+3. [`blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`](blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml)
+   - Docs: [`blueprints/automation/vacuum_job_manager/v1/README.md`](blueprints/automation/vacuum_job_manager/v1/README.md)
    - Purpose: queued/scheduled vacuum job orchestration with mission-counter completion and optional WITB/light integration.
 
-4. `blueprints/script/witb_lights/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
-   - Docs: `blueprints/script/witb_lights/v1/README.md`
+4. [`blueprints/script/witb_lights/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`](blueprints/script/witb_lights/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml)
+   - Docs: [`blueprints/script/witb_lights/v1/README.md`](blueprints/script/witb_lights/v1/README.md)
    - Purpose: resilient ON hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
-5. `blueprints/script/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
-   - Docs: `blueprints/script/witb_lights/v1/README.md`
+5. [`blueprints/script/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`](blueprints/script/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml)
+   - Docs: [`blueprints/script/witb_lights/v1/README.md`](blueprints/script/witb_lights/v1/README.md)
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
 ## Helper Packages and Generators
@@ -89,4 +89,4 @@ homeassistant:
 
 ## Legacy
 
-Older content remains under `legacy/v1/README.md`.
+Older content remains under [`legacy/v1/README.md`](legacy/v1/README.md).

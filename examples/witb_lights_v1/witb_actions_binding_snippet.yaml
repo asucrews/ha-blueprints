@@ -1,0 +1,11 @@
+# Example input snippet for:
+# blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
+#
+# Use inside `use_blueprint.input` for your WITB+ Actions automation.
+
+lights:
+  - light.office_ceiling
+  - light.office_lamp
+
+lights_on_script: script.office_witb_lights_on_hook
+lights_off_script: script.office_witb_lights_off_hook

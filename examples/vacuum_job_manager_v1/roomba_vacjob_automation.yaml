@@ -1,0 +1,51 @@
+- id: vacuum_job_manager_roomba_vacjob
+  alias: Vacuum Job Manager - Roomba
+  description: Example automation using mission-counter completion and optional WITB overrides.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/vacuum_job_manager/v1/vacuum_job_manager.yaml
+    input:
+      vacuum_entity: vacuum.roomba
+
+      enabled_boolean: input_boolean.roomba_vacjob_enabled
+      requested_boolean: input_boolean.roomba_vacjob_requested
+      active_boolean: input_boolean.roomba_vacjob_active
+      error_boolean: input_boolean.roomba_vacjob_error
+      phase_select: input_select.roomba_vacjob_phase
+      last_start_datetime: input_datetime.roomba_vacjob_last_start
+      last_end_datetime: input_datetime.roomba_vacjob_last_end
+      failures_counter: counter.roomba_vacjob_failures
+      watchdog_timer: timer.roomba_vacjob_watchdog
+      max_runtime_min: input_number.roomba_vacjob_max_runtime_min
+      request_button: input_button.roomba_vacjob_run_now
+
+      use_schedule: true
+      schedule_time: "10:00:00"
+      schedule_days:
+        - mon
+        - tue
+        - wed
+        - thu
+        - fri
+
+      notify_service: notify.mobile_app_your_phone
+
+      successful_missions_sensor: sensor.roomba_total_jobs_completed
+      failed_missions_sensor: sensor.roomba_total_jobs_failed
+      canceled_missions_sensor: sensor.roomba_total_jobs_canceled
+
+      base_successful_input: input_number.roomba_vacjob_base_successful
+      base_failed_input: input_number.roomba_vacjob_base_failed
+      base_canceled_input: input_number.roomba_vacjob_base_canceled
+
+      vacuum_lighting_entities:
+        - light.hallway
+        - light.kitchen
+
+      witb_automation_override_booleans:
+        - input_boolean.kitchen_automation_override
+        - input_boolean.hallway_automation_override
+
+      occupancy_entities:
+        - binary_sensor.kitchen_occupied_effective
+        - binary_sensor.hallway_occupied_effective

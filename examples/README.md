@@ -8,6 +8,10 @@ Copy-ready examples for the active blueprints in this repository.
   - Occupancy package and automation examples.
 - `witb_plus_actions_lights_fan_v1/`
   - Actions package and automation examples.
+- `vacuum_job_manager_v1/`
+  - Vacuum helper package and automation example.
+- `witb_lights_v1/`
+  - Script-hook instance examples and WITB actions binding snippet.
 
 ## Notes
 

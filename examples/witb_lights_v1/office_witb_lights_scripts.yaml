@@ -1,0 +1,43 @@
+script:
+  office_witb_lights_on_hook:
+    alias: Office WITB Lights ON Hook
+    use_blueprint:
+      # Replace with your installed script blueprint path in Home Assistant.
+      path: YOUR_NAMESPACE/witb_lights/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml
+      input:
+        vzw31_entity: light.office_dimmer
+        vzw31_node_status: sensor.office_dimmer_node_status
+        vzw31_ping_button: button.office_dimmer_ping
+
+        ensure_smart_bulb_mode_enabled: true
+        reset_power_if_unavailable: true
+        recheck_enabled: true
+        recheck_interval_s: 10
+        recheck_attempts: 6
+
+        notify_enabled: true
+        notify_mode: persistent
+        notify_service: notify.mobile_app_your_phone
+        notify_prefix: WITB
+
+  office_witb_lights_off_hook:
+    alias: Office WITB Lights OFF Hook
+    use_blueprint:
+      # Replace with your installed script blueprint path in Home Assistant.
+      path: YOUR_NAMESPACE/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml
+      input:
+        vzw31_entity: light.office_dimmer
+        vzw31_node_status: sensor.office_dimmer_node_status
+        vzw31_ping_button: button.office_dimmer_ping
+
+        ensure_smart_bulb_mode_enabled: true
+        reset_power_if_unavailable: true
+        recheck_enabled: true
+        recheck_only_if_any_missing: true
+        recheck_interval_s: 10
+        recheck_attempts: 6
+
+        notify_enabled: true
+        notify_mode: persistent
+        notify_service: notify.mobile_app_your_phone
+        notify_prefix: WITB
