@@ -8,10 +8,14 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
 - Optional resilient light hook scripts for VZW31-SN smart-bulb setups
 - Vacuum Job Manager automation for iRobot jobs + helper state + optional WITB overrides
 
-Detailed blueprint docs:
-- `docs/blueprints/README.md`
+## Quick Links
 
-## Active Blueprints
+- Blueprint docs index: `docs/blueprints/README.md`
+- Example configs: `examples/README.md`
+- Reference links: `references/README.md`
+- Doc backlog: `todo.md`
+
+## Active Blueprint Files
 
 1. `blueprints/automation/witb_plus/v3/witb_plus.yaml`
    - Docs: `blueprints/automation/witb_plus/v3/README.md`
@@ -33,7 +37,7 @@ Detailed blueprint docs:
    - Docs: `blueprints/script/witb_lights/v1/README.md`
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
-## Helper Package Generators
+## Helper Packages and Generators
 
 Run from repo root.
 
@@ -58,8 +62,13 @@ Generated files are helper-only package YAML files. Automations are created in t
 3. Vacuum helpers template:
 
 ```bash
-# Example: copy helper template into your HA packages directory
+# POSIX shell example:
 cp blueprints/automation/vacuum_job_manager/v1/vacuum_job_helpers.yaml packages/roomba_vacjob.yaml
+```
+
+```powershell
+# PowerShell example:
+Copy-Item "blueprints/automation/vacuum_job_manager/v1/vacuum_job_helpers.yaml" "packages/roomba_vacjob.yaml"
 ```
 
 ```yaml
@@ -71,9 +80,12 @@ homeassistant:
 ## Repository Layout
 
 - `blueprints/automation/`: current blueprint work.
+- `blueprints/script/`: current script blueprint work.
+- `docs/`: implementation docs and blueprint compatibility matrix.
+- `examples/`: copy-ready package and automation examples.
+- `references/`: official Home Assistant docs links and third-party references.
+- `tools/`: utility scripts and validation helpers.
 - `legacy/v1/`: older blueprint collection and docs.
-- `references/`: third-party references.
-- `docs/`, `examples/`, `tools/`: reserved/support folders.
 
 ## Legacy
 
