@@ -3,9 +3,10 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan (single automation) v1.5
+  name: WITB+ Actions - Lights + Fan (single automation) v1.6
   description: |
-    Version: 1.5
+    Version: 1.6
+      Adds optional Light ON/OFF script hooks (per-room bulb+switch logic).
       Adds input sections (requires Home Assistant 2024.6.0+).
       Adds "tune from dashboard" support:
       - Optional input_number helpers can override:
@@ -116,6 +117,34 @@ blueprint:
           selector:
             entity:
               domain: input_boolean
+        lights_on_script:
+          name: Lights ON script (optional)
+          description: |
+            Optional. If set, this blueprint calls this script instead of light.turn_on when it wants to turn lights ON.
+            Use this for bulb+switch combos (Zooz/Aeotec/etc) or any room-specific logic.
+            Passed variables:
+              - brightness_pct (computed day/night profile)
+              - transition (seconds)
+              - lights (the selected lights list; may be empty)
+              - is_night, lux_value, lux_threshold
+              - reason = "occupied_on"
+          default: ''
+          selector:
+            entity:
+              domain: script
+        lights_off_script:
+          name: Lights OFF script (optional)
+          description: |
+            Optional. If set, this blueprint calls this script instead of light.turn_off when it wants to turn lights OFF.
+            Passed variables:
+              - transition (seconds)
+              - lights (the selected lights list; may be empty)
+              - is_night, lux_value, lux_threshold
+              - reason = "vacant_lights_off" or "startup_cleanup"
+          default: ''
+          selector:
+            entity:
+              domain: script
         transition_on:
           name: 'Lights: ON transition seconds'
           description: Fade time when turning lights ON.
@@ -431,8 +460,6 @@ blueprint:
           default: 01:00:00
           selector:
             duration: null
-  homeassistant:
-    min_version: 2024.6.0
 
 mode: restart
 max_exceeded: silent
@@ -467,6 +494,12 @@ variables:
   occ: !input occupied_effective
 
   lights: !input lights
+  lights_on_script: !input lights_on_script
+  lights_off_script: !input lights_off_script
+
+  lights_control_enabled: >-
+    {{ (lights | length > 0) or (lights_on_script != '') or (lights_off_script != '') }}
+
   fan_entity: !input fan_entity
   fan_switches: !input fan_switches
 
@@ -663,27 +696,56 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ lights | length > 0 }}"
+                    value_template: "{{ lights_control_enabled }}"
                   - condition: template
                     value_template: "{{ lights_ok_to_turn_on }}"
                   - condition: template
                     value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
                 sequence:
-                  - service: light.turn_on
-                    target:
-                      entity_id: !input lights
-                    data:
-                      brightness_pct: "{{ light_brightness_pct }}"
-                      transition: !input transition_on
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ auto_tag_lights != '' }}"
+                            value_template: "{{ lights_on_script != '' }}"
                         sequence:
-                          - service: input_boolean.turn_on
+                          - service: script.turn_on
                             target:
-                              entity_id: "{{ auto_tag_lights }}"
+                              entity_id: "{{ lights_on_script }}"
+                            data:
+                              variables:
+                                lights: !input lights
+                                brightness_pct: "{{ light_brightness_pct }}"
+                                transition: !input transition_on
+                                is_night: "{{ is_night }}"
+                                lux_value: "{{ lux_value }}"
+                                lux_threshold: "{{ lux_threshold }}"
+                                reason: occupied_on
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ auto_tag_lights != '' }}"
+                                sequence:
+                                  - service: input_boolean.turn_on
+                                    target:
+                                      entity_id: "{{ auto_tag_lights }}"
 
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (lights_on_script == '') and (lights | length > 0) }}"
+                        sequence:
+                          - service: light.turn_on
+                            target:
+                              entity_id: !input lights
+                            data:
+                              brightness_pct: "{{ light_brightness_pct }}"
+                              transition: !input transition_on
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ auto_tag_lights != '' }}"
+                                sequence:
+                                  - service: input_boolean.turn_on
+                                    target:
+                                      entity_id: "{{ auto_tag_lights }}"
           # ---- Fan ON (with optional delay) ----
           - choose:
               - conditions:
@@ -781,13 +843,33 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ lights | length > 0 and tag_lights_ok_to_off }}"
+                    value_template: "{{ lights_control_enabled and tag_lights_ok_to_off }}"
                 sequence:
-                  - service: light.turn_off
-                    target:
-                      entity_id: !input lights
-                    data:
-                      transition: !input transition_off
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_off_script != '' }}"
+                        sequence:
+                          - service: script.turn_on
+                            target:
+                              entity_id: "{{ lights_off_script }}"
+                            data:
+                              variables:
+                                lights: !input lights
+                                transition: !input transition_off
+                                is_night: "{{ is_night }}"
+                                lux_value: "{{ lux_value }}"
+                                lux_threshold: "{{ lux_threshold }}"
+                                reason: vacant_lights_off
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                        sequence:
+                          - service: light.turn_off
+                            target:
+                              entity_id: !input lights
+                            data:
+                              transition: !input transition_off
                   - choose:
                       - conditions:
                           - condition: template
@@ -796,7 +878,6 @@ action:
                           - service: input_boolean.turn_off
                             target:
                               entity_id: "{{ auto_tag_lights }}"
-
           # Start fan run-on AFTER lights off (recommended behavior)
           - choose:
               - conditions:
@@ -956,17 +1037,37 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ auto_tag_lights != '' and is_state(auto_tag_lights,'on') and any_light_on }}"
+                    value_template: >-
+                      {{ auto_tag_lights != '' and is_state(auto_tag_lights,'on') and (any_light_on or (lights_off_script != '') or (lights | length > 0)) }}
                 sequence:
-                  - service: light.turn_off
-                    target:
-                      entity_id: !input lights
-                    data:
-                      transition: !input transition_off
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_off_script != '' }}"
+                        sequence:
+                          - service: script.turn_on
+                            target:
+                              entity_id: "{{ lights_off_script }}"
+                            data:
+                              variables:
+                                lights: !input lights
+                                transition: !input transition_off
+                                is_night: "{{ is_night }}"
+                                lux_value: "{{ lux_value }}"
+                                lux_threshold: "{{ lux_threshold }}"
+                                reason: startup_cleanup
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                        sequence:
+                          - service: light.turn_off
+                            target:
+                              entity_id: !input lights
+                            data:
+                              transition: !input transition_off
                   - service: input_boolean.turn_off
                     target:
                       entity_id: "{{ auto_tag_lights }}"
-
           - choose:
               - conditions:
                   - condition: template
