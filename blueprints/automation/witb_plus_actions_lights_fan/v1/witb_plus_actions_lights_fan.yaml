@@ -19,7 +19,7 @@ blueprint:
       - Humidity hold for fan (keeps fan running if humidity is still high; uses hysteresis + max hold time).
       - Optional lux-based light gating (use a room illuminance sensor instead of sun position).
 
-    Pair with WITB+ v3.5. Use the room's effective occupancy sensor:
+    Pair with WITB+ Use the room's effective occupancy sensor:
       - binary_sensor.<slug>_occupied_effective
 
     Safety / "don't fight me" rules:
