@@ -3,9 +3,11 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan (single automation) v1.6
+  name: WITB+ Actions - Lights + Fan (single automation) v1.7
   description: |
-    Version: 1.6
+    Version: 1.7
+      Adds vacancy OFF verification+retry (fixes missed light.turn_off commands).
+      Delays clearing auto-tag until lights are confirmed OFF (optional keep-tag-on-failure).
       Adds optional Light ON/OFF script hooks (per-room bulb+switch logic).
       Adds input sections (requires Home Assistant 2024.6.0+).
       Adds "tune from dashboard" support:
@@ -19,7 +21,7 @@ blueprint:
       - Humidity hold for fan (keeps fan running if humidity is still high; uses hysteresis + max hold time).
       - Optional lux-based light gating (use a room illuminance sensor instead of sun position).
 
-    Pair with WITB+ Use the room's effective occupancy sensor:
+    Pair with WITB+ v3.5. Use the room's effective occupancy sensor:
       - binary_sensor.<slug>_occupied_effective
 
     Safety / "don't fight me" rules:
@@ -175,6 +177,47 @@ blueprint:
           default: 00:02:00
           selector:
             duration: null
+    lights_off_verification:
+      name: Lights off verification
+      icon: mdi:timer-refresh
+      description: Retry / verify that lights actually turned off after vacancy (helps when a Zigbee/Z-Wave command is missed).
+      collapsed: true
+      input:
+        lights_off_verify_enabled:
+          name: 'Lights: verify/retry OFF after vacancy'
+          description: After turning lights off, re-check and retry if any target light is still ON (room still vacant).
+          default: true
+          selector:
+            boolean: null
+        lights_off_verify_delay:
+          name: 'Lights: initial verify delay'
+          description: Wait this long after the first OFF command before checking light state.
+          default: 00:00:05
+          selector:
+            duration: null
+        lights_off_verify_retries:
+          name: 'Lights: max retry attempts'
+          description: Number of extra OFF retries if any target light remains ON (0 disables retries).
+          default: 3
+          selector:
+            number:
+              min: 0
+              max: 10
+              step: 1
+              mode: slider
+        lights_off_verify_retry_interval:
+          name: 'Lights: retry interval'
+          description: Delay between OFF retries.
+          default: 00:00:05
+          selector:
+            duration: null
+        lights_off_keep_tag_on_failure:
+          name: 'Lights: keep auto-tag ON if lights still ON after retries'
+          description: If enabled and the automation cannot turn the lights off (after retries), it leaves the auto-tag ON so a later cleanup can try again.
+          default: true
+          selector:
+            boolean: null
+
     light_gating:
       name: Light gating
       icon: mdi:weather-night
@@ -557,6 +600,13 @@ variables:
 
   skip_on_if_any_light_on: !input skip_on_if_any_light_on
 
+  # Vacancy OFF verification (lights)
+  lights_off_verify_enabled: !input lights_off_verify_enabled
+  lights_off_verify_delay: !input lights_off_verify_delay
+  lights_off_verify_retries: !input lights_off_verify_retries
+  lights_off_verify_retry_interval: !input lights_off_verify_retry_interval
+  lights_off_keep_tag_on_failure: !input lights_off_keep_tag_on_failure
+
   override_ok: >-
     {{ override_b == '' or is_state(override_b, 'off') }}
 
@@ -845,6 +895,10 @@ action:
                   - condition: template
                     value_template: "{{ lights_control_enabled and tag_lights_ok_to_off }}"
                 sequence:
+                  - variables:
+                      _lights_off_retries: "{{ lights_off_verify_retries | int(0) }}"
+
+                  # First OFF attempt
                   - choose:
                       - conditions:
                           - condition: template
@@ -870,14 +924,88 @@ action:
                               entity_id: !input lights
                             data:
                               transition: !input transition_off
+
+                  # Verify + retry OFF (optional)
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_off_verify_enabled and ((_lights_off_retries | int(0)) > 0) }}"
+                        sequence:
+                          - delay: !input lights_off_verify_delay
+                          - repeat:
+                              count: "{{ _lights_off_retries | int(0) }}"
+                              sequence:
+                                - condition: template
+                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok and manual_ok }}"
+                                - choose:
+                                    - conditions:
+                                        - condition: template
+                                          value_template: "{{ (lights | length > 0) and (expand(lights) | selectattr('state','eq','on') | list | count > 0) }}"
+                                      sequence:
+                                        - choose:
+                                            - conditions:
+                                                - condition: template
+                                                  value_template: "{{ lights_off_script != '' }}"
+                                              sequence:
+                                                - service: script.turn_on
+                                                  target:
+                                                    entity_id: "{{ lights_off_script }}"
+                                                  data:
+                                                    variables:
+                                                      lights: !input lights
+                                                      transition: !input transition_off
+                                                      is_night: "{{ is_night }}"
+                                                      lux_value: "{{ lux_value }}"
+                                                      lux_threshold: "{{ lux_threshold }}"
+                                                      reason: vacant_lights_off_retry
+                                            - conditions:
+                                                - condition: template
+                                                  value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                                              sequence:
+                                                - service: light.turn_off
+                                                  target:
+                                                    entity_id: !input lights
+                                                  data:
+                                                    transition: !input transition_off
+                                    - conditions:
+                                        - condition: template
+                                          value_template: "{{ (lights | length == 0) and (lights_off_script != '') }}"
+                                      sequence:
+                                        - service: script.turn_on
+                                          target:
+                                            entity_id: "{{ lights_off_script }}"
+                                          data:
+                                            variables:
+                                              lights: !input lights
+                                              transition: !input transition_off
+                                              is_night: "{{ is_night }}"
+                                              lux_value: "{{ lux_value }}"
+                                              lux_threshold: "{{ lux_threshold }}"
+                                              reason: vacant_lights_off_retry_no_state
+                                - delay: !input lights_off_verify_retry_interval
+
+                  # Clear auto-tag only when lights are actually OFF (optional keep-tag on failure)
                   - choose:
                       - conditions:
                           - condition: template
                             value_template: "{{ auto_tag_lights != '' }}"
                         sequence:
-                          - service: input_boolean.turn_off
-                            target:
-                              entity_id: "{{ auto_tag_lights }}"
+                          - variables:
+                              _lights_still_on: >-
+                                {% if lights | length > 0 %}
+                                  {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
+                                {% else %}
+                                  {{ lights_off_keep_tag_on_failure }}
+                                {% endif %}
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ (not _lights_still_on) or (not lights_off_keep_tag_on_failure) }}"
+                                sequence:
+                                  - service: input_boolean.turn_off
+                                    target:
+                                      entity_id: "{{ auto_tag_lights }}"
+
           # Start fan run-on AFTER lights off (recommended behavior)
           - choose:
               - conditions:
