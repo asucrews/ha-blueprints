@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ v3.6 (with input sections)
+  name: WITB+ v3.6.1 (sleep-safe exit marking)
   description: >
     Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
       - 1 motion sensor (PIR)
@@ -163,6 +163,29 @@ blueprint:
             number:
               min: 30
               max: 900
+              unit_of_measurement: seconds
+              mode: slider
+
+        exit_mark_requires_recent_motion:
+          name: Only mark possible-exit when motion is recent
+          description: >
+            Prevents "someone opened the door while I'm asleep" from creating an exit_recent window.
+            When enabled, WITB only records last_exit_door_helper when a door opens while occupied AND
+            motion is currently ON or motion was detected within the window below.
+          default: true
+          selector:
+            boolean: {}
+
+        exit_mark_motion_window_seconds:
+          name: Exit mark motion window (seconds)
+          description: >
+            Maximum age of the last motion ON event to count as "recent" for marking a possible exit.
+            Smaller = safer (less false clears), larger = more tolerant if your PIR misses doorway motion.
+          default: 45
+          selector:
+            number:
+              min: 5
+              max: 300
               unit_of_measurement: seconds
               mode: slider
 
@@ -384,10 +407,22 @@ variables:
     {% endif %}
   seconds_since_door: "{{ (now().timestamp() | int) - (last_door_ts | int) }}"
 
+  # For sleep-safe exit marking: seconds since last motion ON
+  last_motion_ts: >-
+    {% set v = states(last_motion) %}
+    {% if v in ['unknown','unavailable','none',''] %}
+      0
+    {% else %}
+      {{ as_timestamp(v) | int }}
+    {% endif %}
+  seconds_since_motion: "{{ (now().timestamp() | int) - (last_motion_ts | int) }}"
+
 
   # For "door can close after leaving": timestamp when a door OPENED while already occupied
   last_exit: !input last_exit_door_helper
   exit_win_s: !input exit_recent_window_seconds
+  exit_mark_require_motion: !input exit_mark_requires_recent_motion
+  exit_mark_motion_s: !input exit_mark_motion_window_seconds
   exit_enabled: "{{ last_exit is string and last_exit|length > 0 }}"
   last_exit_ts: >-
     {% if exit_enabled %}
@@ -507,6 +542,11 @@ action:
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
+          - condition: template
+            value_template: >-
+              {{ (not exit_mark_require_motion)
+                  or is_state(motion, 'on')
+                  or ((seconds_since_motion | int(999999)) <= (exit_mark_motion_s | int(0))) }}
         sequence:
           - service: input_datetime.set_datetime
             target:
@@ -712,9 +752,9 @@ action:
             entity_id: !input occupancy_helper
             state: "on"
           - condition: template
-            value_template: "{{ any_transition_open or exit_recent }}"
+            value_template: "{{ any_transition_open or is_state(seal, 'on') }}"
           - condition: template
-            value_template: "{{ (not sealed_now) or exit_recent }}"
+            value_template: "{{ not sealed_now }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
