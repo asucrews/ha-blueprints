@@ -1,0 +1,145 @@
+blueprint:
+  name: Bathroom Fan From Humidity Delta
+  description: >
+    Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
+    and OFF when it falls below a lower threshold for a while (hysteresis),
+    with optional minimum runtime and a failsafe max runtime.
+  domain: automation
+  author: asucrews
+  homeassistant:
+    min_version: 2024.6.0
+  input:
+    delta_sensor:
+      name: Humidity delta sensor (%)
+      selector:
+        entity:
+          domain: sensor
+
+    fan_entity:
+      name: Exhaust fan entity (fan or switch)
+      selector:
+        entity:
+          filter:
+            - domain: fan
+            - domain: switch
+
+    on_threshold:
+      name: Turn ON when delta ≥ (%)
+      default: 8
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 0.5
+          unit_of_measurement: "%"
+
+    on_for_seconds:
+      name: Delta must stay high for (seconds)
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 1800
+          step: 10
+          unit_of_measurement: seconds
+
+    off_threshold:
+      name: Turn OFF when delta ≤ (%)
+      default: 3
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          unit_of_measurement: "%"
+
+    off_for_seconds:
+      name: Delta must stay low for (seconds)
+      default: 600
+      selector:
+        number:
+          min: 0
+          max: 7200
+          step: 10
+          unit_of_measurement: seconds
+
+    min_run_seconds:
+      name: Minimum fan runtime (seconds)
+      default: 300
+      selector:
+        number:
+          min: 0
+          max: 7200
+          step: 10
+          unit_of_measurement: seconds
+
+    max_run_seconds:
+      name: Failsafe max runtime (seconds)
+      default: 5400
+      selector:
+        number:
+          min: 300
+          max: 21600
+          step: 60
+          unit_of_measurement: seconds
+
+mode: single
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input delta_sensor
+    above: !input on_threshold
+    for:
+      seconds: !input on_for_seconds
+    id: turn_on
+
+  - trigger: numeric_state
+    entity_id: !input delta_sensor
+    below: !input off_threshold
+    for:
+      seconds: !input off_for_seconds
+    id: turn_off
+
+  - trigger: state
+    entity_id: !input fan_entity
+    to: "on"
+    for:
+      seconds: !input max_run_seconds
+    id: failsafe
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: turn_on
+          - condition: state
+            entity_id: !input fan_entity
+            state: "off"
+        sequence:
+          - action: homeassistant.turn_on
+            target:
+              entity_id: !input fan_entity
+
+      - conditions:
+          - condition: trigger
+            id: turn_off
+          - condition: state
+            entity_id: !input fan_entity
+            state: "on"
+          - condition: state
+            entity_id: !input fan_entity
+            state: "on"
+            for:
+              seconds: !input min_run_seconds
+        sequence:
+          - action: homeassistant.turn_off
+            target:
+              entity_id: !input fan_entity
+
+      - conditions:
+          - condition: trigger
+            id: failsafe
+        sequence:
+          - action: homeassistant.turn_off
+            target:
+              entity_id: !input fan_entity

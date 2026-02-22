@@ -1,0 +1,44 @@
+blueprint:
+  name: Humidity Delta From Baseline
+  description: >
+    Creates a template SENSOR whose state is (humidity - baseline) in %.
+    Designed to pair with "Adaptive Humidity Baseline" blueprint.
+  domain: template
+  author: asucrews
+  homeassistant:
+    min_version: 2024.6.0
+  input:
+    humidity_sensor:
+      name: Humidity sensor
+      selector:
+        entity:
+          domain: sensor
+    baseline_sensor:
+      name: Baseline sensor (from Adaptive Humidity Baseline)
+      selector:
+        entity:
+          domain: sensor
+    clamp_floor:
+      name: Clamp floor (don’t go below this)
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 50
+          step: 0.1
+          unit_of_measurement: "%"
+
+variables:
+  h: !input humidity_sensor
+  b: !input baseline_sensor
+  floor: !input clamp_floor
+
+sensor:
+  unit_of_measurement: "%"
+  state_class: measurement
+  availability: >
+    {{ is_number(states(h)) and is_number(states(b)) }}
+  state: >-
+    {% set cur = states(h) | float(0) %}
+    {% set base = states(b) | float(cur) %}
+    {{ [ (cur - base), floor ] | max | round(1) }}
