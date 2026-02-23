@@ -1,0 +1,79 @@
+---
+room_witb_profile:
+  template:
+    # --------------------------------------------------------------------------
+    # (A) Last SBM Reset Tracker (timestamp sensor)
+    # From blueprint: "WITB Switch Light Profiles — Last SBM Reset Tracker"
+    # --------------------------------------------------------------------------
+    - trigger:
+        - platform: event
+          event_type: witb_switch_light_profile_sbm_reset
+          event_data:
+            # IMPORTANT: set this to your actual switch/light entity that fires the event
+            switch_entity: light.room_slug_vzw31_sn
+      sensor:
+        - name: "Room VZW31 Last SBM Reset"
+          unique_id: room_slug_vzw31_last_sbm_reset
+          device_class: timestamp
+          icon: mdi:clock-outline
+          state: "{{ now().isoformat() }}"
+
+    # --------------------------------------------------------------------------
+    # (B) SBM Cooldown Active (binary_sensor)
+    # From blueprint: "WITB Switch Light Profiles — SBM Cooldown Active"
+    # --------------------------------------------------------------------------
+    - trigger:
+        - platform: state
+          entity_id: sensor.room_slug_vzw31_last_sbm_reset
+        - platform: time_pattern
+          minutes: "/1"
+      binary_sensor:
+        - name: "Room VZW31 SBM Cooldown Active"
+          unique_id: room_slug_vzw31_sbm_cooldown_active
+          icon: mdi:timer-sand
+          state: >-
+            {% set s = states('sensor.room_slug_vzw31_last_sbm_reset') %}
+            {% set cd = states('input_number.room_slug_sbm_cooldown_seconds') | int(0) %}
+            {% if cd <= 0 %}
+              false
+            {% elif s in ['unknown','unavailable',''] %}
+              false
+            {% else %}
+              {% set dt = as_datetime(s) %}
+              {% if dt is none %}
+                false
+              {% else %}
+                {{ (as_timestamp(now()) - as_timestamp(dt)) < cd }}
+              {% endif %}
+            {% endif %}
+
+    # --------------------------------------------------------------------------
+    # (C) SBM Cooldown Remaining (sensor, seconds)
+    # From blueprint: "WITB Switch Light Profiles — SBM Cooldown Remaining"
+    # --------------------------------------------------------------------------
+    - trigger:
+        - platform: state
+          entity_id: sensor.room_slug_vzw31_last_sbm_reset
+        - platform: time_pattern
+          minutes: "/1"
+      sensor:
+        - name: "Room VZW31 SBM Cooldown Remaining"
+          unique_id: room_slug_vzw31_sbm_cooldown_remaining
+          icon: mdi:timer-sand
+          unit_of_measurement: s
+          state: >-
+            {% set s = states('sensor.room_slug_vzw31_last_sbm_reset') %}
+            {% set cd = states('input_number.room_slug_sbm_cooldown_seconds') | int(0) %}
+            {% if cd <= 0 %}
+              0
+            {% elif s in ['unknown','unavailable',''] %}
+              0
+            {% else %}
+              {% set dt = as_datetime(s) %}
+              {% if dt is none %}
+                0
+              {% else %}
+                {% set elapsed = (as_timestamp(now()) - as_timestamp(dt)) | int(0) %}
+                {{ [0, (cd - elapsed)] | max }}
+              {% endif %}
+            {% endif %}

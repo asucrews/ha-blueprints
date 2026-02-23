@@ -1,4 +1,3 @@
-
 input_boolean:
   room_slug_occupied:
     name: "Room Friendly Name Occupied"
@@ -31,8 +30,8 @@ input_datetime:
     has_date: true
     has_time: true
 
-  room_last_exit_door:
-    name: "Room Last Exit Door"
+  room_slug_last_exit_door:
+    name: "Room Friendly Name Last Exit Door"
     has_date: true
     has_time: true
 

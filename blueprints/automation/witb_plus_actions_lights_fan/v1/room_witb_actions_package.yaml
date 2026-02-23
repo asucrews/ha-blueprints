@@ -4,10 +4,12 @@ room_witb_actions:
     room_slug_auto_lights_on:
       name: "Room auto lights on (tag)"
       icon: mdi:lightbulb-auto
+      initial: false
 
     room_slug_auto_fan_on:
       name: "Room auto fan on (tag)"
       icon: mdi:fan-auto
+      initial: false
 
   timer:
     room_slug_actions_cooldown:
@@ -23,66 +25,95 @@ room_witb_actions:
   input_datetime:
     room_slug_actions_night_start:
       name: "Room night start"
+      icon: mdi:weather-night
       has_date: false
       has_time: true
+      initial: "22:00:00"
 
     room_slug_actions_night_end:
       name: "Room night end"
+      icon: mdi:weather-sunny
       has_date: false
       has_time: true
+      initial: "06:00:00"
 
   input_number:
     room_slug_actions_brightness_day_pct:
       name: "Room brightness day %"
+      icon: mdi:brightness-6
+      unit_of_measurement: "%"
       min: 1
       max: 100
       step: 1
       mode: slider
+      initial: 60
 
     room_slug_actions_brightness_night_pct:
       name: "Room brightness night %"
+      icon: mdi:brightness-4
+      unit_of_measurement: "%"
       min: 1
       max: 100
       step: 1
       mode: slider
+      initial: 10
 
     room_slug_actions_fan_pct_day:
       name: "Room fan day %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
       min: 0
       max: 100
       step: 5
       mode: slider
+      initial: 0
 
     room_slug_actions_fan_pct_night:
       name: "Room fan night %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
       min: 0
       max: 100
       step: 5
       mode: slider
+      initial: 0
+
     room_slug_actions_lux_threshold:
       name: "Room lux threshold"
+      icon: mdi:weather-sunny-alert
+      unit_of_measurement: "lx"
       min: 0
-      max: 500
+      max: 5000
       step: 1
       mode: slider
+      initial: 30
 
     room_slug_actions_humidity_high:
       name: "Room humidity high %"
+      icon: mdi:water-percent
+      unit_of_measurement: "%"
       min: 30
       max: 100
       step: 1
       mode: slider
+      initial: 65
 
     room_slug_actions_humidity_low:
       name: "Room humidity low %"
+      icon: mdi:water-percent
+      unit_of_measurement: "%"
       min: 30
       max: 100
       step: 1
       mode: slider
+      initial: 55
 
     room_slug_actions_fan_on_delay_seconds:
       name: "Room fan ON delay (sec)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "s"
       min: 0
       max: 180
       step: 5
       mode: slider
+      initial: 20

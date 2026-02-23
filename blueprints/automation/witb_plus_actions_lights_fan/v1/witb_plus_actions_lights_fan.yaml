@@ -3,11 +3,13 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan (single automation) v1.7
+  name: WITB+ Actions - Lights + Fan (single automation) v1.8.0
   description: |
-    Version: 1.7
+    Automation Version: 1.8.0
+    Version: 1.8
       Adds vacancy OFF verification+retry (fixes missed light.turn_off commands).
       Delays clearing auto-tag until lights are confirmed OFF (optional keep-tag-on-failure).
+      Adds optional helper overrides for night start/end (input_datetime) and brightness/fan % (input_number).
       Adds optional Light ON/OFF script hooks (per-room bulb+switch logic).
       Adds input sections (requires Home Assistant 2024.6.0+).
       Adds "tune from dashboard" support:
@@ -286,6 +288,34 @@ blueprint:
           default: 06:00:00
           selector:
             time: null
+        night_start_helper:
+          name: Night start helper (optional)
+          description: Optional input_datetime (time-only) that overrides night_start at runtime (tune per room in dashboards).
+          default: ''
+          selector:
+            entity:
+              domain: input_datetime
+        night_end_helper:
+          name: Night end helper (optional)
+          description: Optional input_datetime (time-only) that overrides night_end at runtime (tune per room in dashboards).
+          default: ''
+          selector:
+            entity:
+              domain: input_datetime
+        brightness_day_helper:
+          name: 'Lights: day brightness helper (optional input_number)'
+          description: Optional input_number (1-100) that overrides brightness_day_pct at runtime.
+          default: ''
+          selector:
+            entity:
+              domain: input_number
+        brightness_night_helper:
+          name: 'Lights: night brightness helper (optional input_number)'
+          description: Optional input_number (1-100) that overrides brightness_night_pct at runtime.
+          default: ''
+          selector:
+            entity:
+              domain: input_number
         brightness_day_pct:
           name: 'Lights: day brightness %'
           description: Brightness percent used outside the night window (1-100).
@@ -433,6 +463,20 @@ blueprint:
               min: 0
               max: 100
               mode: slider
+        fan_percentage_day_helper:
+          name: 'Fan: day percentage helper (optional input_number)'
+          description: Optional input_number (0-100) that overrides fan_percentage_day at runtime.
+          default: ''
+          selector:
+            entity:
+              domain: input_number
+        fan_percentage_night_helper:
+          name: 'Fan: night percentage helper (optional input_number)'
+          description: Optional input_number (0-100) that overrides fan_percentage_night at runtime.
+          default: ''
+          selector:
+            entity:
+              domain: input_number
         fan_preset_day:
           name: 'Fan: day preset_mode (optional)'
           description: 'If using fan_entity: preset_mode string to set after turning on. Leave blank to skip.'
@@ -564,10 +608,14 @@ variables:
 
   use_night_profile: !input use_night_profile
   night_start: !input night_start
+  night_start_helper: !input night_start_helper
   night_end: !input night_end
+  night_end_helper: !input night_end_helper
 
-  brightness_day: !input brightness_day_pct
-  brightness_night: !input brightness_night_pct
+  brightness_day_static: !input brightness_day_pct
+  brightness_day_helper: !input brightness_day_helper
+  brightness_night_static: !input brightness_night_pct
+  brightness_night_helper: !input brightness_night_helper
 
   # Fan timing and behavior
   fan_turn_on_on_occupy: !input fan_turn_on_on_occupy
@@ -589,8 +637,10 @@ variables:
   humidity_hold_max: !input humidity_hold_max
 
   fan_use_night_profile: !input fan_use_night_profile
-  fan_pct_day: !input fan_percentage_day
-  fan_pct_night: !input fan_percentage_night
+  fan_pct_day_static: !input fan_percentage_day
+  fan_pct_day_helper: !input fan_percentage_day_helper
+  fan_pct_night_static: !input fan_percentage_night
+  fan_pct_night_helper: !input fan_percentage_night_helper
   fan_preset_day: !input fan_preset_day
   fan_preset_night: !input fan_preset_night
   fan_skip_on_if_already_on: !input fan_skip_on_if_already_on
@@ -623,8 +673,10 @@ variables:
     {{ is_state('sun.sun', 'below_horizon') }}
 
   is_night: >-
-    {% set start = today_at(night_start) %}
-    {% set end = today_at(night_end) %}
+    {% set start_t = (states(night_start_helper) if night_start_helper != '' else night_start) %}
+    {% set end_t = (states(night_end_helper) if night_end_helper != '' else night_end) %}
+    {% set start = today_at(start_t) %}
+    {% set end = today_at(end_t) %}
     {% if start <= end %}
       {{ start <= now() < end }}
     {% else %}
@@ -653,17 +705,21 @@ variables:
     {% endif %}
 
   light_brightness_pct: >-
+    {% set day = (states(brightness_day_helper) | int(brightness_day_static)) if brightness_day_helper != '' else (brightness_day_static | int) %}
+    {% set night = (states(brightness_night_helper) | int(brightness_night_static)) if brightness_night_helper != '' else (brightness_night_static | int) %}
     {% if use_night_profile and is_night %}
-      {{ brightness_night }}
+      {{ night }}
     {% else %}
-      {{ brightness_day }}
+      {{ day }}
     {% endif %}
 
   fan_pct: >-
+    {% set day = (states(fan_pct_day_helper) | int(fan_pct_day_static)) if fan_pct_day_helper != '' else (fan_pct_day_static | int) %}
+    {% set night = (states(fan_pct_night_helper) | int(fan_pct_night_static)) if fan_pct_night_helper != '' else (fan_pct_night_static | int) %}
     {% if fan_use_night_profile and is_night %}
-      {{ fan_pct_night }}
+      {{ night }}
     {% else %}
-      {{ fan_pct_day }}
+      {{ day }}
     {% endif %}
 
   fan_preset: >-
