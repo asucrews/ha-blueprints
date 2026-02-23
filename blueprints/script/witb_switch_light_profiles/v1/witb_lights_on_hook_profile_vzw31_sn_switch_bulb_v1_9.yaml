@@ -14,14 +14,15 @@ blueprint:
       - set to disabled (0)
       - then set to enabled (1)
 
-    v1.8 adds:
+    v1.9 adds:
       - Verify + retry loop for command reliability (handles "missed" ON/OFF)
       - Safer SBM reset by forcing the switch output ON before/after toggling
-      - Optional cooldown for SBM resets (requires a tracker entity: input_datetime or template sensor)
+      - Optional cooldown for SBM resets (requires input_datetime helper OR template timestamp sensor)
+      - Fires an event for template trackers when SBM reset occurs
       - Optional local protection enforcement (select entity + option)
       - Notification hygiene using notification_id (updates instead of spamming)
   domain: script
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_8.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_9.yaml
   homeassistant:
     min_version: 2024.6.0
 
@@ -191,17 +192,6 @@ fields:
         step: 1
         unit_of_measurement: s
 
-
-sbm_reset_event_type:
-  name: SBM reset event type (for template tracker)
-  description: >
-    Event type fired when this script performs an SBM reset (used to update a template-based tracker sensor).
-    Default: witb_switch_light_profile_sbm_reset
-  required: false
-  default: "witb_switch_light_profile_sbm_reset"
-  selector:
-    text: {}
-
   ping_retry_delay_s:
     name: Delay between pings (seconds)
     description: "Pause between ping attempts."
@@ -309,18 +299,27 @@ sbm_reset_event_type:
 
   # SBM reset cooldown (optional; needs a helper to store last reset time)
   sbm_last_reset_helper:
-    name: SBM last reset tracker entity (input_datetime or sensor, optional)
+    name: SBM last reset helper (input_datetime or timestamp sensor, optional)
     description: >
-      Optional entity used to track the last time this script performed an SBM reset.
-      - If it is an input_datetime, the script will set it directly.
-      - Otherwise, the script will fire an event (sbm_reset_event_type) and you can use a template tracker sensor.
+      Optional entity that stores the last time this script performed an SBM reset.
+      - If it's an input_datetime.* entity, this script will write to it directly.
+      - Otherwise (e.g., a template timestamp sensor), this script will fire an event
+        so a template blueprint can update it.
       When provided, sbm_reset_cooldown_s will be enforced.
     required: false
     default: ""
     selector:
-      entity:
-        domain: input_datetime
-        multiple: false
+      entity: {}
+
+  sbm_reset_event_type:
+    name: SBM reset event type (for template tracker)
+    description: >
+      Event type fired by this script whenever it performs an SBM reset. Use the same
+      event type in the template tracker blueprint.
+    required: false
+    default: "witb_switch_light_profile_sbm_reset"
+    selector:
+      text: {}
 
   sbm_reset_cooldown_s:
     name: SBM reset cooldown (seconds)
@@ -797,28 +796,32 @@ sequence:
             continue_on_error: true
 
           - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _last_reset_entity | length > 0 and _last_reset_entity.startswith('input_datetime.') }}"
+                sequence:
+                  - service: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ _last_reset_entity }}"
+                    data:
+                      datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _last_reset_entity | length > 0 and (not _last_reset_entity.startswith('input_datetime.')) }}"
+                sequence:
+                  - service: homeassistant.event
+                    data:
+                      event_type: "{{ _sbm_reset_event_type }}"
+                      event_data:
+                        switch_entity: "{{ vzw31_entity }}"
+                        profile: "vzw31_sn_switch_bulb"
+                        action: "on"
+            default: []
 
-- conditions:
-    - condition: template
-      value_template: "{{ _last_reset_entity | length > 0 and _last_reset_entity.startswith('input_datetime.') }}"
-  sequence:
-    - service: input_datetime.set_datetime
-      target:
-        entity_id: "{{ _last_reset_entity }}"
-      data:
-        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
-- conditions:
-    - condition: template
-      value_template: "{{ _last_reset_entity | length > 0 and (not _last_reset_entity.startswith('input_datetime.')) }}"
-  sequence:
-    - service: homeassistant.event
-      data:
-        event_type: "{{ _sbm_reset_event_type }}"
-        event_data:
-          switch_entity: "{{ vzw31_entity }}"
-          profile: "vzw31_sn_switch_bulb"
-          action: "on"
-          tracker_entity: "{{ _last_reset_entity }}"
+          - delay:
+              milliseconds: "{{ _power_on_delay_ms }}"
+
+          - choose:
               - conditions:
                   - condition: template
                     value_template: "{{ _availability_timeout_s > 0 }}"
