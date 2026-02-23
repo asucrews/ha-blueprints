@@ -1,5 +1,5 @@
 blueprint:
-  name: Bathroom Fan From Humidity Delta
+  name: Bathroom Fan From Humidity Delta v1.0.1
   description: >
     Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
     and OFF when it falls below a lower threshold for a while (hysteresis),
@@ -22,7 +22,8 @@ blueprint:
           filter:
             - domain: fan
             - domain: switch
-
+            - domain: light
+          
     on_threshold:
       name: Turn ON when delta ≥ (%)
       default: 8
