@@ -1,5 +1,16 @@
 ---
 room_witb_profile:
+  input_number:
+    room_slug_sbm_cooldown_seconds:
+      name: "Room SBM cooldown (s)"
+      icon: mdi:timer-sand
+      unit_of_measurement: s
+      min: 0
+      max: 86400
+      step: 1
+      mode: box
+      initial: 600
+
   template:
     # --------------------------------------------------------------------------
     # (A) Last SBM Reset Tracker (timestamp sensor)
