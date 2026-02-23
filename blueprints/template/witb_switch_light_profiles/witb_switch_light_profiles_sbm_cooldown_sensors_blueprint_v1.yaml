@@ -1,0 +1,94 @@
+blueprint:
+  name: "WITB Switch Light Profiles — SBM Reset Cooldown Indicators"
+  description: >
+    Creates 2 template entities for dashboards/debugging:
+      - a binary_sensor indicating whether SBM reset cooldown is active
+      - a sensor showing remaining cooldown seconds
+
+    Point it at the "Last SBM reset" tracker sensor (typically created from the
+    companion tracker blueprint).
+
+    NOTE: Provide a unique name_prefix per room/switch to avoid entity-id collisions.
+  domain: template
+  input:
+    name_prefix:
+      name: Name prefix
+      description: "Example: 'Office VZW31' (used to keep entity names unique)."
+      default: ""
+      selector:
+        text: {}
+    last_reset_sensor:
+      name: Last SBM reset tracker sensor
+      selector:
+        entity:
+          domain: sensor
+    cooldown_seconds:
+      name: Cooldown (seconds)
+      default: 600
+      selector:
+        number:
+          min: 0
+          max: 7200
+          mode: slider
+          step: 30
+          unit_of_measurement: s
+
+variables:
+  name_prefix: !input name_prefix
+  last_reset_sensor: !input last_reset_sensor
+  cooldown_seconds: !input cooldown_seconds
+
+triggers:
+  - trigger: state
+    entity_id: !input last_reset_sensor
+  - trigger: time_pattern
+    minutes: "/1"
+
+binary_sensor:
+  - name: >-
+      {% if name_prefix | length > 0 %}
+        {{ name_prefix }} SBM reset cooldown active
+      {% else %}
+        SBM reset cooldown active
+      {% endif %}
+    icon: mdi:timer-sand
+    state: >-
+      {% set s = states(last_reset_sensor) %}
+      {% if cooldown_seconds | int(0) <= 0 %}
+        false
+      {% elif s in ['unknown','unavailable',''] %}
+        false
+      {% else %}
+        {% set dt = as_datetime(s) %}
+        {% if dt is none %}
+          false
+        {% else %}
+          {{ (as_timestamp(now()) - as_timestamp(dt)) < (cooldown_seconds | int(0)) }}
+        {% endif %}
+      {% endif %}
+
+sensor:
+  - name: >-
+      {% if name_prefix | length > 0 %}
+        {{ name_prefix }} SBM reset cooldown remaining
+      {% else %}
+        SBM reset cooldown remaining
+      {% endif %}
+    icon: mdi:timer-sand
+    unit_of_measurement: "s"
+    state: >-
+      {% set s = states(last_reset_sensor) %}
+      {% set cd = cooldown_seconds | int(0) %}
+      {% if cd <= 0 %}
+        0
+      {% elif s in ['unknown','unavailable',''] %}
+        0
+      {% else %}
+        {% set dt = as_datetime(s) %}
+        {% if dt is none %}
+          0
+        {% else %}
+          {% set elapsed = (as_timestamp(now()) - as_timestamp(dt)) | int(0) %}
+          {{ [0, (cd - elapsed)] | max }}
+        {% endif %}
+      {% endif %}

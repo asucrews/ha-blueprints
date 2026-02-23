@@ -1,0 +1,36 @@
+blueprint:
+  name: "WITB Switch Light Profiles — Last SBM Reset Tracker"
+  description: >
+    Creates a trigger-based timestamp sensor that records the last time a WITB
+    switch-light profile performed a Smart Bulb Mode (SBM) power reset.
+
+    It updates when an event is fired (default: witb_switch_light_profile_sbm_reset)
+    with event_data.switch_entity matching the configured switch entity.
+
+    Pair this with the VZW31-SN ON/OFF hook scripts (v1.9+) which fire that event
+    whenever they perform an SBM reset.
+  domain: template
+  input:
+    switch_entity:
+      name: Switch entity (VZW31-SN light/switch entity)
+      description: "Entity id of the Inovelli switch (often a light.* entity)."
+      selector:
+        entity: {}
+    event_type:
+      name: Event type to listen for
+      description: "Event type fired by the hook script when an SBM reset occurs."
+      default: "witb_switch_light_profile_sbm_reset"
+      selector:
+        text: {}
+
+triggers:
+  - trigger: event
+    event_type: !input event_type
+    event_data:
+      switch_entity: !input switch_entity
+
+sensor:
+  - name: "Last SBM reset"
+    device_class: timestamp
+    state: "{{ now().isoformat() }}"
+    icon: mdi:clock-outline
