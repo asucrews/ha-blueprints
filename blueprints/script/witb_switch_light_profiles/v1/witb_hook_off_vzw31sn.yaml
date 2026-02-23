@@ -1,5 +1,5 @@
 blueprint:
-  name: 'WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb) v2.0 (inputs)'
+  name: 'WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb) v2.1 (inputs)'
   description: "Hook script blueprint for WITB+ Actions when you have smart bulb(s) behind an Inovelli VZW31-SN Z-Wave dimmer.\n\
     WITB calls this script and passes:\n  - lights (list of light entity_ids)\n  - transition (seconds, optional)\n  - is_night,\
     \ lux_value, lux_threshold, reason (optional)\n\nThis profile can \"power reset\" the bulbs by toggling Inovelli Smart\
@@ -7,10 +7,10 @@ blueprint:
     \ for command reliability (handles \"missed\" ON/OFF)\n  - Safer SBM reset by forcing the switch output ON before/after\
     \ toggling\n  - Optional cooldown for SBM resets (requires input_datetime helper OR template timestamp sensor)\n  - Fires\
     \ an event for template trackers when SBM reset occurs\n  - Optional local protection enforcement (select entity + option)\n\
-    \  - Notification hygiene using notification_id (updates instead of spamming)\n\n\nv2.0 refactor: adds blueprint inputs\
+    \  - Notification hygiene using notification_id (updates instead of spamming)\n\n\nv2.1 refactor: adds blueprint inputs\
     \ (grouped sections), and lets you choose Prefer runtime vs Prefer inputs. No need to change WITB/WITB Actions automations.\n"
   domain: script
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v2/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v2_0.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v2/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v2_1.yaml
   homeassistant:
     min_version: 2024.6.0
   input:
@@ -35,7 +35,6 @@ blueprint:
             target for zwave_js.set_config_parameter (Smart Bulb Mode toggle).
 
             '
-          required: true
           selector:
             entity:
               integration: zwave_js
@@ -43,7 +42,6 @@ blueprint:
         lights:
           name: Lights to control
           description: List of light entity_ids to turn off. (Passed by WITB+ Actions)
-          required: false
           selector:
             entity:
               domain: light
@@ -52,7 +50,6 @@ blueprint:
         transition:
           name: Transition (seconds)
           description: Transition time in seconds. Optional; defaults to 0.
-          required: false
           selector:
             number:
               min: 0
@@ -67,14 +64,12 @@ blueprint:
         reset_power_if_unavailable:
           name: Reset power if bulbs unavailable
           description: If enabled, toggles Smart Bulb Mode OFF->ON when any bulb is unavailable/unknown.
-          required: false
           default: true
           selector:
             boolean: {}
         ensure_smart_bulb_mode_enabled:
           name: Ensure Smart Bulb Mode enabled
           description: If enabled, sets Smart Bulb Mode to enabled (idempotent).
-          required: false
           default: true
           selector:
             boolean: {}
@@ -83,7 +78,6 @@ blueprint:
           description: "Optional entity that stores the last time this script performed an SBM reset. - If it's an input_datetime.*\
             \ entity, this script will write to it directly. - Otherwise (e.g., a template timestamp sensor), this script\
             \ will fire an event\n  so a template blueprint can update it.\nWhen provided, sbm_reset_cooldown_s will be enforced.\n"
-          required: false
           default: ''
           selector:
             entity: {}
@@ -93,14 +87,12 @@ blueprint:
             template tracker blueprint.
 
             '
-          required: false
           default: witb_switch_light_profile_sbm_reset
           selector:
             text: {}
         sbm_reset_cooldown_s:
           name: SBM reset cooldown (seconds)
           description: Minimum time between SBM resets (only enforced when sbm_last_reset_helper is set).
-          required: false
           default: 600
           selector:
             number:
@@ -112,7 +104,6 @@ blueprint:
         smart_bulb_mode_param:
           name: Smart Bulb Mode parameter number
           description: Inovelli Smart Bulb Mode is typically Parameter 52.
-          required: false
           default: 52
           selector:
             number:
@@ -123,7 +114,6 @@ blueprint:
         smart_bulb_mode_disabled_value:
           name: Smart Bulb Mode disabled value
           description: Usually 0.
-          required: false
           default: 0
           selector:
             number:
@@ -134,7 +124,6 @@ blueprint:
         smart_bulb_mode_enabled_value:
           name: Smart Bulb Mode enabled value
           description: Usually 1.
-          required: false
           default: 1
           selector:
             number:
@@ -145,7 +134,6 @@ blueprint:
         sbm_toggle_delay_ms:
           name: Smart Bulb Mode toggle delay (ms)
           description: Delay between disabling and enabling Smart Bulb Mode.
-          required: false
           default: 300
           selector:
             number:
@@ -184,7 +172,6 @@ blueprint:
             we''ll treat state "dead" as not reachable.
 
             '
-          required: false
           default: ''
           selector:
             entity:
@@ -197,7 +184,6 @@ blueprint:
             deprecated zwave_js.ping service.
 
             '
-          required: false
           default: ''
           selector:
             entity:
@@ -207,7 +193,6 @@ blueprint:
         ping_attempts:
           name: Ping attempts
           description: How many times to press the ping button (harmless if already reachable).
-          required: false
           default: 2
           selector:
             number:
@@ -218,7 +203,6 @@ blueprint:
         ping_timeout_s:
           name: Ping wait timeout (seconds)
           description: How long to wait after each ping for the device to become reachable.
-          required: false
           default: 8
           selector:
             number:
@@ -230,7 +214,6 @@ blueprint:
         ping_retry_delay_s:
           name: Delay between pings (seconds)
           description: Pause between ping attempts.
-          required: false
           default: 1
           selector:
             number:
@@ -242,7 +225,6 @@ blueprint:
         power_on_delay_ms:
           name: Post-toggle delay (ms)
           description: Delay after toggling Smart Bulb Mode before checking bulbs / turning off lights.
-          required: false
           default: 250
           selector:
             number:
@@ -254,7 +236,6 @@ blueprint:
         availability_timeout_s:
           name: Availability wait timeout (seconds)
           description: How long to wait for bulbs to return from unavailable/unknown after the toggle.
-          required: false
           default: 10
           selector:
             number:
@@ -269,7 +250,6 @@ blueprint:
             report ''available'' before they''re ready.
 
             '
-          required: false
           default: 750
           selector:
             number:
@@ -281,14 +261,12 @@ blueprint:
         recheck_enabled:
           name: Recheck loop enabled
           description: If enabled, re-check bulbs after the initial attempt and turn off any that recover.
-          required: false
           default: true
           selector:
             boolean: {}
         recheck_interval_s:
           name: Recheck interval (seconds)
           description: Time between rechecks.
-          required: false
           default: 10
           selector:
             number:
@@ -300,7 +278,6 @@ blueprint:
         recheck_attempts:
           name: Recheck attempts
           description: How many times to recheck (total window = interval * attempts). Set 0 to disable.
-          required: false
           default: 6
           selector:
             number:
@@ -314,21 +291,18 @@ blueprint:
             initial OFF attempt (and optional Smart Bulb Mode reset).
 
             '
-          required: false
           default: true
           selector:
             boolean: {}
         verify_enabled:
           name: Verify & retry enabled
           description: If enabled, verify lights reached the desired state and retry a few times.
-          required: false
           default: true
           selector:
             boolean: {}
         verify_attempts:
           name: Verify attempts
           description: How many verification retries to run after the initial command.
-          required: false
           default: 3
           selector:
             number:
@@ -339,7 +313,6 @@ blueprint:
         verify_delay_ms:
           name: Verify delay (ms)
           description: Delay between verification retries.
-          required: false
           default: 600
           selector:
             number:
@@ -355,13 +328,11 @@ blueprint:
       input:
         notify_enabled:
           name: Enable notifications
-          required: false
           default: true
           selector:
             boolean: {}
         notify_mode:
           name: Notification mode
-          required: false
           default: persistent
           selector:
             select:
@@ -376,13 +347,11 @@ blueprint:
         notify_service:
           name: Notify service (optional)
           description: Full service name like notify.mobile_app_your_phone. Used when notify_mode=notify/both.
-          required: false
           default: ''
           selector:
             text: {}
         notify_prefix:
           name: Notification title prefix
-          required: false
           default: WITB
           selector:
             text: {}
@@ -392,7 +361,6 @@ blueprint:
             a unique value per room/script if you don''t want rooms to overwrite each other.
 
             '
-          required: false
           default: witb_vzw31_sn_switch_bulb_off
           selector:
             text: {}
@@ -413,7 +381,6 @@ blueprint:
             the wall paddle from cutting power / changing level.
 
             '
-          required: false
           default: false
           selector:
             boolean: {}
@@ -423,7 +390,6 @@ blueprint:
             include "Unprotected" and "No operation possible".
 
             '
-          required: false
           default: ''
           selector:
             entity:
@@ -436,7 +402,6 @@ blueprint:
             possible".
 
             '
-          required: false
           default: ''
           selector:
             text: {}

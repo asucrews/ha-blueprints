@@ -1,0 +1,161 @@
+# Package: Humidity baseline + delta (templated)
+#
+# Tokens replaced by generator:
+#   - room_slug
+#   - Room Friendly Name
+#   - __HUMIDITY_SENSOR__
+#   - __FAN_ENTITY__
+#
+# Notes:
+# - Helpers are optional. If you remove them, templates still work using defaults.
+# - Baseline updates on humidity changes, fan changes, and every 5 minutes.
+# - Delta updates on humidity or baseline changes.
+#
+room_slug_humidity:
+  # --- BEGIN helpers ---
+  input_boolean:
+    room_slug_humidity_freeze_while_fan_on:
+      name: "Room Friendly Name Humidity Freeze While Fan On"
+      icon: mdi:snowflake
+
+  input_number:
+    room_slug_humidity_big_rise_freeze:
+      name: "Room Friendly Name Humidity Big Rise Freeze"
+      min: 0.0
+      max: 20.0
+      step: 0.1
+      unit_of_measurement: "%"
+      mode: box
+      icon: mdi:arrow-up-bold
+
+    room_slug_humidity_settle_band:
+      name: "Room Friendly Name Humidity Settle Band"
+      min: 0.0
+      max: 10.0
+      step: 0.1
+      unit_of_measurement: "%"
+      mode: box
+      icon: mdi:approximately-equal
+
+    room_slug_humidity_alpha_up:
+      name: "Room Friendly Name Humidity Alpha Up"
+      min: 0.0
+      max: 1.0
+      step: 0.01
+      mode: box
+      icon: mdi:trending-up
+
+    room_slug_humidity_alpha_down:
+      name: "Room Friendly Name Humidity Alpha Down"
+      min: 0.0
+      max: 1.0
+      step: 0.01
+      mode: box
+      icon: mdi:trending-down
+
+    room_slug_humidity_clamp_min:
+      name: "Room Friendly Name Humidity Clamp Min"
+      min: 0
+      max: 100
+      step: 1
+      unit_of_measurement: "%"
+      mode: box
+      icon: mdi:format-vertical-align-bottom
+
+    room_slug_humidity_clamp_max:
+      name: "Room Friendly Name Humidity Clamp Max"
+      min: 0
+      max: 100
+      step: 1
+      unit_of_measurement: "%"
+      mode: box
+      icon: mdi:format-vertical-align-top
+
+    room_slug_humidity_delta_floor:
+      name: "Room Friendly Name Humidity Delta Floor"
+      min: 0
+      max: 50
+      step: 0.1
+      unit_of_measurement: "%"
+      mode: box
+      icon: mdi:floor-plan
+  # --- END helpers ---
+
+  template:
+    # Baseline sensor (converted from "Adaptive Humidity Baseline" template blueprint)
+    - trigger:
+        - platform: state
+          entity_id: __HUMIDITY_SENSOR__
+        - platform: state
+          entity_id: __FAN_ENTITY__
+        - platform: time_pattern
+          minutes: "/5"
+      variables:
+        # entity ids
+        h: "__HUMIDITY_SENSOR__"
+        fan: "__FAN_ENTITY__"
+
+        # tunables (safe defaults if helpers removed)
+        freeze_fan: "{{ is_state('input_boolean.room_slug_humidity_freeze_while_fan_on', 'on') }}"
+        big_rise: "{{ states('input_number.room_slug_humidity_big_rise_freeze') | float(3.0) }}"
+        band: "{{ states('input_number.room_slug_humidity_settle_band') | float(1.0) }}"
+        a_up: "{{ states('input_number.room_slug_humidity_alpha_up') | float(0.05) }}"
+        a_dn: "{{ states('input_number.room_slug_humidity_alpha_down') | float(0.25) }}"
+        cmin: "{{ states('input_number.room_slug_humidity_clamp_min') | float(0) }}"
+        cmax: "{{ states('input_number.room_slug_humidity_clamp_max') | float(100) }}"
+      sensor:
+        - name: "Room Friendly Name Humidity Baseline"
+          unique_id: room_slug_humidity_baseline
+          unit_of_measurement: "%"
+          device_class: humidity
+          state_class: measurement
+          availability: >
+            {{ is_number(states(h)) }}
+          state: >-
+            {% set cur_raw = states(h) | float(none) %}
+            {% if cur_raw is none %}
+              {{ this.state | default('unknown') }}
+            {% else %}
+              {% set cur = [cmax, [cmin, cur_raw]|max] | min %}
+              {% set prev = this.state | float(cur) %}
+              {% set fan_on = (freeze_fan and is_state(fan, 'on')) %}
+              {% set rise = cur - prev %}
+
+              {% if fan_on %}
+                {% set base = prev %}
+              {% else %}
+                {% if rise >= big_rise %}
+                  {% set base = prev %}
+                {% elif cur <= prev %}
+                  {% set base = (prev*(1-a_dn) + cur*a_dn) %}
+                {% elif (cur - prev) < band %}
+                  {% set base = (prev*(1-a_up) + cur*a_up) %}
+                {% else %}
+                  {% set base = prev %}
+                {% endif %}
+              {% endif %}
+
+              {{ base | round(1) }}
+            {% endif %}
+
+    # Delta sensor (converted from "Humidity Delta From Baseline" template blueprint)
+    - trigger:
+        - platform: state
+          entity_id: __HUMIDITY_SENSOR__
+        - platform: state
+          entity_id: sensor.room_slug_humidity_baseline
+      variables:
+        h: "__HUMIDITY_SENSOR__"
+        b: "sensor.room_slug_humidity_baseline"
+        floor: "{{ states('input_number.room_slug_humidity_delta_floor') | float(0) }}"
+      sensor:
+        - name: "Room Friendly Name Humidity Delta"
+          unique_id: room_slug_humidity_delta
+          unit_of_measurement: "%"
+          state_class: measurement
+          availability: >
+            {{ is_number(states(h)) and is_number(states(b)) }}
+          state: >-
+            {% set cur = states(h) | float(0) %}
+            {% set base = states(b) | float(cur) %}
+            {{ [ (cur - base), floor ] | max | round(1) }}
