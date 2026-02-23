@@ -1,23 +1,14 @@
-# WITB+ package template
+# WITB+ package template (v3.7.0 Optimized)
 # Tokens:
-#   - room_slug          -> replaced with generated slug (e.g. master_bedroom)
-#   - Room Friendly Name -> replaced with friendly name (e.g. Master Bedroom)
-#
-# Optional blocks (comment markers):
-#   # --- BEGIN helpers --- / # --- END helpers ---
-#   # --- BEGIN templates --- / # --- END templates ---
-#   # --- BEGIN controls --- / # --- END controls ---
-#   # --- BEGIN no_controls --- / # --- END no_controls ---
-#   # --- BEGIN latched --- / # --- END latched ---
-#   # --- BEGIN failsafe --- / # --- END failsafe ---
+#   - room_slug          -> e.g., master_bedroom
+#   - Room Friendly Name -> e.g., Master Bedroom
 
-# --- BEGIN helpers ---
+# --- HELPERS ---
 input_boolean:
   room_slug_occupied:
     name: "Room Friendly Name Occupied"
     icon: mdi:account
-
-# --- BEGIN controls ---
+    
   room_slug_automation_override:
     name: "Room Friendly Name Automation Override"
     icon: mdi:toggle-switch-off-outline
@@ -29,13 +20,30 @@ input_boolean:
   room_slug_manual_occupied:
     name: "Room Friendly Name Manual Occupied"
     icon: mdi:hand
-# --- END controls ---
 
-# --- BEGIN latched ---
   room_slug_latched:
     name: "Room Friendly Name Latched"
     icon: mdi:door-closed-lock
-# --- END latched ---
+
+input_number:
+  # Adjusted to Minutes to match Blueprint logic
+  room_slug_failsafe_timeout:
+    name: "Room Friendly Name Failsafe Timeout"
+    min: 5
+    max: 1440
+    step: 5
+    unit_of_measurement: "min"
+    icon: mdi:clock
+    initial: 180 
+
+  room_slug_entry_window_seconds:
+    name: "Room Friendly Name Entry Window Seconds"
+    min: 1
+    max: 60
+    step: 1
+    unit_of_measurement: "seconds"
+    icon: mdi:timer-sand
+    initial: 15
 
 input_datetime:
   room_slug_last_motion:
@@ -53,18 +61,17 @@ input_datetime:
     has_date: true
     has_time: true
 
-# --- BEGIN failsafe ---
+# --- TIMER ---
 timer:
   room_slug_failsafe:
     name: "Room Friendly Name Failsafe"
-# --- END failsafe ---
-# --- END helpers ---
+    # Duration is dynamically set by the automation; this is just a fallback
+    duration: "03:00:00"
+    restore: true
 
-# --- BEGIN templates ---
-# ---- Optional template sensors (dashboard/debug convenience) ----
+# --- TEMPLATE SENSORS ---
 template:
   - binary_sensor:
-# --- BEGIN controls ---
       - name: "Room Friendly Name Occupied Effective"
         unique_id: room_slug_occupied_effective
         device_class: occupancy
@@ -80,15 +87,6 @@ template:
              or is_state('input_boolean.room_slug_force_occupied','on')
              or is_state('input_boolean.room_slug_manual_occupied','on') }}
         icon: mdi:shield-check
-# --- END controls ---
-
-# --- BEGIN no_controls ---
-      - name: "Room Friendly Name Occupied Effective"
-        unique_id: room_slug_occupied_effective
-        device_class: occupancy
-        state: >
-          {{ is_state('input_boolean.room_slug_occupied','on') }}
-# --- END no_controls ---
 
   - sensor:
       - name: "Room Friendly Name Minutes Since Motion"
@@ -101,4 +99,3 @@ template:
           {% else %}
             {{ ((as_timestamp(now()) - as_timestamp(v)) / 60) | int }}
           {% endif %}
-# --- END templates ---

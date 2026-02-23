@@ -816,15 +816,6 @@ actions:
                           - action: script.turn_on
                             target:
                               entity_id: "{{ lights_on_script }}"
-                            data:
-                              variables:
-                                lights: !input lights
-                                brightness_pct: "{{ light_brightness_pct }}"
-                                transition: !input transition_on
-                                is_night: "{{ is_night }}"
-                                lux_value: "{{ lux_value }}"
-                                lux_threshold: "{{ lux_threshold }}"
-                                reason: occupied_on
                           - choose:
                               - conditions:
                                   - condition: template
@@ -833,7 +824,6 @@ actions:
                                   - action: input_boolean.turn_on
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
-
                       - conditions:
                           - condition: template
                             value_template: "{{ (lights_on_script == '') and (lights | length > 0) }}"
@@ -963,14 +953,6 @@ actions:
                           - action: script.turn_on
                             target:
                               entity_id: "{{ lights_off_script }}"
-                            data:
-                              variables:
-                                lights: !input lights
-                                transition: !input transition_off
-                                is_night: "{{ is_night }}"
-                                lux_value: "{{ lux_value }}"
-                                lux_threshold: "{{ lux_threshold }}"
-                                reason: vacant_lights_off
                       - conditions:
                           - condition: template
                             value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
@@ -1006,14 +988,6 @@ actions:
                                                 - action: script.turn_on
                                                   target:
                                                     entity_id: "{{ lights_off_script }}"
-                                                  data:
-                                                    variables:
-                                                      lights: !input lights
-                                                      transition: !input transition_off
-                                                      is_night: "{{ is_night }}"
-                                                      lux_value: "{{ lux_value }}"
-                                                      lux_threshold: "{{ lux_threshold }}"
-                                                      reason: vacant_lights_off_retry
                                             - conditions:
                                                 - condition: template
                                                   value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
@@ -1030,14 +1004,6 @@ actions:
                                         - action: script.turn_on
                                           target:
                                             entity_id: "{{ lights_off_script }}"
-                                          data:
-                                            variables:
-                                              lights: !input lights
-                                              transition: !input transition_off
-                                              is_night: "{{ is_night }}"
-                                              lux_value: "{{ lux_value }}"
-                                              lux_threshold: "{{ lux_threshold }}"
-                                              reason: vacant_lights_off_retry_no_state
                                 - delay: !input lights_off_verify_retry_interval
 
                   # Clear auto-tag only when lights are actually OFF (optional keep-tag on failure)
@@ -1232,14 +1198,6 @@ actions:
                           - action: script.turn_on
                             target:
                               entity_id: "{{ lights_off_script }}"
-                            data:
-                              variables:
-                                lights: !input lights
-                                transition: !input transition_off
-                                is_night: "{{ is_night }}"
-                                lux_value: "{{ lux_value }}"
-                                lux_threshold: "{{ lux_threshold }}"
-                                reason: startup_cleanup
                       - conditions:
                           - condition: template
                             value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"

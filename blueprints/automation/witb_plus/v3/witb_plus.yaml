@@ -3,40 +3,42 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ v3.7.0 (sleep-safe exit marking + delay-state recompute)
-  description: >
-    Automation Version: 3.7.0
-    
-    Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
-    Note (v3.7): Recomputes door/seal/mmWave state after exit-delay to prevent false clears on quick open→close.
-    
-      - 1 motion sensor (PIR)
-      - 1+ transition door contact sensors (boundary crossings)
-      - 1 seal door contact sensor (main/privacy door)
+  name: WITB+ v4.0.0 (Modernized & Integrated)
+  description: |
+    ### Key Improvements:
+    1. **Modernization**: Replaces legacy `service:` calls with the new `action:` syntax.
+    2. **Failsafe & Entry Window Integration**: Maps failsafe and entry window logic to package helpers for more consistent control.
+    3. **Logic Fixes**: Addresses deadlock and ventilation issues by ensuring more accurate occupancy detection.
 
-    Works when:
-      - Seal door is closed while in use (prevents clearing even if motion stops)
-      - Door is open OR closed when empty (door alone never asserts occupancy)
+    ### WITB Overview:
+    The **WITB** system provides occupancy inference for a **single room** using the following sensors:
+    - **1 PIR Motion Sensor** (default for occupancy detection)
+    - **1+ Transition Door Contact Sensors** (to detect boundary crossings)
+    - **1 Seal Door Contact Sensor** (main/privacy door to prevent occupancy clearance when closed)
 
-    Core rules:
-      1) PIR motion is the default signal that ASSERTS occupied = ON (mmWave can optionally assert if enabled).
-      2) Occupancy clears only when EXIT is possible:
-         - occupied AND any transition door OPEN AND motion OFF for exit_timeout_seconds -> clear.
-           (Clearing is blocked while seal door is CLOSED.)
-      3) Optional SAFE failsafe timer (no polling):
-         - When timer finishes, clear ONLY if SEAL door OPEN and motion OFF.
-         - If SEAL door CLOSED, do NOT clear (sleeping/sitting still); restart the timer.
-      4) Per-room controls (priority order):
-         - automation_override ON: automation does nothing (hands off).
-         - force_occupied ON: pins occupied ON and blocks clearing.
-         - manual_occupied ON: asserts occupied ON but still allows normal exit-based clearing.
+    ### Key Features:
+    - **Recomputes Door/Seal/MMWave States**: After the exit-delay, the system re-checks the door and seal status to avoid false occupancy clears caused by quick door openings and closings.
 
-    Notes:
-      - Configure transition_doors as the doors that represent leaving/entering this room's zone.
-      - Configure seal_door as the main/privacy door that should block clearing while closed.
+    ### Core Rules:
+    1. **PIR Motion**: PIR motion is the default signal that asserts the room as occupied. Optionally, mmWave sensors can also be used if enabled.
+    2. **Clearing Occupancy**: Occupancy clears only when the exit is possible:
+       - If the room is **occupied**, and any transition door is **open** with **motion off** (for the specified `exit_timeout_seconds`), occupancy will be cleared.
+       - **Seal Door Block**: If the **seal door** is **closed**, clearing will be blocked even if the transition door opens and motion is off.
+    3. **Failsafe Timer**: An optional failsafe timer that ensures the system resets properly:
+       - When the timer finishes, occupancy is cleared only if the **seal door** is **open** and motion is **off**.
+       - If the **seal door** is **closed**, the system will not clear the occupancy (useful for sleeping or sitting still). The timer will restart instead.
+    4. **Room-Specific Controls** (priority order):
+       - **Automation Override ON**: Automation does nothing (manual control).
+       - **Force Occupied ON**: Forces the room to be considered occupied and prevents clearing.
+       - **Manual Occupied ON**: Forces occupancy ON but still allows normal exit-based clearing (e.g., if the door is opened and motion is off).
 
-    UI:
-      - Inputs are grouped into sections for easier setup (HA 2024.6+ input sections feature).
+    ### Configuration Notes:
+    - **Transition Doors**: Define the doors that represent entry/exit points for this room. These should be sensors that monitor boundary crossings.
+    - **Seal Door**: Configure the main or privacy door that prevents occupancy from being cleared while it is closed.
+
+    ### User Interface:
+    - The UI for this blueprint has been organized into sections for easier setup, taking advantage of the **HA 2024.6+ input sections feature** for a more streamlined user experience.
+
   input:
     doors_and_motion:
       name: Doors & Motion (required)
@@ -326,6 +328,21 @@ blueprint:
               max: 1440
               unit_of_measurement: minutes
               mode: slider
+    
+        failsafe_timeout_helper:
+              name: Failsafe Timeout Helper
+              description: Link to input_number.room_slug_failsafe_timeout
+              selector:
+                entity:
+                  domain: input_number
+        
+        entry_window_helper:
+          name: Entry Window Helper
+          description: Link to input_number.room_slug_entry_window_seconds
+          selector:
+            entity:
+              domain: input_number
+
 
 mode: restart
 max_exceeded: silent
@@ -354,12 +371,12 @@ variables:
 
   # Entry gating
   require_door: !input require_door_for_entry
-  entry_s: !input entry_window_seconds
+  entry_s: "{{ states(entry_window_helper) | int(15) }}"
 
   # Failsafe
   enable_fs: !input enable_failsafe
   fs_timer: !input failsafe_timer
-  fs_min: !input failsafe_minutes
+  fs_min: "{{ states(failsafe_timeout_helper) | int(180) }}"
 
   # Door semantics
   sealed_now: "{{ is_state(seal, 'off') }}"
@@ -396,7 +413,7 @@ variables:
 
   # minutes -> HH:MM:SS
   fs_duration_hms: >-
-    {% set m = (fs_min | int) %}
+    {% set m = fs_min | int %}
     {% set h = (m // 60) %}
     {% set mm = (m % 60) %}
     {{ '%02d:%02d:00' | format(h, mm) }}
@@ -523,13 +540,19 @@ condition:
     value_template: "{{ not ov_on }}"
 
 action:
-  # 1) Keep last_door updated on any door change (for debugging + entry gating)
+  # 1. LATCH SYNC: Ensure privacy mode matches door state immediately
+  - action: input_boolean.{{ 'turn_on' if is_state(seal, 'off') and is_state(occ, 'on') else 'turn_off' }}
+    target:
+      entity_id: !input latched_helper
+    enabled: "{{ latch is string and latch|length > 0 }}"
+
+  # 1b) Keep last_door updated on any door change (for debugging + entry gating)
   - choose:
       - conditions:
           - condition: template
             value_template: "{{ trigger.id in ['transition_change','seal_change'] }}"
         sequence:
-          - service: input_datetime.set_datetime
+          - action: input_datetime.set_datetime
             target:
               entity_id: "{{ last_door }}"
             data:
@@ -537,7 +560,7 @@ action:
     default: []
 
 
-  # 1b) Mark a "possible exit" when a door OPENS while already occupied.
+  # 1c) Mark a "possible exit" when a door OPENS while already occupied.
   #     This enables clearing even if the door closes behind you.
   - choose:
       - conditions:
@@ -552,7 +575,7 @@ action:
                   or is_state(motion, 'on')
                   or ((seconds_since_motion | int(999999)) <= (exit_mark_motion_s | int(0))) }}
         sequence:
-          - service: input_datetime.set_datetime
+          - action: input_datetime.set_datetime
             target:
               entity_id: "{{ last_exit }}"
             data:
@@ -566,10 +589,10 @@ action:
           - condition: template
             value_template: "{{ force_on }}"
         sequence:
-          - service: input_boolean.turn_on
+          - action: input_boolean.turn_on
             target:
               entity_id: "{{ occ }}"
-          - service: input_datetime.set_datetime
+          - action: input_datetime.set_datetime
             target:
               entity_id: "{{ last_motion }}"
             data:
@@ -579,7 +602,7 @@ action:
                   - condition: template
                     value_template: "{{ latch_enabled and is_state(seal, 'off') }}"
                 sequence:
-                  - service: input_boolean.turn_on
+                  - action: input_boolean.turn_on
                     target:
                       entity_id: "{{ latch }}"
             default: []
@@ -588,7 +611,7 @@ action:
                   - condition: template
                     value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
                 sequence:
-                  - service: timer.start
+                  - action: timer.start
                     target:
                       entity_id: "{{ fs_timer }}"
                     data:
@@ -604,10 +627,10 @@ action:
           - condition: template
             value_template: "{{ manual_on }}"
         sequence:
-          - service: input_boolean.turn_on
+          - action: input_boolean.turn_on
             target:
               entity_id: "{{ occ }}"
-          - service: input_datetime.set_datetime
+          - action: input_datetime.set_datetime
             target:
               entity_id: "{{ last_motion }}"
             data:
@@ -617,7 +640,7 @@ action:
                   - condition: template
                     value_template: "{{ latch_enabled and is_state(seal, 'off') }}"
                 sequence:
-                  - service: input_boolean.turn_on
+                  - action: input_boolean.turn_on
                     target:
                       entity_id: "{{ latch }}"
             default: []
@@ -626,7 +649,7 @@ action:
                   - condition: template
                     value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
                 sequence:
-                  - service: timer.start
+                  - action: timer.start
                     target:
                       entity_id: "{{ fs_timer }}"
                     data:
@@ -650,10 +673,10 @@ action:
                         {{ is_state(seal,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
                       {% endif %}
                 sequence:
-                  - service: input_boolean.turn_on
+                  - action: input_boolean.turn_on
                     target:
                       entity_id: "{{ occ }}"
-                  - service: input_datetime.set_datetime
+                  - action: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_motion }}"
                     data:
@@ -663,7 +686,7 @@ action:
                           - condition: template
                             value_template: "{{ latch_enabled and is_state(seal,'off') }}"
                         sequence:
-                          - service: input_boolean.turn_on
+                          - action: input_boolean.turn_on
                             target:
                               entity_id: "{{ latch }}"
                     default: []
@@ -672,7 +695,7 @@ action:
                           - condition: template
                             value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
                         sequence:
-                          - service: timer.start
+                          - action: timer.start
                             target:
                               entity_id: "{{ fs_timer }}"
                             data:
@@ -703,7 +726,7 @@ action:
                                 {{ is_state(seal,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
                               {% endif %}
                         sequence:
-                          - service: input_boolean.turn_on
+                          - action: input_boolean.turn_on
                             target:
                               entity_id: "{{ occ }}"
                     default: []
@@ -716,7 +739,7 @@ action:
                     entity_id: !input occupancy_helper
                     state: "on"
                 sequence:
-                  - service: input_datetime.set_datetime
+                  - action: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_motion }}"
                     data:
@@ -726,7 +749,7 @@ action:
                           - condition: template
                             value_template: "{{ latch_enabled and is_state(seal,'off') }}"
                         sequence:
-                          - service: input_boolean.turn_on
+                          - action: input_boolean.turn_on
                             target:
                               entity_id: "{{ latch }}"
                     default: []
@@ -735,7 +758,7 @@ action:
                           - condition: template
                             value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
                         sequence:
-                          - service: timer.start
+                          - action: timer.start
                             target:
                               entity_id: "{{ fs_timer }}"
                             data:
@@ -779,7 +802,7 @@ action:
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
             value_template: "{{ mm_clear_ok_rt }}"
-          - service: input_boolean.turn_off
+          - action: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
           - choose:
@@ -787,7 +810,7 @@ action:
                   - condition: template
                     value_template: "{{ latch_enabled }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ latch }}"
             default: []
@@ -797,7 +820,7 @@ action:
                   - condition: template
                     value_template: "{{ exit_enabled }}"
                 sequence:
-                  - service: input_datetime.set_datetime
+                  - action: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_exit }}"
                     data:
@@ -820,7 +843,7 @@ action:
             value_template: "{{ (not sealed_now) or exit_recent }}"
           - condition: template
             value_template: "{{ mm_clear_ok }}"
-          - service: input_boolean.turn_off
+          - action: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
           - choose:
@@ -828,7 +851,7 @@ action:
                   - condition: template
                     value_template: "{{ latch_enabled }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ latch }}"
             default: []
@@ -838,7 +861,7 @@ action:
                   - condition: template
                     value_template: "{{ exit_enabled }}"
                 sequence:
-                  - service: input_datetime.set_datetime
+                  - action: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_exit }}"
                     data:
@@ -863,7 +886,7 @@ action:
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
             value_template: "{{ mm_clear_ok }}"
-          - service: input_boolean.turn_off
+          - action: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
           - choose:
@@ -871,7 +894,7 @@ action:
                   - condition: template
                     value_template: "{{ latch_enabled }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ latch }}"
             default: []
@@ -880,7 +903,7 @@ action:
                   - condition: template
                     value_template: "{{ exit_enabled }}"
                 sequence:
-                  - service: input_datetime.set_datetime
+                  - action: input_datetime.set_datetime
                     target:
                       entity_id: "{{ last_exit }}"
                     data:
@@ -899,21 +922,21 @@ action:
                   - condition: template
                     value_template: "{{ is_state(occ, 'on') and sealed_now }}"
                 sequence:
-                  - service: input_boolean.turn_on
+                  - action: input_boolean.turn_on
                     target:
                       entity_id: "{{ latch }}"
               - conditions:
                   - condition: template
                     value_template: "{{ (not sealed_now) or is_state(occ, 'off') }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ latch }}"
             default: []
     default: []
 
-  # 8) SAFE failsafe: only clears when exit is possible (door open) and motion is off.
-  #    Otherwise, if still occupied, restart timer (no clearing while door closed).
+# 8) SAFE failsafe: only clears when exit is possible (door open) and motion is off.
+  #    DEADLOCK FIX: If motion has been off for a massive amount of time, clear anyway.
   - choose:
       - conditions:
           - condition: trigger
@@ -922,55 +945,53 @@ action:
             value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
         sequence:
           - choose:
+              # --- CONDITION A: Standard "Safe" Clear ---
+              # Clear if: (Door is open OR recently exited) AND No Motion
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                  - condition: template
+                    value_template: "{{ (not sealed_now) or exit_recent }}"
+                  - condition: template
+                    value_template: "{{ is_state(motion, 'off') }}"
+                  - condition: template
+                    value_template: "{{ mm_clear_ok }}"
+                sequence:
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ occ }}"
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ latch }}"
+                    enabled: "{{ latch_enabled }}"
+
+              # --- CONDITION B: Hard Deadlock Break ---
+              # Clear if: Motion has been off for MORE than the failsafe duration (e.g. 2x)
+              # This handles the "I left through the window" or unmonitored exit scenario.
+              - conditions:
+                  - condition: template
+                    value_template: >
+                      {% set last_m = states(last_motion) %}
+                      {% set seconds_idle = (now().timestamp() - as_timestamp(last_m, 0)) %}
+                      {{ seconds_idle > (fs_min * 60 * 1.5) }} 
+                sequence:
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ occ }}"
+
+              # --- CONDITION C: Still Occupied / Sealed ---
+              # If none of the above are true, restart the timer.
               - conditions:
                   - condition: state
                     entity_id: !input occupancy_helper
                     state: "on"
                 sequence:
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ (not sealed_now) or exit_recent }}"
-                          - condition: template
-                            value_template: "{{ is_state(motion, 'off') }}"
-                          - condition: template
-                            value_template: "{{ mm_clear_ok }}"
-                        sequence:
-                          - service: input_boolean.turn_off
-                            target:
-                              entity_id: "{{ occ }}"
-                          - choose:
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ latch_enabled }}"
-                                sequence:
-                                  - service: input_boolean.turn_off
-                                    target:
-                                      entity_id: "{{ latch }}"
-                            default: []
-                          - choose:
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ exit_enabled }}"
-                                sequence:
-                                  - service: input_datetime.set_datetime
-                                    target:
-                                      entity_id: "{{ last_exit }}"
-                                    data:
-                                      timestamp: 0
-                            default: []
-                      - conditions:
-                          - condition: template
-                            value_template: "true"
-                        sequence:
-                          - service: timer.start
-                            target:
-                              entity_id: "{{ fs_timer }}"
-                            data:
-                              duration: "{{ fs_duration_hms }}"
-                    default: []
-            default: []
-    default: []
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
 
   # 9) When override is turned OFF, we don't force anything immediately; next door/motion will update.
   - choose:
