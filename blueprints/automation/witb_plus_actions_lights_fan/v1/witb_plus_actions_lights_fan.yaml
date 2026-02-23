@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.1
+  name: WITB+ Actions - Lights + Fan v2.1.1
   description: |
-    Version: 2.1 (The Polish Update)
+    Version: 2.1.1 (The Polish Update)
       - NEW: "Soft-Off" Warning - Lights dim to 10% for 15s before turning off (requires dimmable lights).
       - NEW: Dynamic Fan Run-On - Now supports input_number helper for run-on minutes (dashboard slider).
       - NEW: Lux Hysteresis - Added 10% buffer to illuminance check to prevent dusk flickering.
@@ -296,7 +296,9 @@ blueprint:
           default: []
           selector:
             entity:
-              domain: switch
+              domain: 
+               - switch
+               - light
               multiple: true
         auto_tag_fan:
           name: Auto-tag boolean for fan

@@ -99,35 +99,63 @@ def remove_empty_section(text: str, section: str) -> str:
     return re.sub(pat, "", text)
 
 def extract_inner_if_single_package(text: str) -> str:
-    """Unwraps the top-level package key if present."""
+    """
+    Smart unwrapping:
+    1. Ignores leading '---'
+    2. Checks if the first non-comment content line is a Wrapper Key.
+    3. If yes, unwraps inner content while preserving header comments.
+    4. If no, returns content as-is.
+    """
     lines = text.splitlines()
-    # Skip BOM or leading blanks
+
+    # 1. Strip leading blank lines (start of file)
     while lines and not lines[0].strip():
         lines.pop(0)
-    if not lines: return text
     
-    # Remove '---'
-    if lines[0].strip() == "---":
-        lines.pop(0)
-    
-    # Remove leading blanks again
-    while lines and not lines[0].strip():
+    # 2. Strip leading '---' (document separator)
+    if lines and lines[0].strip() == "---":
         lines.pop(0)
         
-    if not lines: return ""
+    # 3. Strip leading blanks again (post-separator)
+    while lines and not lines[0].strip():
+        lines.pop(0)
 
-    # Check if first line is a key "something:"
-    if re.match(r"^[A-Za-z0-9_]+:\s*$", lines[0]):
-        # It is a package wrapper. De-indent everything below it.
-        inner = []
-        for line in lines[1:]:
-            if line.startswith("  "):
-                inner.append(line[2:])
-            else:
-                inner.append(line)
-        return "\n".join(inner).strip()
+    if not lines:
+        return ""
+
+    # 4. Detect Wrapper Key (Ignore comments)
+    wrapper_index = -1
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if not s: continue        # Skip blanks
+        if s.startswith("#"): continue  # Skip comments
+        
+        # Found first content line - is it a key?
+        if re.match(r"^[A-Za-z0-9_]+:\s*$", line):
+            wrapper_index = i
+        break
     
-    return text
+    # Case A: No wrapper key found (or file is just comments). Return as-is.
+    if wrapper_index == -1:
+        return "\n".join(lines)
+
+    # Case B: Wrapper key found. Unwrap it.
+    result_lines = []
+    
+    # 1. Keep the comments ABOVE the wrapper (Header)
+    result_lines.extend(lines[:wrapper_index])
+    
+    # 2. Unwrap the content BELOW the wrapper
+    content_lines = lines[wrapper_index+1:]
+    for line in content_lines:
+        if line.startswith("  "):
+            result_lines.append(line[2:]) # De-indent
+        elif not line.strip():
+            result_lines.append("")       # Preserve spacing
+        else:
+            result_lines.append(line)     # Fallback (weird formatting)
+            
+    return "\n".join(result_lines)
 
 def apply_tokens(text: str, room: Room) -> str:
     # Standard Tokens
