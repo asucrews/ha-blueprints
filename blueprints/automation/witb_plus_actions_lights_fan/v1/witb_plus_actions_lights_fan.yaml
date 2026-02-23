@@ -3,15 +3,15 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan (single automation) v1.8.0
+  name: WITB+ Actions - Lights + Fan (single automation) v1.9
   description: |
-    Automation Version: 1.8.0
-    Version: 1.8
+    Version: 1.9
       Adds vacancy OFF verification+retry (fixes missed light.turn_off commands).
       Delays clearing auto-tag until lights are confirmed OFF (optional keep-tag-on-failure).
       Adds optional helper overrides for night start/end (input_datetime) and brightness/fan % (input_number).
       Adds optional Light ON/OFF script hooks (per-room bulb+switch logic).
       Adds input sections (requires Home Assistant 2024.6.0+).
+      Migrates automation YAML to 2024.10+ syntax (triggers/trigger/actions/action) to fix trace UI trigger description errors.
       Adds "tune from dashboard" support:
       - Optional input_number helpers can override:
           * illuminance_threshold (lux)
@@ -551,29 +551,29 @@ blueprint:
 mode: restart
 max_exceeded: silent
 
-trigger:
-  - platform: state
+triggers:
+  - trigger: state
     entity_id: !input occupied_effective
     to: "on"
     for: !input on_debounce
     id: occupied_on
 
-  - platform: state
+  - trigger: state
     entity_id: !input occupied_effective
     to: "off"
     for: !input lights_off_delay
     id: lights_off
 
-  - platform: state
+  - trigger: state
     entity_id: !input occupied_effective
     to: "off"
     id: vacancy_began
 
-  - platform: event
+  - trigger: event
     event_type: timer.finished
     id: timer_finished
 
-  - platform: homeassistant
+  - trigger: homeassistant
     event: start
     id: ha_start
 
@@ -777,7 +777,7 @@ variables:
   humidity_hold_max_seconds: >-
     {{ as_timedelta(humidity_hold_max).total_seconds() }}
 
-action:
+actions:
   - choose:
       # ================= OCCUPIED -> ON =================
       - conditions:
@@ -794,7 +794,7 @@ action:
                   - condition: template
                     value_template: "{{ fan_runon_t != '' }}"
                 sequence:
-                  - service: timer.cancel
+                  - action: timer.cancel
                     target:
                       entity_id: "{{ fan_runon_t }}"
 
@@ -813,7 +813,7 @@ action:
                           - condition: template
                             value_template: "{{ lights_on_script != '' }}"
                         sequence:
-                          - service: script.turn_on
+                          - action: script.turn_on
                             target:
                               entity_id: "{{ lights_on_script }}"
                             data:
@@ -830,7 +830,7 @@ action:
                                   - condition: template
                                     value_template: "{{ auto_tag_lights != '' }}"
                                 sequence:
-                                  - service: input_boolean.turn_on
+                                  - action: input_boolean.turn_on
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
 
@@ -838,7 +838,7 @@ action:
                           - condition: template
                             value_template: "{{ (lights_on_script == '') and (lights | length > 0) }}"
                         sequence:
-                          - service: light.turn_on
+                          - action: light.turn_on
                             target:
                               entity_id: !input lights
                             data:
@@ -849,7 +849,7 @@ action:
                                   - condition: template
                                     value_template: "{{ auto_tag_lights != '' }}"
                                 sequence:
-                                  - service: input_boolean.turn_on
+                                  - action: input_boolean.turn_on
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
           # ---- Fan ON (with optional delay) ----
@@ -876,7 +876,7 @@ action:
                           - condition: template
                             value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
                         sequence:
-                          - service: fan.turn_on
+                          - action: fan.turn_on
                             target:
                               entity_id: "{{ fan_entity }}"
                           - choose:
@@ -884,7 +884,7 @@ action:
                                   - condition: template
                                     value_template: "{{ fan_pct | int > 0 }}"
                                 sequence:
-                                  - service: fan.set_percentage
+                                  - action: fan.set_percentage
                                     target:
                                       entity_id: "{{ fan_entity }}"
                                     data:
@@ -894,7 +894,7 @@ action:
                                   - condition: template
                                     value_template: "{{ fan_preset is string and fan_preset | length > 0 }}"
                                 sequence:
-                                  - service: fan.set_preset_mode
+                                  - action: fan.set_preset_mode
                                     target:
                                       entity_id: "{{ fan_entity }}"
                                     data:
@@ -904,7 +904,7 @@ action:
                                   - condition: template
                                     value_template: "{{ auto_tag_fan != '' }}"
                                 sequence:
-                                  - service: input_boolean.turn_on
+                                  - action: input_boolean.turn_on
                                     target:
                                       entity_id: "{{ auto_tag_fan }}"
 
@@ -912,7 +912,7 @@ action:
                           - condition: template
                             value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                         sequence:
-                          - service: switch.turn_on
+                          - action: switch.turn_on
                             target:
                               entity_id: !input fan_switches
                           - choose:
@@ -920,7 +920,7 @@ action:
                                   - condition: template
                                     value_template: "{{ auto_tag_fan != '' }}"
                                 sequence:
-                                  - service: input_boolean.turn_on
+                                  - action: input_boolean.turn_on
                                     target:
                                       entity_id: "{{ auto_tag_fan }}"
 
@@ -930,7 +930,7 @@ action:
                   - condition: template
                     value_template: "{{ cooldown_t != '' }}"
                 sequence:
-                  - service: timer.start
+                  - action: timer.start
                     target:
                       entity_id: "{{ cooldown_t }}"
                     data:
@@ -960,7 +960,7 @@ action:
                           - condition: template
                             value_template: "{{ lights_off_script != '' }}"
                         sequence:
-                          - service: script.turn_on
+                          - action: script.turn_on
                             target:
                               entity_id: "{{ lights_off_script }}"
                             data:
@@ -975,7 +975,7 @@ action:
                           - condition: template
                             value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
                         sequence:
-                          - service: light.turn_off
+                          - action: light.turn_off
                             target:
                               entity_id: !input lights
                             data:
@@ -1003,7 +1003,7 @@ action:
                                                 - condition: template
                                                   value_template: "{{ lights_off_script != '' }}"
                                               sequence:
-                                                - service: script.turn_on
+                                                - action: script.turn_on
                                                   target:
                                                     entity_id: "{{ lights_off_script }}"
                                                   data:
@@ -1018,7 +1018,7 @@ action:
                                                 - condition: template
                                                   value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
                                               sequence:
-                                                - service: light.turn_off
+                                                - action: light.turn_off
                                                   target:
                                                     entity_id: !input lights
                                                   data:
@@ -1027,7 +1027,7 @@ action:
                                         - condition: template
                                           value_template: "{{ (lights | length == 0) and (lights_off_script != '') }}"
                                       sequence:
-                                        - service: script.turn_on
+                                        - action: script.turn_on
                                           target:
                                             entity_id: "{{ lights_off_script }}"
                                           data:
@@ -1058,7 +1058,7 @@ action:
                                   - condition: template
                                     value_template: "{{ (not _lights_still_on) or (not lights_off_keep_tag_on_failure) }}"
                                 sequence:
-                                  - service: input_boolean.turn_off
+                                  - action: input_boolean.turn_off
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
 
@@ -1070,7 +1070,7 @@ action:
                   - condition: template
                     value_template: "{{ tag_fan_ok_to_off and fan_currently_on }}"
                 sequence:
-                  - service: timer.start
+                  - action: timer.start
                     target:
                       entity_id: "{{ fan_runon_t }}"
                     data:
@@ -1104,14 +1104,14 @@ action:
                           - condition: template
                             value_template: "{{ fan_entity != '' }}"
                         sequence:
-                          - service: fan.turn_off
+                          - action: fan.turn_off
                             target:
                               entity_id: "{{ fan_entity }}"
                       - conditions:
                           - condition: template
                             value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                         sequence:
-                          - service: switch.turn_off
+                          - action: switch.turn_off
                             target:
                               entity_id: !input fan_switches
                   - choose:
@@ -1119,7 +1119,7 @@ action:
                           - condition: template
                             value_template: "{{ auto_tag_fan != '' }}"
                         sequence:
-                          - service: input_boolean.turn_off
+                          - action: input_boolean.turn_off
                             target:
                               entity_id: "{{ auto_tag_fan }}"
 
@@ -1140,7 +1140,7 @@ action:
           - condition: template
             value_template: "{{ fan_currently_on }}"
         sequence:
-          - service: timer.start
+          - action: timer.start
             target:
               entity_id: "{{ fan_runon_t }}"
             data:
@@ -1184,14 +1184,14 @@ action:
                   - condition: template
                     value_template: "{{ fan_entity != '' }}"
                 sequence:
-                  - service: fan.turn_off
+                  - action: fan.turn_off
                     target:
                       entity_id: "{{ fan_entity }}"
               - conditions:
                   - condition: template
                     value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                 sequence:
-                  - service: switch.turn_off
+                  - action: switch.turn_off
                     target:
                       entity_id: !input fan_switches
           - choose:
@@ -1199,7 +1199,7 @@ action:
                   - condition: template
                     value_template: "{{ auto_tag_fan != '' }}"
                 sequence:
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ auto_tag_fan }}"
 
@@ -1229,7 +1229,7 @@ action:
                           - condition: template
                             value_template: "{{ lights_off_script != '' }}"
                         sequence:
-                          - service: script.turn_on
+                          - action: script.turn_on
                             target:
                               entity_id: "{{ lights_off_script }}"
                             data:
@@ -1244,12 +1244,12 @@ action:
                           - condition: template
                             value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
                         sequence:
-                          - service: light.turn_off
+                          - action: light.turn_off
                             target:
                               entity_id: !input lights
                             data:
                               transition: !input transition_off
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ auto_tag_lights }}"
           - choose:
@@ -1262,16 +1262,16 @@ action:
                           - condition: template
                             value_template: "{{ fan_entity != '' }}"
                         sequence:
-                          - service: fan.turn_off
+                          - action: fan.turn_off
                             target:
                               entity_id: "{{ fan_entity }}"
                       - conditions:
                           - condition: template
                             value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                         sequence:
-                          - service: switch.turn_off
+                          - action: switch.turn_off
                             target:
                               entity_id: !input fan_switches
-                  - service: input_boolean.turn_off
+                  - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ auto_tag_fan }}"
