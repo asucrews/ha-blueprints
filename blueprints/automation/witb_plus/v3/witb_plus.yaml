@@ -2,10 +2,14 @@ blueprint:
   homeassistant:
     min_version: 2026.2.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus.yaml
-  name: WITB+ v3.6.1 (sleep-safe exit marking)
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v3/witb_plus_v3_7.yaml
+  name: WITB+ v3.7 (sleep-safe exit marking + delay-state recompute)
   description: >
+    Automation Version: 3.7.0
+    
     Wasp-in-the-Box (WITB) occupancy inference for a SINGLE room using:
+    Note (v3.7): Recomputes door/seal/mmWave state after exit-delay to prevent false clears on quick open→close.
+    
       - 1 motion sensor (PIR)
       - 1+ transition door contact sensors (boundary crossings)
       - 1 seal door contact sensor (main/privacy door)
@@ -741,6 +745,7 @@ action:
     default: []
 
   # 5) Door open: delayed exit evaluation (handles quick open/close)
+  # IMPORTANT: recompute door/mmWave state AFTER the delay (top-level variables are frozen at trigger time).
   - choose:
       - conditions:
           - condition: template
@@ -748,17 +753,32 @@ action:
         sequence:
           - delay:
               seconds: !input exit_timeout_seconds
+
+          # Recompute runtime state after the delay (prevents false clears when a door closes during the delay)
+          - variables:
+              sealed_now_rt: "{{ is_state(seal, 'off') }}"
+              any_transition_open_rt: >-
+                {% set ds = doors if doors is not string else [doors] %}
+                {% set ns = namespace(open=false) %}
+                {% for d in ds %}
+                  {% if is_state(d, 'on') %}
+                    {% set ns.open = true %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.open }}
+              mm_clear_ok_rt: "{{ (not mm_enabled) or (not mm_block) or is_state(mm, 'off') }}"
+
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
           - condition: template
-            value_template: "{{ any_transition_open or is_state(seal, 'on') }}"
+            value_template: "{{ any_transition_open_rt or is_state(seal, 'on') }}"
           - condition: template
-            value_template: "{{ not sealed_now }}"
+            value_template: "{{ not sealed_now_rt }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
-            value_template: "{{ mm_clear_ok }}"
+            value_template: "{{ mm_clear_ok_rt }}"
           - service: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
