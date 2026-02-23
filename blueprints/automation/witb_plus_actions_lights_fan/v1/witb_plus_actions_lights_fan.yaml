@@ -1,41 +1,26 @@
 blueprint:
   homeassistant:
-    min_version: 2026.2.0
+    min_version: 2024.6.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan (single automation) v1.9
+  name: WITB+ Actions - Lights + Fan v2.0.0 (Harden & Optimize)
   description: |
-    Version: 1.9
-      Adds vacancy OFF verification+retry (fixes missed light.turn_off commands).
-      Delays clearing auto-tag until lights are confirmed OFF (optional keep-tag-on-failure).
-      Adds optional helper overrides for night start/end (input_datetime) and brightness/fan % (input_number).
-      Adds optional Light ON/OFF script hooks (per-room bulb+switch logic).
-      Adds input sections (requires Home Assistant 2024.6.0+).
-      Migrates automation YAML to 2024.10+ syntax (triggers/trigger/actions/action) to fix trace UI trigger description errors.
-      Adds "tune from dashboard" support:
-      - Optional input_number helpers can override:
-          * illuminance_threshold (lux)
-          * humidity_high / humidity_low (%)
-          * fan_on_delay (seconds)
+    Version: 2.0.0 (Harden & Optimize)
+      - CRITICAL FIX: Hardened "Startup Cleanup" with double-tap validation to prevent false-offs during reboot.
+      - NEW: "Blocking Entities" list replaces separate Force/Manual inputs.
+      - NEW: Dynamic "Night Transition" for softer light turn-on at night.
+      - SAFETY: Added availability checks (unavailable/unknown) to verification loops.
+      - OPTIMIZATION: Consolidated logic and improved state handling.
 
-    v1.4 features included:
-      - Fan ON delay (avoid starting exhaust fans for very short trips).
-      - Humidity hold for fan (keeps fan running if humidity is still high; uses hysteresis + max hold time).
-      - Optional lux-based light gating (use a room illuminance sensor instead of sun position).
+    V1.9 Features:
+      - Vacancy OFF verification+retry.
+      - Dashboard tuning (Helpers).
+      - Fan control (Humidity, Run-on, Speed Profiles).
+      - Light Gating (Lux/Sun).
 
-    Pair with WITB+ v3.5. Use the room's effective occupancy sensor:
-      - binary_sensor.<slug>_occupied_effective
-
-    Safety / "don't fight me" rules:
-      - automation_override ON => do nothing (no ON, no OFF).
-      - force_occupied OR manual_occupied ON => blocks vacancy OFF actions.
-      - Auto-tag booleans (recommended): if provided, OFF actions only happen when the tag is ON.
-        This prevents turning off lights/fans that were turned on manually.
-      - Humidity-hold only applies when auto_tag_fan is provided and ON (so we don't interfere with manual fan runs).
   input:
     core:
       name: Core
-      icon: mdi:home-assistant
+      icon: mdi:home-automation
       description: Required occupancy + optional override/cooldown/startup protections.
       collapsed: false
       input:
@@ -52,31 +37,28 @@ blueprint:
           selector:
             entity:
               domain: input_boolean
-        force_occupied:
-          name: Force occupied (optional)
-          description: If set and ON, blocks vacancy OFF actions.
-          default: ''
+        blocking_entities:
+          name: Blocking entities (optional)
+          description: |
+            Select one or more input_booleans. If ANY of these are ON, vacancy actions (OFF) are blocked.
+            (Replaces Force Occupied / Manual Occupied).
+          default: []
           selector:
             entity:
               domain: input_boolean
-        manual_occupied:
-          name: Manual occupied (optional)
-          description: If set and ON, blocks vacancy OFF actions.
-          default: ''
-          selector:
-            entity:
-              domain: input_boolean
+              multiple: true
         startup_cleanup:
           name: Startup cleanup (recommended)
           description: |
-            If true, after Home Assistant starts, this blueprint can turn off auto-tagged lights/fan when the room is vacant and no run-on timer is active. Helps recover when HA was down.
+            If true, after Home Assistant starts, this blueprint can turn off auto-tagged lights/fan when the room is vacant. 
+            v2.0 includes "Double-Tap" validation to prevent false triggers during mesh startup.
           default: true
           selector:
             boolean: null
         startup_cleanup_delay:
           name: Startup cleanup delay
           description: Delay after HA start before running cleanup (lets entities load).
-          default: 00:00:10
+          default: 00:00:15
           selector:
             duration: null
         on_debounce:
@@ -88,7 +70,7 @@ blueprint:
         cooldown_timer:
           name: Cooldown timer (optional)
           description: |
-            Optional. If set, this blueprint starts the timer after running ON actions. While the timer is active, additional ON triggers are ignored (prevents rapid toggles).
+            Optional. If set, this blueprint starts the timer after running ON actions. While the timer is active, additional ON triggers are ignored.
           default: ''
           selector:
             entity:
@@ -116,50 +98,45 @@ blueprint:
         auto_tag_lights:
           name: Auto-tag boolean for lights (recommended)
           description: |
-            Optional. If provided, this tag is set ON when this automation turns lights ON. On vacancy, lights will only be turned OFF if this tag is ON, then the tag is cleared. This prevents turning off lights that were turned on manually.
+            If provided, this tag is set ON when this automation turns lights ON. On vacancy, lights will only be turned OFF if this tag is ON.
           default: ''
           selector:
             entity:
               domain: input_boolean
         lights_on_script:
           name: Lights ON script (optional)
-          description: |
-            Optional. If set, this blueprint calls this script instead of light.turn_on when it wants to turn lights ON.
-            Use this for bulb+switch combos (Zooz/Aeotec/etc) or any room-specific logic.
-            Passed variables:
-              - brightness_pct (computed day/night profile)
-              - transition (seconds)
-              - lights (the selected lights list; may be empty)
-              - is_night, lux_value, lux_threshold
-              - reason = "occupied_on"
+          description: Optional script to run instead of light.turn_on.
           default: ''
           selector:
             entity:
               domain: script
         lights_off_script:
           name: Lights OFF script (optional)
-          description: |
-            Optional. If set, this blueprint calls this script instead of light.turn_off when it wants to turn lights OFF.
-            Passed variables:
-              - transition (seconds)
-              - lights (the selected lights list; may be empty)
-              - is_night, lux_value, lux_threshold
-              - reason = "vacant_lights_off" or "startup_cleanup"
+          description: Optional script to run instead of light.turn_off.
           default: ''
           selector:
             entity:
               domain: script
         transition_on:
-          name: 'Lights: ON transition seconds'
-          description: Fade time when turning lights ON.
+          name: 'Lights: ON transition (Day)'
+          description: Fade time when turning lights ON during the day.
           default: 1
           selector:
             number:
               min: 0
               max: 30
               mode: slider
+        transition_on_night:
+          name: 'Lights: ON transition (Night)'
+          description: Fade time when turning lights ON during the night window (softer).
+          default: 3
+          selector:
+            number:
+              min: 0
+              max: 30
+              mode: slider
         transition_off:
-          name: 'Lights: OFF transition seconds'
+          name: 'Lights: OFF transition'
           description: Fade time when turning lights OFF.
           default: 2
           selector:
@@ -182,7 +159,7 @@ blueprint:
     lights_off_verification:
       name: Lights off verification
       icon: mdi:timer-refresh
-      description: Retry / verify that lights actually turned off after vacancy (helps when a Zigbee/Z-Wave command is missed).
+      description: Retry / verify that lights actually turned off after vacancy.
       collapsed: true
       input:
         lights_off_verify_enabled:
@@ -215,7 +192,7 @@ blueprint:
             duration: null
         lights_off_keep_tag_on_failure:
           name: 'Lights: keep auto-tag ON if lights still ON after retries'
-          description: If enabled and the automation cannot turn the lights off (after retries), it leaves the auto-tag ON so a later cleanup can try again.
+          description: If enabled and the automation cannot turn the lights off, it leaves the auto-tag ON.
           default: true
           selector:
             boolean: null
@@ -234,8 +211,7 @@ blueprint:
             boolean: null
         use_illuminance_gate:
           name: 'Lights: use illuminance sensor gate'
-          description: If true and illuminance_entity is set, only turn lights on when lux is below the (static or helper)
-            threshold.
+          description: If true and illuminance_entity is set, only turn lights on when lux is below the (static or helper) threshold.
           default: true
           selector:
             boolean: null
@@ -259,7 +235,7 @@ blueprint:
         illuminance_threshold_helper:
           name: 'Lights: illuminance threshold helper (optional input_number)'
           description: |
-            Optional. If set, this input_number overrides illuminance_threshold at runtime (so you can tune in dashboards). Example: input_number.<slug>_actions_lux_threshold
+            Optional. If set, this input_number overrides illuminance_threshold at runtime.
           default: ''
           selector:
             entity:
@@ -290,14 +266,14 @@ blueprint:
             time: null
         night_start_helper:
           name: Night start helper (optional)
-          description: Optional input_datetime (time-only) that overrides night_start at runtime (tune per room in dashboards).
+          description: Optional input_datetime (time-only) that overrides night_start at runtime.
           default: ''
           selector:
             entity:
               domain: input_datetime
         night_end_helper:
           name: Night end helper (optional)
-          description: Optional input_datetime (time-only) that overrides night_end at runtime (tune per room in dashboards).
+          description: Optional input_datetime (time-only) that overrides night_end at runtime.
           default: ''
           selector:
             entity:
@@ -343,7 +319,7 @@ blueprint:
         fan_entity:
           name: Fan entity (optional) - fan.*
           description: |
-            Optional. Use a fan.* entity when you want speed/percentage or preset_mode control. If set, it takes precedence over fan_switches.
+            Optional. Use a fan.* entity when you want speed/percentage or preset_mode control.
           default: ''
           selector:
             entity:
@@ -360,7 +336,7 @@ blueprint:
         auto_tag_fan:
           name: Auto-tag boolean for fan (recommended)
           description: |
-            Optional. If provided, this tag is set ON when this automation turns the fan/switches ON. On vacancy, fan/switches will only be turned OFF if this tag is ON, then the tag is cleared. This prevents turning off a fan that was turned on manually.
+            If provided, this tag is set ON when this automation turns the fan/switches ON. On vacancy, fan/switches will only be turned OFF if this tag is ON.
           default: ''
           selector:
             entity:
@@ -374,7 +350,7 @@ blueprint:
         fan_turn_off_on_vacant:
           name: 'Fan: turn OFF when vacant'
           description: |
-            If true, turns fan OFF after vacancy. If fan_runon_timer is set, fan turns off when that timer finishes. If fan_runon_timer is not set, fan turns off after lights_off_delay.
+            If true, turns fan OFF after vacancy. If fan_runon_timer is set, fan turns off when that timer finishes.
           default: true
           selector:
             boolean: null
@@ -387,7 +363,7 @@ blueprint:
         fan_disable_during_night:
           name: 'Fan: do NOT turn ON during night window'
           description: |
-            If true, the fan ON action is skipped during the night window. Vacancy OFF behavior is unchanged (still controlled by fan_turn_off_on_vacant + auto_tag_fan).
+            If true, the fan ON action is skipped during the night window.
           default: false
           selector:
             boolean: null
@@ -399,15 +375,14 @@ blueprint:
       input:
         fan_on_delay:
           name: 'Fan: ON delay after occupancy (static)'
-          description: Wait this long after occupied before turning the fan ON (used when fan_on_delay_seconds_helper is not
-            provided).
+          description: Wait this long after occupied before turning the fan ON.
           default: 00:00:00
           selector:
             duration: null
         fan_on_delay_seconds_helper:
           name: 'Fan: ON delay helper (optional input_number seconds)'
           description: |
-            Optional. If set, this input_number (seconds) overrides fan_on_delay at runtime (tune from dashboards). Example: input_number.<slug>_actions_fan_on_delay_seconds
+            Optional. If set, this input_number (seconds) overrides fan_on_delay at runtime.
           default: ''
           selector:
             entity:
@@ -415,7 +390,7 @@ blueprint:
         fan_runon_timer:
           name: 'Fan: run-on timer helper (optional)'
           description: |
-            Optional but recommended if you want the fan to stay ON longer than lights after vacancy. Provide a timer.<slug>_fan_runon helper. When the run-on timer finishes, the fan is turned OFF (only if the room is still vacant). If left blank, fan OFF falls back to lights_off_delay.
+            Optional but recommended. When the run-on timer finishes, the fan is turned OFF.
           default: ''
           selector:
             entity:
@@ -429,7 +404,7 @@ blueprint:
         fan_runon_starts_after_lights_off:
           name: 'Fan: start run-on AFTER lights turn off'
           description: |
-            If true (recommended), the run-on timer starts when the lights-off delay completes. This ensures the fan gets the full run-on time AFTER lights are off. If false, the run-on timer starts immediately when vacancy begins.
+            If true (recommended), the run-on timer starts when the lights-off delay completes.
           default: true
           selector:
             boolean: null
@@ -591,8 +566,7 @@ variables:
   fan_switches: !input fan_switches
 
   override_b: !input automation_override
-  force_b: !input force_occupied
-  manual_b: !input manual_occupied
+  blocking_entities: !input blocking_entities
 
   auto_tag_lights: !input auto_tag_lights
   auto_tag_fan: !input auto_tag_fan
@@ -616,6 +590,9 @@ variables:
   brightness_day_helper: !input brightness_day_helper
   brightness_night_static: !input brightness_night_pct
   brightness_night_helper: !input brightness_night_helper
+  
+  transition_on: !input transition_on
+  transition_on_night: !input transition_on_night
 
   # Fan timing and behavior
   fan_turn_on_on_occupy: !input fan_turn_on_on_occupy
@@ -661,10 +638,7 @@ variables:
     {{ override_b == '' or is_state(override_b, 'off') }}
 
   force_ok: >-
-    {{ force_b == '' or is_state(force_b, 'off') }}
-
-  manual_ok: >-
-    {{ manual_b == '' or is_state(manual_b, 'off') }}
+    {{ expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0 }}
 
   cooldown_active: >-
     {{ cooldown_t != '' and is_state(cooldown_t, 'active') }}
@@ -711,6 +685,13 @@ variables:
       {{ night }}
     {% else %}
       {{ day }}
+    {% endif %}
+  
+  transition_on_actual: >-
+    {% if use_night_profile and is_night %}
+      {{ transition_on_night }}
+    {% else %}
+      {{ transition_on }}
     {% endif %}
 
   fan_pct: >-
@@ -788,7 +769,7 @@ actions:
           - condition: template
             value_template: "{{ not cooldown_active }}"
         sequence:
-          # Cancel fan run-on timer if present (prevents timer turning fan off while occupied)
+          # Cancel fan run-on timer if present
           - choose:
               - conditions:
                   - condition: template
@@ -833,7 +814,7 @@ actions:
                               entity_id: !input lights
                             data:
                               brightness_pct: "{{ light_brightness_pct }}"
-                              transition: !input transition_on
+                              transition: "{{ transition_on_actual }}"
                           - choose:
                               - conditions:
                                   - condition: template
@@ -933,7 +914,7 @@ actions:
           - condition: template
             value_template: "{{ override_ok }}"
           - condition: template
-            value_template: "{{ force_ok and manual_ok }}"
+            value_template: "{{ force_ok }}"
         sequence:
           # Lights OFF
           - choose:
@@ -974,11 +955,13 @@ actions:
                               count: "{{ _lights_off_retries | int(0) }}"
                               sequence:
                                 - condition: template
-                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok and manual_ok }}"
+                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok }}"
+                                # Check for lights that are ON or UNAVAILABLE/UNKNOWN (safety)
                                 - choose:
                                     - conditions:
                                         - condition: template
-                                          value_template: "{{ (lights | length > 0) and (expand(lights) | selectattr('state','eq','on') | list | count > 0) }}"
+                                          value_template: >-
+                                            {{ (lights | length > 0) and (expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0) }}
                                       sequence:
                                         - choose:
                                             - conditions:
@@ -1006,7 +989,7 @@ actions:
                                             entity_id: "{{ lights_off_script }}"
                                 - delay: !input lights_off_verify_retry_interval
 
-                  # Clear auto-tag only when lights are actually OFF (optional keep-tag on failure)
+                  # Clear auto-tag
                   - choose:
                       - conditions:
                           - condition: template
@@ -1028,7 +1011,7 @@ actions:
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
 
-          # Start fan run-on AFTER lights off (recommended behavior)
+          # Start fan run-on AFTER lights off
           - choose:
               - conditions:
                   - condition: template
@@ -1042,7 +1025,7 @@ actions:
                     data:
                       duration: !input fan_runon_duration
 
-          # Fallback: no fan timer -> fan off with lights_off point (humidity hold may extend)
+          # Fallback: no fan timer
           - choose:
               - conditions:
                   - condition: template
@@ -1058,7 +1041,7 @@ actions:
                           - repeat:
                               while:
                                 - condition: template
-                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok and manual_ok }}"
+                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok }}"
                                 - condition: template
                                   value_template: "{{ (states(humidity_entity)|float(0)) > humidity_low }}"
                                 - condition: template
@@ -1089,7 +1072,7 @@ actions:
                             target:
                               entity_id: "{{ auto_tag_fan }}"
 
-      # ================= VACANT -> START FAN RUN-ON (if configured to start immediately) =================
+      # ================= VACANT -> START FAN RUN-ON (immediate) =================
       - conditions:
           - condition: trigger
             id: vacancy_began
@@ -1112,7 +1095,7 @@ actions:
             data:
               duration: !input fan_runon_duration
 
-      # ================= FAN RUN-ON DONE -> FAN OFF (humidity hold may extend) =================
+      # ================= FAN RUN-ON DONE -> FAN OFF =================
       - conditions:
           - condition: trigger
             id: timer_finished
@@ -1125,7 +1108,7 @@ actions:
           - condition: template
             value_template: "{{ is_state(occ, 'off') }}"
           - condition: template
-            value_template: "{{ force_ok and manual_ok }}"
+            value_template: "{{ force_ok }}"
         sequence:
           - variables:
               hold_start: "{{ now() }}"
@@ -1137,7 +1120,7 @@ actions:
                   - repeat:
                       while:
                         - condition: template
-                          value_template: "{{ is_state(occ,'off') and override_ok and force_ok and manual_ok }}"
+                          value_template: "{{ is_state(occ,'off') and override_ok and force_ok }}"
                         - condition: template
                           value_template: "{{ (states(humidity_entity)|float(0)) > humidity_low }}"
                         - condition: template
@@ -1169,7 +1152,7 @@ actions:
                     target:
                       entity_id: "{{ auto_tag_fan }}"
 
-      # ================= STARTUP CLEANUP =================
+      # ================= STARTUP CLEANUP (HARDENED) =================
       - conditions:
           - condition: trigger
             id: ha_start
@@ -1180,9 +1163,19 @@ actions:
           - condition: template
             value_template: "{{ override_ok }}"
           - condition: template
-            value_template: "{{ force_ok and manual_ok }}"
+            value_template: "{{ force_ok }}"
+
+          # CRITICAL FIX: Ensure sensor is VALID (not unavailable/unknown) and OFF
           - condition: template
-            value_template: "{{ is_state(occ, 'off') }}"
+            value_template: >-
+              {{ has_value(occ) and is_state(occ, 'off') }}
+
+          # Double-tap validation
+          - delay: 00:00:15
+
+          - condition: template
+            value_template: >-
+              {{ has_value(occ) and is_state(occ, 'off') }}
 
           - choose:
               - conditions:
