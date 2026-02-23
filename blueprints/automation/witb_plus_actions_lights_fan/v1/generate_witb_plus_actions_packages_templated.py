@@ -2,44 +2,19 @@
 from __future__ import annotations
 
 """
-Template-driven generator for Home Assistant merge_named *packages* for:
-
-  WITB+ v3.5 Actions - Lights + Fan (helpers-only)
-
-Unlike the older generator that hard-coded YAML in Python, this version reads a YAML
-template file and only does:
-  - token replacement (room_slug, Room Friendly Name)
-  - optional block removal via markers (# --- BEGIN <block> --- / # --- END <block> ---)
-  - wraps the result under a per-room package key and writes one file per room
-
-Template tokens supported:
-  - room_slug            -> office / master_bathroom_toilet / etc.
-  - Room Friendly Name   -> "Office" / "Master Bathroom Toilet" / etc.
-
-Legacy template support:
-  If your template uses name: "Room ..." (like "Room lux threshold"), this script will
-  replace "Room " at the start of *name values* with the friendly room name.
-
-Optional blocks (remove with flags):
-  timers, night_window, brightness, fan_pct, fan_runon_minutes, lux, humidity, fan_on_delay
-
-Usage:
-  ./generate_witb_plus_actions_packages_templated.py \
-      --rooms "Office" "Master Bathroom Toilet" \
-      --out ./packages \
-      --template ./room_witb_actions_package.template.yaml
-
-Dry-run (print only):
-  ./generate_witb_plus_actions_packages_templated.py --rooms "Office" --out ./packages --dry-run
+Template-driven generator for Home Assistant merge_named packages.
+OPTIMIZED VERSION: Supports per-room configuration overrides.
 """
 
 import argparse
 import json
 import re
-from dataclasses import dataclass
+import sys
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
+# --- Utilities ---
 
 def slugify(name: str) -> str:
     s = name.strip().lower()
@@ -49,271 +24,196 @@ def slugify(name: str) -> str:
     s = re.sub(r"_+", "_", s).strip("_")
     return s
 
-
 def indent(text: str, spaces: int) -> str:
     pad = " " * spaces
     return "\n".join((pad + line) if line.strip() else line for line in text.splitlines())
 
-
 def load_config(path: Path) -> dict[str, Any]:
-    """Load config from JSON or YAML (if PyYAML installed)."""
     txt = path.read_text(encoding="utf-8")
-    ext = path.suffix.lower()
-    if ext in [".yaml", ".yml"]:
+    if path.suffix.lower() in [".yaml", ".yml"]:
         try:
-            import yaml  # type: ignore
-        except Exception as e:
-            raise RuntimeError(
-                "YAML config requested but PyYAML is not installed. Install with: pip install pyyaml"
-            ) from e
-        cfg = yaml.safe_load(txt)
-        if not isinstance(cfg, dict):
-            raise ValueError("Config file must contain a mapping/object at the top level.")
-        return cfg
-    cfg = json.loads(txt)
-    if not isinstance(cfg, dict):
-        raise ValueError("Config file must contain a JSON object at the top level.")
-    return cfg
+            import yaml
+            return yaml.safe_load(txt)
+        except ImportError:
+            sys.exit("Error: YAML config requested but PyYAML not installed. Run: pip install pyyaml")
+    return json.loads(txt)
 
+# --- Data Structures ---
 
 @dataclass
 class Room:
     name: str
     slug: str
     package_key: str
+    # Per-room overrides for feature flags (e.g., {'timers': False})
+    overrides: dict[str, bool] = field(default_factory=dict)
 
+def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
+    if isinstance(obj, str):
+        name = obj
+        overrides = {}
+        slug = slugify(name)
+    else:
+        name = str(obj["name"])
+        slug = str(obj.get("slug") or slugify(name))
+        # Extract keys starting with "no_" or "emit_" to build overrides
+        overrides = {}
+        for k, v in obj.items():
+            if k.startswith("no_"):
+                # "no_timers": true  ->  "timers": False
+                feature = k[3:]
+                overrides[feature] = not bool(v)
+            elif k.startswith("emit_"):
+                # "emit_timers": false -> "timers": False
+                feature = k[5:]
+                overrides[feature] = bool(v)
 
-def build_room(name: str, key_suffix: str) -> Room:
-    slug = slugify(name)
-    return Room(name=name, slug=slug, package_key=f"{slug}{key_suffix}")
+    return Room(
+        name=name, 
+        slug=slug, 
+        package_key=f"{slug}{key_suffix}",
+        overrides=overrides
+    )
 
-
-def room_from_obj(obj: dict[str, Any], key_suffix: str) -> Room:
-    name = str(obj["name"])
-    slug = str(obj.get("slug") or slugify(name))
-    return Room(name=name, slug=slug, package_key=f"{slug}{key_suffix}")
-
-
-BLOCK_NAMES = [
-    "timers",
-    "night_window",
-    "brightness",
-    "fan_pct",
-    "fan_runon_minutes",
-    "lux",
-    "humidity",
-    "fan_on_delay",
-]
-
+# --- Text Processing ---
 
 def strip_marked_block(text: str, block: str) -> str:
-    """
-    Remove a block delimited by:
-      # --- BEGIN <block> ---
-      ...
-      # --- END <block> ---
-    If markers aren't found, returns text unchanged.
-    """
+    """Removes blocks marked with # --- BEGIN block --- ... # --- END block ---"""
     start = re.escape(f"# --- BEGIN {block} ---")
     end = re.escape(f"# --- END {block} ---")
-    pattern = rf"(?ms)^[ \t]*{start}[ \t]*\n.*?^[ \t]*{end}[ \t]*\n?"
+    # Matches the block and the newline following it
+    pattern = rf"(?ms)^[ \t]*{start}.*?{end}[ \t]*\n?"
     return re.sub(pattern, "", text)
 
-
-
 def remove_empty_section(text: str, section: str) -> str:
-    """
-    Remove a top-level YAML mapping key (e.g. input_number:) if it has no children
-    (only blank/comment lines) before the next top-level key or EOF.
-    """
-    # section header at column 0
-    pat = rf"(?ms)^(?P<hdr>{re.escape(section)}:\s*\n)(?P<body>(?:[ \t]*#.*\n|[ \t]*\n)*)"
-    def repl(m: re.Match) -> str:
-        body = m.group("body")
-        # if next nonblank/comment line is indented (child), keep; otherwise drop
-        # We already matched only blanks/comments, so it's empty.
-        return ""
-    # Only remove when immediately followed by another top-level key or EOF (lookahead)
-    pat2 = pat + r"(?=^[A-Za-z0-9_]+:\s*$|\Z)"
-    return re.sub(pat2, repl, text)
+    """Removes a top-level key if it only contains comments/whitespace."""
+    # Look for "key:", followed optionally by comments/whitespace, 
+    # then followed by either another key (start of line) or End of String.
+    pat = rf"(?ms)^(?P<hdr>{re.escape(section)}:\s*\n)(?P<body>(?:[ \t]*#.*\n|[ \t]*\n)*)(?=^[A-Za-z0-9_]+:\s*$|\Z)"
+    return re.sub(pat, "", text)
 
-def extract_inner_if_single_package(text: str) -> tuple[str, str | None]:
-    """
-    If template appears to be a full merge_named package file like:
-
-      ---
-      some_package_key:
-        input_boolean:
-          ...
-
-    then return (inner_yaml_without_wrapper, detected_key).
-    Otherwise return (text, None).
-    """
+def extract_inner_if_single_package(text: str) -> str:
+    """Unwraps the top-level package key if present."""
     lines = text.splitlines()
-
-    # drop leading BOM + blank lines
-    while lines and lines[0].strip() == "":
+    # Skip BOM or leading blanks
+    while lines and not lines[0].strip():
         lines.pop(0)
-
-    if not lines:
-        return text, None
-
+    if not lines: return text
+    
+    # Remove '---'
     if lines[0].strip() == "---":
-        lines = lines[1:]
-        while lines and lines[0].strip() == "":
-            lines.pop(0)
+        lines.pop(0)
+    
+    # Remove leading blanks again
+    while lines and not lines[0].strip():
+        lines.pop(0)
+        
+    if not lines: return ""
 
-    if not lines:
-        return "", None
-
-    m = re.match(r"^([A-Za-z0-9_]+):\s*$", lines[0])
-    if not m:
-        return text, None
-
-    key = m.group(1)
-    inner_lines = lines[1:]
-
-    # remove a single indent level (2 spaces) if present
-    out: list[str] = []
-    for ln in inner_lines:
-        if ln.startswith("  "):
-            out.append(ln[2:])
-        else:
-            out.append(ln)
-    return "\n".join(out).lstrip("\n"), key
-
-
-def apply_tokens(text: str, room: Room) -> str:
-    # Preferred explicit tokens
-    text = text.replace("room_slug", room.slug)
-    text = text.replace("Room Friendly Name", room.name)
-
-    # Legacy convenience: replace name: "Room ..." and name: 'Room ...'
-    # Only when the value starts with Room + space.
-    text = re.sub(
-        r'(?m)^(?P<prefix>\s*name:\s*")Room(?P<rest>\s[^"]*)"$',
-        lambda m: f'{m.group("prefix")}{room.name}{m.group("rest")}"',
-        text,
-    )
-    text = re.sub(
-        r"(?m)^(?P<prefix>\s*name:\s*')Room(?P<rest>\s[^']*)'$",
-        lambda m: f"{m.group('prefix')}{room.name}{m.group('rest')}'",
-        text,
-    )
+    # Check if first line is a key "something:"
+    if re.match(r"^[A-Za-z0-9_]+:\s*$", lines[0]):
+        # It is a package wrapper. De-indent everything below it.
+        inner = []
+        for line in lines[1:]:
+            if line.startswith("  "):
+                inner.append(line[2:])
+            else:
+                inner.append(line)
+        return "\n".join(inner).strip()
+    
     return text
 
+def apply_tokens(text: str, room: Room) -> str:
+    text = text.replace("room_slug", room.slug)
+    text = text.replace("Room Friendly Name", room.name)
+    return text
 
-def build_package_file(room: Room, inner_yaml: str) -> str:
-    inner = inner_yaml.rstrip() + "\n"
-    return "---\n" + f"{room.package_key}:\n" + indent(inner, 2)
-
+# --- Main ---
 
 def main() -> int:
-    ap = argparse.ArgumentParser(
-        description="Generate HA merge_named package YAML files for WITB+ actions helpers using a YAML template."
-    )
-
-    ap.add_argument("--out", required=True, help="Output directory (e.g. ./packages/)")
-    ap.add_argument("--template", required=True, help="Path to the YAML template file")
-
-    ap.add_argument("--rooms", nargs="+", help='Room names e.g. --rooms "Office" "Loft" (used if --config not set)')
-    ap.add_argument("--config", help="Optional JSON/YAML config file (rooms list + generator options).")
-
-    ap.add_argument("--key-suffix", default="_witb_actions", help='Suffix for the package key (default: "_witb_actions")')
-    ap.add_argument(
-        "--file-suffix",
-        default="_witb_actions.yaml",
-        help='Suffix for output file name (default: "_witb_actions.yaml")',
-    )
-
-    # Defaults are ALL ON; these flags reduce output *if the template includes block markers*.
-    ap.add_argument("--no-timers", action="store_true", help="Do not emit timers (cooldown + fan_runon)")
-    ap.add_argument("--no-night-window", action="store_true", help="Do not emit input_datetime night_start/night_end")
-    ap.add_argument("--no-brightness", action="store_true", help="Do not emit brightness sliders")
-    ap.add_argument("--no-fan-pct", action="store_true", help="Do not emit fan % sliders")
-    ap.add_argument("--no-fan-runon-minutes", action="store_true", help="Do not emit fan run-on minutes slider")
-    ap.add_argument("--no-lux", action="store_true", help="Do not emit lux threshold slider")
-    ap.add_argument("--no-humidity", action="store_true", help="Do not emit humidity high/low sliders")
-    ap.add_argument("--no-fan-on-delay", action="store_true", help="Do not emit fan ON delay slider")
-
-    ap.add_argument("--dry-run", action="store_true", help="Print YAML instead of writing files")
+    ap = argparse.ArgumentParser(description="Generate HA merge_named packages (Optimized)")
+    ap.add_argument("--out", required=True, type=Path, help="Output directory")
+    ap.add_argument("--template", required=True, type=Path, help="Template file")
+    ap.add_argument("--rooms", nargs="+", help="Room names")
+    ap.add_argument("--config", type=Path, help="JSON/YAML config file")
+    ap.add_argument("--key-suffix", default="_witb_actions")
+    ap.add_argument("--file-suffix", default="_witb_actions.yaml")
+    
+    # CLI flags for global defaults
+    features = [
+        "timers", "night_window", "brightness", "fan_pct", 
+        "fan_runon_minutes", "lux", "humidity", "fan_on_delay"
+    ]
+    for f in features:
+        ap.add_argument(f"--no-{f.replace('_', '-')}", action="store_true") # e.g. --no-timers
 
     args = ap.parse_args()
 
-    key_suffix = args.key_suffix
-    file_suffix = args.file_suffix
+    # 1. Determine Global Defaults
+    global_defaults = {}
+    for f in features:
+        # If --no-timers is passed, 'timers' = False. Otherwise True.
+        arg_name = f"no_{f}"
+        global_defaults[f] = not getattr(args, arg_name)
 
-    # flags (ALL ON by default)
-    emit = {
-        "timers": not args.no_timers,
-        "night_window": not args.no_night_window,
-        "brightness": not args.no_brightness,
-        "fan_pct": not args.no_fan_pct,
-        "fan_runon_minutes": not args.no_fan_runon_minutes,
-        "lux": not args.no_lux,
-        "humidity": not args.no_humidity,
-        "fan_on_delay": not args.no_fan_on_delay,
-    }
-
+    # 2. Parse Config / Rooms
     rooms: list[Room] = []
+    
     if args.config:
-        cfg = load_config(Path(args.config))
-        key_suffix = cfg.get("key_suffix", key_suffix)
-        file_suffix = cfg.get("file_suffix", file_suffix)
-
-        # allow per-config overrides (true/false)
-        for k in list(emit.keys()):
-            cfg_key = f"emit_{k}"
-            if cfg_key in cfg:
-                emit[k] = bool(cfg[cfg_key])
+        cfg = load_config(args.config)
+        args.key_suffix = cfg.get("key_suffix", args.key_suffix)
+        args.file_suffix = cfg.get("file_suffix", args.file_suffix)
+        
+        # Apply config-level global overrides
+        for f in features:
+            if f"emit_{f}" in cfg:
+                global_defaults[f] = bool(cfg[f"emit_{f}"])
 
         for obj in cfg.get("rooms", []):
-            if isinstance(obj, str):
-                rooms.append(build_room(obj, key_suffix))
-            elif isinstance(obj, dict):
-                rooms.append(room_from_obj(obj, key_suffix))
-            else:
-                raise ValueError("Each rooms[] entry must be a string or object with at least {name: ...}.")
+            rooms.append(build_room(obj, args.key_suffix))
+    elif args.rooms:
+        for r in args.rooms:
+            rooms.append(build_room(r, args.key_suffix))
     else:
-        if not args.rooms:
-            ap.error("Either --config or --rooms must be provided.")
-        rooms = [build_room(name, key_suffix) for name in args.rooms]
+        ap.error("Must provide --rooms or --config")
 
-    template_text = Path(args.template).read_text(encoding="utf-8")
+    # 3. Read & Unwrap Template ONCE
+    raw_template = args.template.read_text(encoding="utf-8")
+    base_inner = extract_inner_if_single_package(raw_template)
 
-    # If the template is already a merge_named package, unwrap it so we can re-wrap per room.
-    inner_template, detected_key = extract_inner_if_single_package(template_text)
+    if not args.out.exists():
+        args.out.mkdir(parents=True, exist_ok=True)
 
-    # Strip optional blocks based on flags (only if markers exist)
-    for block, enabled in emit.items():
-        if not enabled:
-            inner_template = strip_marked_block(inner_template, block)
-
-
-    # Clean up empty sections that might be left behind after stripping blocks
-    for sec in ("timer", "input_datetime", "input_number"):
-        inner_template = remove_empty_section(inner_template, sec)
-
-    out_dir = Path(args.out)
-    if not args.dry_run:
-        out_dir.mkdir(parents=True, exist_ok=True)
-
+    # 4. Generate per room
     for room in rooms:
-        rendered_inner = apply_tokens(inner_template, room)
-        content = build_package_file(room, rendered_inner)
+        # A. Determine effective flags for this specific room
+        # Start with global defaults -> update with room overrides
+        effective_flags = global_defaults.copy()
+        effective_flags.update(room.overrides)
 
-        file_path = out_dir / f"{room.slug}{file_suffix}"
-        if args.dry_run:
-            print("\n" + "=" * 80)
-            print(f"# {file_path.name}")
-            print("=" * 80)
-            print(content)
-        else:
-            file_path.write_text(content, encoding="utf-8")
-            print(f"Wrote: {file_path}")
+        # B. Strip blocks from a fresh copy of the template
+        current_text = base_inner
+        for block, enabled in effective_flags.items():
+            if not enabled:
+                current_text = strip_marked_block(current_text, block)
+
+        # C. Clean up empty sections
+        for sec in ("timer", "input_datetime", "input_number", "input_boolean"):
+            current_text = remove_empty_section(current_text, sec)
+
+        # D. Replace Tokens
+        current_text = apply_tokens(current_text, room)
+
+        # E. Wrap and Write
+        final_yaml = f"---\n{room.package_key}:\n{indent(current_text, 2)}\n"
+        
+        # Determine filename (allow room slug override in filename if needed)
+        fname = f"{room.slug}{args.file_suffix}"
+        out_path = args.out / fname
+        out_path.write_text(final_yaml, encoding="utf-8")
+        print(f"Generated {fname} [Features: {', '.join(k for k,v in effective_flags.items() if v)}]")
 
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

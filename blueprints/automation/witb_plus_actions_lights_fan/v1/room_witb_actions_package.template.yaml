@@ -1,156 +1,131 @@
----
-room_witb_actions:
-  # NOTE:
-  # - This file is meant to be used as a TEMPLATE.
-  # - The generator will unwrap the top-level package key above and re-wrap it per-room.
-  # - Tokens:
-  #     room_slug          -> e.g. office / master_bathroom_toilet
-  #     Room Friendly Name -> e.g. Office / Master Bathroom Toilet
-  #
-  # Optional blocks can be removed by the generator if you keep the markers:
-  #   # --- BEGIN <block> ---   ...   # --- END <block> ---
-  # Blocks: timers, night_window, brightness, fan_pct, fan_runon_minutes, lux, humidity, fan_on_delay
+input_boolean:
+  room_slug_auto_lights_on:
+    name: "Room Friendly Name auto lights on (tag)"
+    icon: mdi:lightbulb-auto
+    initial: false
 
-  input_boolean:
-    room_slug_auto_lights_on:
-      name: "Room Friendly Name auto lights on (tag)"
-      icon: mdi:lightbulb-auto
-      initial: false
+  room_slug_auto_fan_on:
+    name: "Room Friendly Name auto fan on (tag)"
+    icon: mdi:fan-auto
+    initial: false
+    
 
-    room_slug_auto_fan_on:
-      name: "Room Friendly Name auto fan on (tag)"
-      icon: mdi:fan-auto
-      initial: false
+  room_slug_keep_on:
+    name: "Room Friendly Name keep on (block off)"
+    icon: mdi:lock-open-variant-outline
+    initial: false
 
-  # --- BEGIN timers ---
-  timer:
-    room_slug_actions_cooldown:
-      name: "Room Friendly Name actions cooldown"
-      duration: "00:00:30"
-      restore: true
+input_datetime:
+  room_slug_actions_night_start:
+    name: "Room Friendly Name night start"
+    icon: mdi:weather-night
+    has_date: false
+    has_time: true
+    initial: "22:00:00"
 
-    room_slug_fan_runon:
-      name: "Room Friendly Name fan run-on"
-      duration: "00:05:00"
-      restore: true
-  # --- END timers ---
+  room_slug_actions_night_end:
+    name: "Room Friendly Name night end"
+    icon: mdi:weather-sunny
+    has_date: false
+    has_time: true
+    initial: "06:00:00"
 
-  # --- BEGIN night_window ---
-  input_datetime:
-    room_slug_actions_night_start:
-      name: "Room Friendly Name night start"
-      icon: mdi:weather-night
-      has_date: false
-      has_time: true
-      initial: "22:00:00"
+input_number:
+  room_slug_actions_brightness_day_pct:
+    name: "Room Friendly Name brightness day %"
+    icon: mdi:brightness-6
+    unit_of_measurement: "%"
+    min: 1
+    max: 100
+    step: 1
+    mode: box
+    initial: 60
 
-    room_slug_actions_night_end:
-      name: "Room Friendly Name night end"
-      icon: mdi:weather-sunny
-      has_date: false
-      has_time: true
-      initial: "06:00:00"
-  # --- END night_window ---
+  room_slug_actions_brightness_night_pct:
+    name: "Room Friendly Name brightness night %"
+    icon: mdi:brightness-4
+    unit_of_measurement: "%"
+    min: 1
+    max: 100
+    step: 1
+    mode: box
+    initial: 10
 
-  input_number:
-    # --- BEGIN brightness ---
-    room_slug_actions_brightness_day_pct:
-      name: "Room Friendly Name brightness day %"
-      icon: mdi:brightness-6
-      unit_of_measurement: "%"
-      min: 1
-      max: 100
-      step: 1
-      mode: slider
-      initial: 60
+  room_slug_actions_fan_pct_day:
+    name: "Room Friendly Name fan day %"
+    icon: mdi:fan
+    unit_of_measurement: "%"
+    min: 0
+    max: 100
+    step: 5
+    mode: box
+    initial: 0
 
-    room_slug_actions_brightness_night_pct:
-      name: "Room Friendly Name brightness night %"
-      icon: mdi:brightness-4
-      unit_of_measurement: "%"
-      min: 1
-      max: 100
-      step: 1
-      mode: slider
-      initial: 10
-    # --- END brightness ---
+  room_slug_actions_fan_pct_night:
+    name: "Room Friendly Name fan night %"
+    icon: mdi:fan
+    unit_of_measurement: "%"
+    min: 0
+    max: 100
+    step: 5
+    mode: box
+    initial: 0
 
-    # --- BEGIN fan_pct ---
-    room_slug_actions_fan_pct_day:
-      name: "Room Friendly Name fan day %"
-      icon: mdi:fan
-      unit_of_measurement: "%"
-      min: 0
-      max: 100
-      step: 5
-      mode: slider
-      initial: 0
+  room_slug_actions_fan_runon_minutes:
+    name: "Room Friendly Name fan run-on (minutes)"
+    icon: mdi:timer-outline
+    unit_of_measurement: "min"
+    min: 0
+    max: 60
+    step: 1
+    mode: box
+    initial: 5
+  
+  room_slug_actions_lux_threshold:
+    name: "Room Friendly Name lux threshold"
+    icon: mdi:weather-sunny-alert
+    unit_of_measurement: "lx"
+    min: 0
+    max: 5000
+    step: 1
+    mode: box
+    initial: 30
+  
+  room_slug_actions_humidity_high:
+    name: "Room Friendly Name humidity high %"
+    icon: mdi:water-percent
+    unit_of_measurement: "%"
+    min: 30
+    max: 100
+    step: 1
+    mode: box
+    initial: 65
 
-    room_slug_actions_fan_pct_night:
-      name: "Room Friendly Name fan night %"
-      icon: mdi:fan
-      unit_of_measurement: "%"
-      min: 0
-      max: 100
-      step: 5
-      mode: slider
-      initial: 0
-    # --- END fan_pct ---
+  room_slug_actions_humidity_low:
+    name: "Room Friendly Name humidity low %"
+    icon: mdi:water-percent
+    unit_of_measurement: "%"
+    min: 30
+    max: 100
+    step: 1
+    mode: box
+    initial: 55
 
-    # --- BEGIN fan_runon_minutes ---
-    room_slug_actions_fan_runon_minutes:
-      name: "Room Friendly Name fan run-on (minutes)"
-      icon: mdi:timer-outline
-      unit_of_measurement: "min"
-      min: 0
-      max: 60
-      step: 1
-      mode: slider
-      initial: 5
-    # --- END fan_runon_minutes ---
+  room_slug_actions_fan_on_delay_seconds:
+    name: "Room Friendly Name fan ON delay (sec)"
+    icon: mdi:timer-outline
+    unit_of_measurement: "s"
+    min: 0
+    max: 180
+    step: 5
+    mode: box
+    initial: 20
 
-    # --- BEGIN lux ---
-    room_slug_actions_lux_threshold:
-      name: "Room Friendly Name lux threshold"
-      icon: mdi:weather-sunny-alert
-      unit_of_measurement: "lx"
-      min: 0
-      max: 5000
-      step: 1
-      mode: slider
-      initial: 30
-    # --- END lux ---
+timer:
+  room_slug_actions_cooldown:
+    name: "Room Friendly Name actions cooldown"
+    duration: "00:00:30"
 
-    # --- BEGIN humidity ---
-    room_slug_actions_humidity_high:
-      name: "Room Friendly Name humidity high %"
-      icon: mdi:water-percent
-      unit_of_measurement: "%"
-      min: 30
-      max: 100
-      step: 1
-      mode: slider
-      initial: 65
-
-    room_slug_actions_humidity_low:
-      name: "Room Friendly Name humidity low %"
-      icon: mdi:water-percent
-      unit_of_measurement: "%"
-      min: 30
-      max: 100
-      step: 1
-      mode: slider
-      initial: 55
-    # --- END humidity ---
-
-    # --- BEGIN fan_on_delay ---
-    room_slug_actions_fan_on_delay_seconds:
-      name: "Room Friendly Name fan ON delay (sec)"
-      icon: mdi:timer-outline
-      unit_of_measurement: "s"
-      min: 0
-      max: 180
-      step: 5
-      mode: slider
-      initial: 20
-    # --- END fan_on_delay ---
+  room_slug_fan_runon:
+    name: "Room Friendly Name fan run-on"
+    duration: "00:05:00"

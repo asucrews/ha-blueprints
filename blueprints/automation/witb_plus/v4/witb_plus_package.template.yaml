@@ -1,9 +1,3 @@
-# WITB+ package template (v4.0.3)
-# Tokens:
-#   - room_slug          -> e.g., master_bedroom
-#   - Room Friendly Name -> e.g., Master Bedroom
-
-# --- HELPERS ---
 input_boolean:
   room_slug_occupied:
     name: "Room Friendly Name Occupied"

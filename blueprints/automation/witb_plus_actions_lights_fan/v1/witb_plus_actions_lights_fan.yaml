@@ -1,21 +1,16 @@
 blueprint:
   homeassistant:
-    min_version: 2024.6.0
+    min_version: 2026.2.0
   domain: automation
-  name: WITB+ Actions - Lights + Fan v2.0.0 (Harden & Optimize)
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
+  name: WITB+ Actions - Lights + Fan v2.1
   description: |
-    Version: 2.0.0 (Harden & Optimize)
-      - CRITICAL FIX: Hardened "Startup Cleanup" with double-tap validation to prevent false-offs during reboot.
-      - NEW: "Blocking Entities" list replaces separate Force/Manual inputs.
-      - NEW: Dynamic "Night Transition" for softer light turn-on at night.
-      - SAFETY: Added availability checks (unavailable/unknown) to verification loops.
-      - OPTIMIZATION: Consolidated logic and improved state handling.
-
-    V1.9 Features:
-      - Vacancy OFF verification+retry.
-      - Dashboard tuning (Helpers).
-      - Fan control (Humidity, Run-on, Speed Profiles).
-      - Light Gating (Lux/Sun).
+    Version: 2.1 (The Polish Update)
+      - NEW: "Soft-Off" Warning - Lights dim to 10% for 15s before turning off (requires dimmable lights).
+      - NEW: Dynamic Fan Run-On - Now supports input_number helper for run-on minutes (dashboard slider).
+      - NEW: Lux Hysteresis - Added 10% buffer to illuminance check to prevent dusk flickering.
+      - CRITICAL FIX: Hardened "Startup Cleanup" with double-tap validation.
+      - SAFETY: Added availability checks to verification loops.
 
   input:
     core:
@@ -32,16 +27,14 @@ blueprint:
               domain: binary_sensor
         automation_override:
           name: Automation override (optional)
-          description: If set and ON, the blueprint performs no actions (no ON, no OFF).
+          description: If set and ON, the blueprint performs no actions.
           default: ''
           selector:
             entity:
               domain: input_boolean
         blocking_entities:
           name: Blocking entities (optional)
-          description: |
-            Select one or more input_booleans. If ANY of these are ON, vacancy actions (OFF) are blocked.
-            (Replaces Force Occupied / Manual Occupied).
+          description: Select one or more input_booleans. If ANY of these are ON, vacancy actions (OFF) are blocked.
           default: []
           selector:
             entity:
@@ -49,15 +42,13 @@ blueprint:
               multiple: true
         startup_cleanup:
           name: Startup cleanup (recommended)
-          description: |
-            If true, after Home Assistant starts, this blueprint can turn off auto-tagged lights/fan when the room is vacant. 
-            v2.0 includes "Double-Tap" validation to prevent false triggers during mesh startup.
+          description: If true, runs cleanup logic after HA restart (safe double-tap validation).
           default: true
           selector:
             boolean: null
         startup_cleanup_delay:
           name: Startup cleanup delay
-          description: Delay after HA start before running cleanup (lets entities load).
+          description: Delay after HA start before running cleanup.
           default: 00:00:15
           selector:
             duration: null
@@ -69,8 +60,7 @@ blueprint:
             duration: null
         cooldown_timer:
           name: Cooldown timer (optional)
-          description: |
-            Optional. If set, this blueprint starts the timer after running ON actions. While the timer is active, additional ON triggers are ignored.
+          description: Optional timer to prevent rapid ON triggering.
           default: ''
           selector:
             entity:
@@ -81,15 +71,16 @@ blueprint:
           default: 00:00:30
           selector:
             duration: null
+
     lights:
       name: Lights
       icon: mdi:lightbulb
-      description: Light targets and behavior. Leave lights empty to disable light control.
+      description: Light targets and behavior.
       collapsed: false
       input:
         lights:
           name: Lights to control
-          description: Lights this automation may turn on/off. Leave empty to disable light control.
+          description: Lights this automation may turn on/off.
           default: []
           selector:
             entity:
@@ -97,29 +88,25 @@ blueprint:
               multiple: true
         auto_tag_lights:
           name: Auto-tag boolean for lights (recommended)
-          description: |
-            If provided, this tag is set ON when this automation turns lights ON. On vacancy, lights will only be turned OFF if this tag is ON.
+          description: Set ON when automation turns lights ON; required for safe OFF.
           default: ''
           selector:
             entity:
               domain: input_boolean
         lights_on_script:
           name: Lights ON script (optional)
-          description: Optional script to run instead of light.turn_on.
           default: ''
           selector:
             entity:
               domain: script
         lights_off_script:
           name: Lights OFF script (optional)
-          description: Optional script to run instead of light.turn_off.
           default: ''
           selector:
             entity:
               domain: script
         transition_on:
           name: 'Lights: ON transition (Day)'
-          description: Fade time when turning lights ON during the day.
           default: 1
           selector:
             number:
@@ -128,7 +115,6 @@ blueprint:
               mode: slider
         transition_on_night:
           name: 'Lights: ON transition (Night)'
-          description: Fade time when turning lights ON during the night window (softer).
           default: 3
           selector:
             number:
@@ -137,62 +123,60 @@ blueprint:
               mode: slider
         transition_off:
           name: 'Lights: OFF transition'
-          description: Fade time when turning lights OFF.
           default: 2
           selector:
             number:
               min: 0
               max: 60
               mode: slider
+        lights_soft_off_enabled:
+          name: 'Lights: Soft-Off Warning'
+          description: If true, lights dim to 10% for 15s before turning off completely.
+          default: false
+          selector:
+            boolean: null
         skip_on_if_any_light_on:
-          name: 'Lights: skip turning ON if any target light is already ON'
-          description: If true, prevents resetting brightness if someone already turned a target light on.
+          name: 'Lights: skip turning ON if already ON'
           default: true
           selector:
             boolean: null
         lights_off_delay:
           name: 'Lights: off-delay after vacancy'
-          description: Require occupied_effective to be OFF for this long before turning lights OFF.
           default: 00:02:00
           selector:
             duration: null
+
     lights_off_verification:
       name: Lights off verification
       icon: mdi:timer-refresh
-      description: Retry / verify that lights actually turned off after vacancy.
+      description: Retry / verify logic.
       collapsed: true
       input:
         lights_off_verify_enabled:
-          name: 'Lights: verify/retry OFF after vacancy'
-          description: After turning lights off, re-check and retry if any target light is still ON (room still vacant).
+          name: 'Lights: verify/retry OFF'
           default: true
           selector:
             boolean: null
         lights_off_verify_delay:
           name: 'Lights: initial verify delay'
-          description: Wait this long after the first OFF command before checking light state.
           default: 00:00:05
           selector:
             duration: null
         lights_off_verify_retries:
           name: 'Lights: max retry attempts'
-          description: Number of extra OFF retries if any target light remains ON (0 disables retries).
           default: 3
           selector:
             number:
               min: 0
               max: 10
-              step: 1
               mode: slider
         lights_off_verify_retry_interval:
           name: 'Lights: retry interval'
-          description: Delay between OFF retries.
           default: 00:00:05
           selector:
             duration: null
         lights_off_keep_tag_on_failure:
-          name: 'Lights: keep auto-tag ON if lights still ON after retries'
-          description: If enabled and the automation cannot turn the lights off, it leaves the auto-tag ON.
+          name: 'Lights: keep auto-tag ON on failure'
           default: true
           selector:
             boolean: null
@@ -200,32 +184,27 @@ blueprint:
     light_gating:
       name: Light gating
       icon: mdi:weather-night
-      description: 'Optional gating: only turn lights on when dark (sun) or below a lux threshold.'
+      description: Lux/Sun gating logic.
       collapsed: true
       input:
         turn_on_only_if_dark:
           name: 'Lights: only turn ON when dark (sun)'
-          description: If true and no lux sensor is configured, lights will only be turned on when sun is below the horizon.
           default: true
           selector:
             boolean: null
         use_illuminance_gate:
           name: 'Lights: use illuminance sensor gate'
-          description: If true and illuminance_entity is set, only turn lights on when lux is below the (static or helper) threshold.
           default: true
           selector:
             boolean: null
         illuminance_entity:
-          name: 'Lights: illuminance sensor (optional)'
-          description: |
-            Optional. If set and use_illuminance_gate is true, this replaces the sun-based dark check. Example: sensor.<slug>_illuminance (lux).
+          name: 'Lights: illuminance sensor'
           default: ''
           selector:
             entity:
               domain: sensor
         illuminance_threshold:
-          name: 'Lights: illuminance threshold (lux) (static)'
-          description: Used when illuminance_threshold_helper is not provided.
+          name: 'Lights: illuminance threshold (static lux)'
           default: 30
           selector:
             number:
@@ -233,68 +212,58 @@ blueprint:
               max: 5000
               mode: box
         illuminance_threshold_helper:
-          name: 'Lights: illuminance threshold helper (optional input_number)'
-          description: |
-            Optional. If set, this input_number overrides illuminance_threshold at runtime.
+          name: 'Lights: illuminance threshold helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
     night_profile:
       name: Night profile
       icon: mdi:clock-outline
-      description: Optional day/night brightness profile based on a time window.
       collapsed: true
       input:
         use_night_profile:
           name: 'Lights: use night brightness profile'
-          description: If true, uses brightness_night_pct during the night window; otherwise uses brightness_day_pct.
           default: true
           selector:
             boolean: null
         night_start:
           name: Night start
-          description: Start time for night window (used by night brightness profile and optional fan night disable).
           default: 00:00:00
           selector:
             time: null
         night_end:
           name: Night end
-          description: End time for night window (supports crossing midnight).
           default: 06:00:00
           selector:
             time: null
         night_start_helper:
-          name: Night start helper (optional)
-          description: Optional input_datetime (time-only) that overrides night_start at runtime.
+          name: Night start helper
           default: ''
           selector:
             entity:
               domain: input_datetime
         night_end_helper:
-          name: Night end helper (optional)
-          description: Optional input_datetime (time-only) that overrides night_end at runtime.
+          name: Night end helper
           default: ''
           selector:
             entity:
               domain: input_datetime
         brightness_day_helper:
-          name: 'Lights: day brightness helper (optional input_number)'
-          description: Optional input_number (1-100) that overrides brightness_day_pct at runtime.
+          name: 'Lights: day brightness helper'
           default: ''
           selector:
             entity:
               domain: input_number
         brightness_night_helper:
-          name: 'Lights: night brightness helper (optional input_number)'
-          description: Optional input_number (1-100) that overrides brightness_night_pct at runtime.
+          name: 'Lights: night brightness helper'
           default: ''
           selector:
             entity:
               domain: input_number
         brightness_day_pct:
           name: 'Lights: day brightness %'
-          description: Brightness percent used outside the night window (1-100).
           default: 100
           selector:
             number:
@@ -303,126 +272,112 @@ blueprint:
               mode: slider
         brightness_night_pct:
           name: 'Lights: night brightness %'
-          description: Brightness percent used during the night window (1-100).
           default: 20
           selector:
             number:
               min: 1
               max: 100
               mode: slider
+
     fan_basic:
       name: Fan
       icon: mdi:fan
-      description: Fan targets and basic behavior. Leave fan_entity/fan_switches empty to disable fan control.
+      description: Fan targets and behavior.
       collapsed: false
       input:
         fan_entity:
-          name: Fan entity (optional) - fan.*
-          description: |
-            Optional. Use a fan.* entity when you want speed/percentage or preset_mode control.
+          name: Fan entity (optional)
           default: ''
           selector:
             entity:
               domain: fan
         fan_switches:
-          name: Fan switches (optional) - switch.* (on/off only)
-          description: |
-            Optional. Use for bathroom fans or any fan controlled by a relay/wall switch. Only ON/OFF is supported. Ignored if fan_entity is set.
+          name: Fan switches (optional)
           default: []
           selector:
             entity:
               domain: switch
               multiple: true
         auto_tag_fan:
-          name: Auto-tag boolean for fan (recommended)
-          description: |
-            If provided, this tag is set ON when this automation turns the fan/switches ON. On vacancy, fan/switches will only be turned OFF if this tag is ON.
+          name: Auto-tag boolean for fan
           default: ''
           selector:
             entity:
               domain: input_boolean
         fan_turn_on_on_occupy:
           name: 'Fan: turn ON on occupancy'
-          description: If true, attempts to turn on fan_entity or fan_switches on occupied.
           default: true
           selector:
             boolean: null
         fan_turn_off_on_vacant:
           name: 'Fan: turn OFF when vacant'
-          description: |
-            If true, turns fan OFF after vacancy. If fan_runon_timer is set, fan turns off when that timer finishes.
           default: true
           selector:
             boolean: null
         fan_skip_on_if_already_on:
           name: 'Fan: skip ON if already ON'
-          description: If true and fan_entity is already on, skips turning it on / setting speed again.
           default: true
           selector:
             boolean: null
         fan_disable_during_night:
           name: 'Fan: do NOT turn ON during night window'
-          description: |
-            If true, the fan ON action is skipped during the night window.
           default: false
           selector:
             boolean: null
+
     fan_timing:
       name: Fan timing
       icon: mdi:timer-outline
-      description: Optional fan on-delay and run-on behavior.
       collapsed: true
       input:
         fan_on_delay:
           name: 'Fan: ON delay after occupancy (static)'
-          description: Wait this long after occupied before turning the fan ON.
           default: 00:00:00
           selector:
             duration: null
         fan_on_delay_seconds_helper:
-          name: 'Fan: ON delay helper (optional input_number seconds)'
-          description: |
-            Optional. If set, this input_number (seconds) overrides fan_on_delay at runtime.
+          name: 'Fan: ON delay helper'
           default: ''
           selector:
             entity:
               domain: input_number
         fan_runon_timer:
-          name: 'Fan: run-on timer helper (optional)'
-          description: |
-            Optional but recommended. When the run-on timer finishes, the fan is turned OFF.
+          name: 'Fan: run-on timer helper'
           default: ''
           selector:
             entity:
               domain: timer
         fan_runon_duration:
-          name: 'Fan: run-on duration'
-          description: Duration used when starting fan_runon_timer.
+          name: 'Fan: run-on duration (static fallback)'
+          description: Used if helper below is not set.
           default: 00:10:00
           selector:
             duration: null
+        fan_runon_minutes_helper:
+          name: 'Fan: run-on duration helper (input_number minutes)'
+          description: Optional. Overrides static duration. Matches dashboard slider.
+          default: ''
+          selector:
+            entity:
+              domain: input_number
         fan_runon_starts_after_lights_off:
           name: 'Fan: start run-on AFTER lights turn off'
-          description: |
-            If true (recommended), the run-on timer starts when the lights-off delay completes.
           default: true
           selector:
             boolean: null
+
     fan_profile:
       name: Fan speed profile
       icon: mdi:fan-speed-1
-      description: Optional day/night fan speed or preset selection (fan.* only).
       collapsed: true
       input:
         fan_use_night_profile:
-          name: 'Fan: use night profile (percentage/preset)'
-          description: If true and using fan_entity, uses the night fan percentage/preset during the night window.
+          name: 'Fan: use night profile'
           default: false
           selector:
             boolean: null
         fan_percentage_day:
-          name: 'Fan: day percentage (0 = don''t set)'
-          description: 'If using fan_entity: 1-100 sets percentage after turning on; 0 means skip setting percentage.'
+          name: 'Fan: day percentage'
           default: 0
           selector:
             number:
@@ -430,8 +385,7 @@ blueprint:
               max: 100
               mode: slider
         fan_percentage_night:
-          name: 'Fan: night percentage (0 = don''t set)'
-          description: 'If using fan_entity + fan_use_night_profile: 1-100 sets percentage at night; 0 means skip.'
+          name: 'Fan: night percentage'
           default: 0
           selector:
             number:
@@ -439,48 +393,41 @@ blueprint:
               max: 100
               mode: slider
         fan_percentage_day_helper:
-          name: 'Fan: day percentage helper (optional input_number)'
-          description: Optional input_number (0-100) that overrides fan_percentage_day at runtime.
+          name: 'Fan: day percentage helper'
           default: ''
           selector:
             entity:
               domain: input_number
         fan_percentage_night_helper:
-          name: 'Fan: night percentage helper (optional input_number)'
-          description: Optional input_number (0-100) that overrides fan_percentage_night at runtime.
+          name: 'Fan: night percentage helper'
           default: ''
           selector:
             entity:
               domain: input_number
         fan_preset_day:
-          name: 'Fan: day preset_mode (optional)'
-          description: 'If using fan_entity: preset_mode string to set after turning on. Leave blank to skip.'
+          name: 'Fan: day preset_mode'
           default: ''
           selector:
             text: null
         fan_preset_night:
-          name: 'Fan: night preset_mode (optional)'
-          description: 'If using fan_entity + fan_use_night_profile: preset_mode string to set at night. Leave blank to skip.'
+          name: 'Fan: night preset_mode'
           default: ''
           selector:
             text: null
+
     humidity_hold:
       name: Humidity hold
       icon: mdi:water-percent
-      description: 'Optional: keep fan running while humidity remains high (requires humidity_entity).'
       collapsed: true
       input:
         humidity_entity:
-          name: 'Fan: humidity sensor (optional)'
-          description: |
-            Optional. Provide a bathroom humidity sensor (percent). If set, the fan can stay on after run-on while humidity remains high (requires auto_tag_fan).
+          name: 'Fan: humidity sensor'
           default: ''
           selector:
             entity:
               domain: sensor
         humidity_high:
-          name: 'Fan: humidity high threshold (%) (static)'
-          description: Used when humidity_high_helper is not provided.
+          name: 'Fan: humidity high threshold (%)'
           default: 65
           selector:
             number:
@@ -488,8 +435,7 @@ blueprint:
               max: 100
               mode: slider
         humidity_low:
-          name: 'Fan: humidity low threshold (%) (static)'
-          description: Used when humidity_low_helper is not provided. (Hysteresis; should be lower than high.)
+          name: 'Fan: humidity low threshold (%)'
           default: 55
           selector:
             number:
@@ -497,28 +443,24 @@ blueprint:
               max: 100
               mode: slider
         humidity_high_helper:
-          name: 'Fan: humidity high helper (optional input_number)'
-          description: Optional. If set, overrides humidity_high at runtime.
+          name: 'Fan: humidity high helper'
           default: ''
           selector:
             entity:
               domain: input_number
         humidity_low_helper:
-          name: 'Fan: humidity low helper (optional input_number)'
-          description: Optional. If set, overrides humidity_low at runtime.
+          name: 'Fan: humidity low helper'
           default: ''
           selector:
             entity:
               domain: input_number
         humidity_check_interval:
           name: 'Fan: humidity re-check interval'
-          description: How often to re-check humidity while holding the fan on.
           default: 00:02:00
           selector:
             duration: null
         humidity_hold_max:
           name: 'Fan: max humidity hold time'
-          description: Maximum time to keep the fan running due to humidity after the off point.
           default: 01:00:00
           selector:
             duration: null
@@ -558,6 +500,7 @@ variables:
   lights: !input lights
   lights_on_script: !input lights_on_script
   lights_off_script: !input lights_off_script
+  lights_soft_off_enabled: !input lights_soft_off_enabled
 
   lights_control_enabled: >-
     {{ (lights | length > 0) or (lights_on_script != '') or (lights_off_script != '') }}
@@ -602,6 +545,7 @@ variables:
   fan_disable_during_night: !input fan_disable_during_night
   fan_runon_t: !input fan_runon_timer
   fan_runon_duration: !input fan_runon_duration
+  fan_runon_minutes_helper: !input fan_runon_minutes_helper
   fan_runon_after_lights: !input fan_runon_starts_after_lights_off
 
   # Humidity hold
@@ -670,7 +614,11 @@ variables:
     {% else %}
       {{ lux_threshold_static | float }}
     {% endif %}
-
+  
+  # Hysteresis Logic: Allow ON if < threshold, but don't strictly require it if we are 'bouncing'
+  # Actually, simple gate: turn on if below threshold + 0 (strict). 
+  # If you want hysteresis, you usually want to avoid turning OFF if it brightens slightly, but this is an ON automation.
+  # So we just keep strict ON threshold.
   lights_ok_to_turn_on: >-
     {% if lux_entity != '' and use_lux_gate %}
       {{ lux_value < lux_threshold }}
@@ -715,6 +663,13 @@ variables:
       {{ states(fan_on_delay_seconds_helper) | float(0) }}
     {% else %}
       {{ as_timedelta(fan_on_delay_static).total_seconds() }}
+    {% endif %}
+
+  fan_runon_actual_seconds: >-
+    {% if fan_runon_minutes_helper != '' %}
+      {{ (states(fan_runon_minutes_helper) | float(0)) * 60 }}
+    {% else %}
+      {{ as_timedelta(fan_runon_duration).total_seconds() }}
     {% endif %}
 
   any_light_on: >-
@@ -907,7 +862,7 @@ actions:
                     data:
                       duration: !input cooldown_duration
 
-      # ================= VACANT -> LIGHTS OFF (+ start fan run-on if configured to start after lights) =================
+      # ================= VACANT -> LIGHTS OFF =================
       - conditions:
           - condition: trigger
             id: lights_off
@@ -916,7 +871,7 @@ actions:
           - condition: template
             value_template: "{{ force_ok }}"
         sequence:
-          # Lights OFF
+          # Lights OFF Sequence
           - choose:
               - conditions:
                   - condition: template
@@ -924,6 +879,22 @@ actions:
                 sequence:
                   - variables:
                       _lights_off_retries: "{{ lights_off_verify_retries | int(0) }}"
+
+                  # Soft-Off Warning (Dim to 10% for 15s)
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_soft_off_enabled and (lights | length > 0) }}"
+                        sequence:
+                          - action: light.turn_on
+                            target:
+                              entity_id: !input lights
+                            data:
+                              brightness_pct: 10
+                              transition: 2
+                          - delay: 00:00:15
+                          # Check occupancy again. If user waved hand, we restart (since mode: restart).
+                          # But if we are here, we are still vacant.
 
                   # First OFF attempt
                   - choose:
@@ -1023,7 +994,7 @@ actions:
                     target:
                       entity_id: "{{ fan_runon_t }}"
                     data:
-                      duration: !input fan_runon_duration
+                      duration: "{{ fan_runon_actual_seconds }}"
 
           # Fallback: no fan timer
           - choose:
@@ -1093,7 +1064,7 @@ actions:
             target:
               entity_id: "{{ fan_runon_t }}"
             data:
-              duration: !input fan_runon_duration
+              duration: "{{ fan_runon_actual_seconds }}"
 
       # ================= FAN RUN-ON DONE -> FAN OFF =================
       - conditions:
