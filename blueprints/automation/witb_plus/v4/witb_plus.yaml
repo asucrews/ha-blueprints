@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.0.2 (Modernized & Integrated)
+  name: WITB+ v4.0.3 (Modernized & Integrated)
   description: |
     ### Key Improvements:
     1. **Modernization**: Replaces legacy `service:` calls with the new `action:` syntax.
@@ -154,6 +154,7 @@ blueprint:
             Optional helper used to support "door can close after leaving" rooms.
             This stores the timestamp when a transition/seal door OPENED while the room was already occupied.
             If set, the automation can clear occupancy after the door closes behind you (garage/bedroom style).
+            Currently uses the slider below for the exit window duration.
           default: []
           selector:
             entity:
@@ -281,7 +282,9 @@ blueprint:
 
         entry_window_seconds:
           name: Entry window (seconds)
-          description: How recent a door change must be to accept motion as an entry when gating is enabled.
+          description: > 
+            How recent a door change must be to accept motion as an entry when gating is enabled.
+            Used only if the Helper below is not defined.
           default: 15
           selector:
             number:
@@ -304,6 +307,7 @@ blueprint:
           description: >
             If enabled, uses a timer (no polling) to prevent stuck occupied states.
             SAFE behavior: failsafe will never clear while door is CLOSED.
+            NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below.
           default: true
           selector:
             boolean: {}
@@ -321,6 +325,7 @@ blueprint:
           description: >
             Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
             Toilet suggestion: 90-180. Bedroom suggestion: 720-1440.
+            Used only if the Helper below is not defined.
           default: 180
           selector:
             number:
