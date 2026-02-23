@@ -1,0 +1,1140 @@
+blueprint:
+  name: "WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb)"
+  description: >
+    Hook script blueprint for WITB+ Actions when you have smart bulb(s) behind an
+    Inovelli VZW31-SN Z-Wave dimmer.
+
+    WITB calls this script and passes:
+      - lights (list of light entity_ids)
+      - transition (seconds, optional)
+      - is_night, lux_value, lux_threshold, reason (optional)
+
+    This profile can "power reset" the bulbs by toggling Inovelli Smart Bulb Mode (Parameter 52):
+      - set to disabled (0)
+      - then set to enabled (1)
+
+    v1.8 adds:
+      - Verify + retry loop for command reliability (handles "missed" ON/OFF)
+      - Safer SBM reset by forcing the switch output ON before/after toggling
+      - Optional cooldown for SBM resets (requires a tracker entity: input_datetime or template sensor)
+      - Optional local protection enforcement (select entity + option)
+      - Notification hygiene using notification_id (updates instead of spamming)
+  domain: script
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_8.yaml
+  homeassistant:
+    min_version: 2024.6.0
+
+mode: restart
+
+fields:
+  # Passed in by WITB+ Actions
+  lights:
+    name: Lights to control
+    description: "List of light entity_ids to turn off. (Passed by WITB+ Actions)"
+    required: true
+    selector:
+      entity:
+        domain: light
+        multiple: true
+
+  transition:
+    name: Transition (seconds)
+    description: "Transition time in seconds. Optional; defaults to 0."
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 60
+        mode: slider
+        step: 0.5
+
+  # Context (optional)
+  is_night:
+    name: is_night
+    required: false
+    selector:
+      boolean: {}
+
+  lux_value:
+    name: lux_value
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 100000
+        mode: box
+        step: 1
+
+  lux_threshold:
+    name: lux_threshold
+    required: false
+    selector:
+      number:
+        min: 0
+        max: 100000
+        mode: box
+        step: 1
+
+  reason:
+    name: reason
+    required: false
+    selector:
+      text: {}
+
+  # Per-room config (set when creating the script instance from this blueprint)
+  vzw31_entity:
+    name: VZW31-SN entity
+    description: >
+      Select an entity belonging to the VZW31-SN device (typically the dimmer light entity).
+      Used as the target for zwave_js.set_config_parameter (Smart Bulb Mode toggle).
+    required: true
+    selector:
+      entity:
+        integration: zwave_js
+        multiple: false
+
+  # Optional local protection enforcement
+  enforce_local_protection:
+    name: Enforce local protection (optional)
+    description: >
+      If enabled, sets the provided local protection select to the configured option.
+      Useful to prevent the wall paddle from cutting power / changing level.
+    required: false
+    default: false
+    selector:
+      boolean: {}
+
+  local_protection_select:
+    name: Local protection select entity (optional)
+    description: >
+      The Z-Wave JS local protection select entity for the VZW31-SN (if exposed).
+      Example options often include "Unprotected" and "No operation possible".
+    required: false
+    default: ""
+    selector:
+      entity:
+        domain: select
+        integration: zwave_js
+        multiple: false
+
+  local_protection_option:
+    name: Local protection option (optional)
+    description: >
+      The option string to set on local_protection_select when enforcement is enabled.
+      Example: "No operation possible".
+    required: false
+    default: ""
+    selector:
+      text: {}
+
+  # Optional Z-Wave health / ping helpers (recommended)
+  vzw31_node_status:
+    name: VZW31 node status sensor (optional)
+    description: >
+      Optional: The Z-Wave JS "Node status" sensor for this device (often disabled by default).
+      When provided, we'll treat state "dead" as not reachable.
+    required: false
+    default: ""
+    selector:
+      entity:
+        domain: sensor
+        integration: zwave_js
+        multiple: false
+
+  vzw31_ping_button:
+    name: VZW31 ping button (optional)
+    description: >
+      Optional: The Z-Wave JS "Ping" button entity for this device.
+      This is the modern replacement for the deprecated zwave_js.ping service.
+    required: false
+    default: ""
+    selector:
+      entity:
+        domain: button
+        integration: zwave_js
+        multiple: false
+
+  ping_attempts:
+    name: Ping attempts
+    description: "How many times to press the ping button (harmless if already reachable)."
+    required: false
+    default: 2
+    selector:
+      number:
+        min: 0
+        max: 10
+        mode: slider
+        step: 1
+
+  ping_timeout_s:
+    name: Ping wait timeout (seconds)
+    description: "How long to wait after each ping for the device to become reachable."
+    required: false
+    default: 8
+    selector:
+      number:
+        min: 1
+        max: 60
+        mode: slider
+        step: 1
+        unit_of_measurement: s
+
+
+sbm_reset_event_type:
+  name: SBM reset event type (for template tracker)
+  description: >
+    Event type fired when this script performs an SBM reset (used to update a template-based tracker sensor).
+    Default: witb_switch_light_profile_sbm_reset
+  required: false
+  default: "witb_switch_light_profile_sbm_reset"
+  selector:
+    text: {}
+
+  ping_retry_delay_s:
+    name: Delay between pings (seconds)
+    description: "Pause between ping attempts."
+    required: false
+    default: 1
+    selector:
+      number:
+        min: 0
+        max: 10
+        mode: slider
+        step: 1
+        unit_of_measurement: s
+
+  # Smart Bulb Mode / recovery tuning
+  power_on_delay_ms:
+    name: Post-toggle delay (ms)
+    description: "Delay after toggling Smart Bulb Mode before checking bulbs / turning off lights."
+    required: false
+    default: 250
+    selector:
+      number:
+        min: 0
+        max: 5000
+        mode: slider
+        step: 50
+        unit_of_measurement: ms
+
+  availability_timeout_s:
+    name: Availability wait timeout (seconds)
+    description: "How long to wait for bulbs to return from unavailable/unknown after the toggle."
+    required: false
+    default: 10
+    selector:
+      number:
+        min: 0
+        max: 120
+        mode: slider
+        step: 1
+        unit_of_measurement: s
+
+  settle_after_rejoin_ms:
+    name: Settle delay after rejoin (ms)
+    description: >
+      Extra delay after bulbs become available again to ensure they accept commands.
+      Helps with bulbs that report 'available' before they're ready.
+    required: false
+    default: 750
+    selector:
+      number:
+        min: 0
+        max: 5000
+        mode: slider
+        step: 50
+        unit_of_measurement: ms
+
+  # Recheck loop (for bulbs that take longer to reconnect / different protocols)
+  recheck_enabled:
+    name: Recheck loop enabled
+    description: "If enabled, re-check bulbs after the initial attempt and turn off any that recover."
+    required: false
+    default: true
+    selector:
+      boolean: {}
+
+  recheck_interval_s:
+    name: Recheck interval (seconds)
+    description: "Time between rechecks."
+    required: false
+    default: 10
+    selector:
+      number:
+        min: 1
+        max: 120
+        mode: slider
+        step: 1
+        unit_of_measurement: s
+
+  recheck_attempts:
+    name: Recheck attempts
+    description: "How many times to recheck (total window = interval * attempts). Set 0 to disable."
+    required: false
+    default: 6
+    selector:
+      number:
+        min: 0
+        max: 60
+        mode: slider
+        step: 1
+
+  recheck_only_if_any_missing:
+    name: Recheck only if any missing
+    description: >
+      If enabled, the recheck loop will only run when at least one bulb is unavailable/unknown
+      after the initial OFF attempt (and optional Smart Bulb Mode reset).
+    required: false
+    default: true
+    selector:
+      boolean: {}
+
+  reset_power_if_unavailable:
+    name: Reset power if bulbs unavailable
+    description: "If enabled, toggles Smart Bulb Mode OFF->ON when any bulb is unavailable/unknown."
+    required: false
+    default: true
+    selector:
+      boolean: {}
+
+  ensure_smart_bulb_mode_enabled:
+    name: Ensure Smart Bulb Mode enabled
+    description: "If enabled, sets Smart Bulb Mode to enabled (idempotent)."
+    required: false
+    default: true
+    selector:
+      boolean: {}
+
+  # SBM reset cooldown (optional; needs a helper to store last reset time)
+  sbm_last_reset_helper:
+    name: SBM last reset tracker entity (input_datetime or sensor, optional)
+    description: >
+      Optional entity used to track the last time this script performed an SBM reset.
+      - If it is an input_datetime, the script will set it directly.
+      - Otherwise, the script will fire an event (sbm_reset_event_type) and you can use a template tracker sensor.
+      When provided, sbm_reset_cooldown_s will be enforced.
+    required: false
+    default: ""
+    selector:
+      entity:
+        domain: input_datetime
+        multiple: false
+
+  sbm_reset_cooldown_s:
+    name: SBM reset cooldown (seconds)
+    description: "Minimum time between SBM resets (only enforced when sbm_last_reset_helper is set)."
+    required: false
+    default: 600
+    selector:
+      number:
+        min: 0
+        max: 7200
+        mode: slider
+        step: 30
+        unit_of_measurement: s
+
+  # Verify + retry loop (for missed commands)
+  verify_enabled:
+    name: Verify & retry enabled
+    description: "If enabled, verify lights reached the desired state and retry a few times."
+    required: false
+    default: true
+    selector:
+      boolean: {}
+
+  verify_attempts:
+    name: Verify attempts
+    description: "How many verification retries to run after the initial command."
+    required: false
+    default: 3
+    selector:
+      number:
+        min: 0
+        max: 10
+        mode: slider
+        step: 1
+
+  verify_delay_ms:
+    name: Verify delay (ms)
+    description: "Delay between verification retries."
+    required: false
+    default: 600
+    selector:
+      number:
+        min: 0
+        max: 5000
+        mode: slider
+        step: 50
+        unit_of_measurement: ms
+
+  # Notifications (optional)
+  notify_enabled:
+    name: Enable notifications
+    required: false
+    default: true
+    selector:
+      boolean: {}
+
+  notify_mode:
+    name: Notification mode
+    required: false
+    default: persistent
+    selector:
+      select:
+        mode: dropdown
+        options:
+          - label: Persistent notification
+            value: persistent
+          - label: Notify service
+            value: notify
+          - label: Both
+            value: both
+
+  notify_service:
+    name: Notify service (optional)
+    description: "Full service name like notify.mobile_app_your_phone. Used when notify_mode=notify/both."
+    required: false
+    default: ""
+    selector:
+      text: {}
+
+  notify_prefix:
+    name: Notification title prefix
+    required: false
+    default: "WITB"
+    selector:
+      text: {}
+
+  notify_notification_id:
+    name: Persistent notification id
+    description: >
+      Used for persistent notifications so updates replace prior messages instead of creating spam.
+      Set a unique value per room/script if you don't want rooms to overwrite each other.
+    required: false
+    default: "witb_vzw31_sn_switch_bulb_off"
+    selector:
+      text: {}
+
+  # Advanced (leave defaults unless you know what you're doing)
+  smart_bulb_mode_param:
+    name: Smart Bulb Mode parameter number
+    description: "Inovelli Smart Bulb Mode is typically Parameter 52."
+    required: false
+    default: 52
+    selector:
+      number:
+        min: 1
+        max: 255
+        mode: box
+        step: 1
+
+  smart_bulb_mode_disabled_value:
+    name: Smart Bulb Mode disabled value
+    description: "Usually 0."
+    required: false
+    default: 0
+    selector:
+      number:
+        min: 0
+        max: 255
+        mode: box
+        step: 1
+
+  smart_bulb_mode_enabled_value:
+    name: Smart Bulb Mode enabled value
+    description: "Usually 1."
+    required: false
+    default: 1
+    selector:
+      number:
+        min: 0
+        max: 255
+        mode: box
+        step: 1
+
+  sbm_toggle_delay_ms:
+    name: Smart Bulb Mode toggle delay (ms)
+    description: "Delay between disabling and enabling Smart Bulb Mode."
+    required: false
+    default: 300
+    selector:
+      number:
+        min: 0
+        max: 5000
+        mode: slider
+        step: 50
+        unit_of_measurement: ms
+
+sequence:
+  - variables:
+      _transition: "{{ transition | default(0) | float(0) }}"
+      _power_on_delay_ms: "{{ power_on_delay_ms | default(250) | int(250) }}"
+      _availability_timeout_s: "{{ availability_timeout_s | default(10) | int(10) }}"
+      _settle_after_rejoin_ms: "{{ settle_after_rejoin_ms | default(750) | int(750) }}"
+      _recheck_enabled: "{{ recheck_enabled | default(true) }}"
+      _recheck_interval_s: "{{ recheck_interval_s | default(10) | int(10) }}"
+      _recheck_attempts: "{{ recheck_attempts | default(6) | int(6) }}"
+      _recheck_only_if_any_missing: "{{ recheck_only_if_any_missing | default(true) }}"
+      _reset_if_unavailable: "{{ reset_power_if_unavailable | default(true) }}"
+      _ensure_sbm: "{{ ensure_smart_bulb_mode_enabled | default(true) }}"
+      _param: "{{ smart_bulb_mode_param | default(52) | int(52) }}"
+      _sbm_off: "{{ smart_bulb_mode_disabled_value | default(0) | int(0) }}"
+      _sbm_on: "{{ smart_bulb_mode_enabled_value | default(1) | int(1) }}"
+      _sbm_toggle_delay_ms: "{{ sbm_toggle_delay_ms | default(300) | int(300) }}"
+      _node_status_entity: "{{ vzw31_node_status | default('') }}"
+      _ping_button: "{{ vzw31_ping_button | default('') }}"
+      _ping_attempts: "{{ ping_attempts | default(2) | int(2) }}"
+      _ping_timeout_s: "{{ ping_timeout_s | default(8) | int(8) }}"
+      _ping_retry_delay_s: "{{ ping_retry_delay_s | default(1) | int(1) }}"
+      _notify_enabled: "{{ notify_enabled | default(true) }}"
+      _notify_mode: "{{ notify_mode | default('persistent') }}"
+      _notify_service: "{{ notify_service | default('') }}"
+      _notify_prefix: "{{ notify_prefix | default('WITB') }}"
+      _notify_id_base: "{{ notify_notification_id | default('witb_vzw31_sn_switch_bulb_off') }}"
+      _notify_id_power: "{{ (notify_notification_id | default('witb_vzw31_sn_switch_bulb_off')) ~ '_power' }}"
+      _notify_id_device: "{{ (notify_notification_id | default('witb_vzw31_sn_switch_bulb_off')) ~ '_device' }}"
+      _notify_id_status: "{{ (notify_notification_id | default('witb_vzw31_sn_switch_bulb_off')) ~ '_status' }}"
+      _verify_enabled: "{{ verify_enabled | default(true) }}"
+      _verify_attempts: "{{ verify_attempts | default(3) | int(3) }}"
+      _verify_delay_ms: "{{ verify_delay_ms | default(600) | int(600) }}"
+      _cooldown_s: "{{ sbm_reset_cooldown_s | default(600) | int(600) }}"
+      _sbm_reset_event_type: "{{ sbm_reset_event_type | default('witb_switch_light_profile_sbm_reset') }}"
+      _last_reset_entity: "{{ sbm_last_reset_helper | default('') }}"
+
+      _lights: >-
+        {% set v = lights | default([]) %}
+        {% if v is string %}
+          {{ [v] }}
+        {% elif v is mapping and v.entity_id is defined %}
+          {{ v.entity_id }}
+        {% else %}
+          {{ v }}
+        {% endif %}
+
+      _lights_bad_initial: >-
+        {% set ns = namespace(bad=[]) %}
+        {% for e in _lights | default([]) %}
+          {% if states(e) in ['unavailable','unknown',''] %}
+            {% set ns.bad = ns.bad + [e] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.bad }}
+
+      _vzw31_entity_ok: "{{ states(vzw31_entity) not in ['unavailable','unknown',''] }}"
+      _node_dead: >-
+        {% if _node_status_entity | length > 0 %}
+          {{ states(_node_status_entity) == 'dead' }}
+        {% else %}
+          {{ false }}
+        {% endif %}
+      _vzw31_ok: "{{ _vzw31_entity_ok and (not _node_dead) }}"
+
+      _last_reset_ts: >-
+        {% if _last_reset_entity | length > 0 and states(_last_reset_entity) not in ['unknown','unavailable',''] %}
+          {{ as_datetime(states(_last_reset_entity)) }}
+        {% else %}
+          {{ none }}
+        {% endif %}
+
+      _can_sbm_reset: >-
+        {% if _last_reset_ts is none or _cooldown_s <= 0 %}
+          {{ true }}
+        {% else %}
+          {{ (as_timestamp(now()) - as_timestamp(_last_reset_ts)) >= _cooldown_s }}
+        {% endif %}
+
+  - condition: template
+    value_template: "{{ _lights is defined and (_lights | length > 0) }}"
+
+  # Optional: enforce local protection (prevents paddle interference)
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ enforce_local_protection | default(false)
+                 and (local_protection_select | default('') | length > 0)
+                 and (local_protection_option | default('') | length > 0) }}
+        sequence:
+          - action: select.select_option
+            target:
+              entity_id: "{{ local_protection_select }}"
+            data:
+              option: "{{ local_protection_option }}"
+            continue_on_error: true
+    default: []
+
+  # Notify if any bulbs are unavailable/unknown at OFF request
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ _notify_enabled and (_lights_bad_initial | length > 0) }}"
+        sequence:
+          - variables:
+              _n_title: "{{ _notify_prefix }}: Lights OFF (VZW31-SN)"
+              _n_msg: >-
+                POWER_EVENT: Bulbs unavailable/unknown at OFF request.
+                Missing: {{ _lights_bad_initial | join(', ') }}
+                reason={{ reason | default('') }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      notification_id: "{{ _notify_id_power }}"
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                sequence:
+                  - service: "{{ _notify_service }}"
+                    data:
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+    default: []
+
+  # If we need to write Z-Wave parameters but the switch looks dead/unavailable, try pinging first
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ (_ensure_sbm or ((_lights_bad_initial | length > 0) and _reset_if_unavailable))
+                  and (not _vzw31_ok)
+                  and (_ping_button | length > 0)
+                  and (_ping_attempts > 0) }}
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_enabled }}"
+                sequence:
+                  - variables:
+                      _n_title: "{{ _notify_prefix }}: Z-Wave ping (VZW31-SN)"
+                      _n_msg: >-
+                        DEVICE_ISSUE: VZW31-SN not reachable (node_status={{ states(_node_status_entity) if _node_status_entity|length>0 else 'n/a' }},
+                        entity_state={{ states(vzw31_entity) }}). Trying ping...
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                        sequence:
+                          - action: persistent_notification.create
+                            data:
+                              notification_id: "{{ _notify_id_device }}"
+                              title: "{{ _n_title }}"
+                              message: "{{ _n_msg }}"
+                    default: []
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                        sequence:
+                          - service: "{{ _notify_service }}"
+                            data:
+                              title: "{{ _n_title }}"
+                              message: "{{ _n_msg }}"
+                    default: []
+            default: []
+
+          - repeat:
+              count: "{{ _ping_attempts }}"
+              sequence:
+                - action: button.press
+                  target:
+                    entity_id: "{{ _ping_button }}"
+                - wait_template: >-
+                    {% set entity_ok = states(vzw31_entity) not in ['unavailable','unknown',''] %}
+                    {% set node_ok = true %}
+                    {% if _node_status_entity | length > 0 %}
+                      {% set node_ok = (states(_node_status_entity) != 'dead') %}
+                    {% endif %}
+                    {{ entity_ok and node_ok }}
+                  timeout:
+                    seconds: "{{ _ping_timeout_s }}"
+                  continue_on_timeout: true
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ _ping_retry_delay_s > 0 }}"
+                      sequence:
+                        - delay:
+                            seconds: "{{ _ping_retry_delay_s }}"
+                  default: []
+
+          - variables:
+              _vzw31_entity_ok: "{{ states(vzw31_entity) not in ['unavailable','unknown',''] }}"
+              _node_dead: >-
+                {% if _node_status_entity | length > 0 %}
+                  {{ states(_node_status_entity) == 'dead' }}
+                {% else %}
+                  {{ false }}
+                {% endif %}
+              _vzw31_ok: "{{ _vzw31_entity_ok and (not _node_dead) }}"
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_enabled and (not _vzw31_ok) }}"
+                sequence:
+                  - variables:
+                      _n_title: "{{ _notify_prefix }}: Z-Wave ping failed (VZW31-SN)"
+                      _n_msg: >-
+                        DEVICE_ISSUE: Still not reachable after ping attempts.
+                        node_status={{ states(_node_status_entity) if _node_status_entity|length>0 else 'n/a' }}
+                        entity_state={{ states(vzw31_entity) }}
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                        sequence:
+                          - action: persistent_notification.create
+                            data:
+                              notification_id: "{{ _notify_id_device }}"
+                              title: "{{ _n_title }}"
+                              message: "{{ _n_msg }}"
+                    default: []
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                        sequence:
+                          - service: "{{ _notify_service }}"
+                            data:
+                              title: "{{ _n_title }}"
+                              message: "{{ _n_msg }}"
+                    default: []
+            default: []
+    default: []
+
+  # If we would need Z-Wave parameter writes but the switch is not reachable and no ping button is configured, notify
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ _notify_enabled
+                  and ((_lights_bad_initial | length > 0) or _ensure_sbm)
+                  and (not _vzw31_ok)
+                  and (_ping_button | length == 0) }}
+        sequence:
+          - variables:
+              _n_title: "{{ _notify_prefix }}: Z-Wave unreachable (VZW31-SN)"
+              _n_msg: >-
+                DEVICE_ISSUE: VZW31-SN not reachable and no ping button configured.
+                Skipping Smart Bulb Mode actions (cannot power-reset bulbs).
+                node_status={{ states(_node_status_entity) if _node_status_entity|length>0 else 'n/a' }}
+                entity_state={{ states(vzw31_entity) }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      notification_id: "{{ _notify_id_device }}"
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                sequence:
+                  - service: "{{ _notify_service }}"
+                    data:
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+    default: []
+
+  # Ensure Smart Bulb Mode is enabled (keeps constant power to bulbs)
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ _ensure_sbm and _vzw31_ok }}"
+        sequence:
+          - action: zwave_js.set_config_parameter
+            target:
+              entity_id: "{{ vzw31_entity }}"
+            data:
+              parameter: "{{ _param }}"
+              value: "{{ _sbm_on }}"
+            continue_on_error: true
+    default: []
+
+  # Turn OFF any bulbs that are currently available
+  - variables:
+      _lights_available_now: >-
+        {% set ns = namespace(ok=[]) %}
+        {% for e in _lights | default([]) %}
+          {% if states(e) not in ['unavailable','unknown',''] %}
+            {% set ns.ok = ns.ok + [e] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.ok }}
+
+      _lights_still_missing: >-
+        {% set ns = namespace(bad=[]) %}
+        {% for e in _lights | default([]) %}
+          {% if states(e) in ['unavailable','unknown',''] %}
+            {% set ns.bad = ns.bad + [e] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.bad }}
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ _lights_available_now | length > 0 }}"
+        sequence:
+          - action: light.turn_off
+            target:
+              entity_id: "{{ _lights_available_now }}"
+            data:
+              transition: "{{ _transition }}"
+    default: []
+
+  # Verify + retry (covers cases where a bulb was available but missed the command)
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ _verify_enabled and (_verify_attempts > 0) }}"
+        sequence:
+          - repeat:
+              count: "{{ _verify_attempts }}"
+              sequence:
+                - variables:
+                    _still_on: >-
+                      {% set ns = namespace(bad=[]) %}
+                      {% for e in _lights_available_now | default([]) %}
+                        {% if states(e) == 'on' %}
+                          {% set ns.bad = ns.bad + [e] %}
+                        {% endif %}
+                      {% endfor %}
+                      {{ ns.bad }}
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ _still_on | length > 0 }}"
+                      sequence:
+                        - action: light.turn_off
+                          target:
+                            entity_id: "{{ _still_on }}"
+                          data:
+                            transition: "{{ _transition }}"
+                        - choose:
+                            - conditions:
+                                - condition: template
+                                  value_template: "{{ _verify_delay_ms > 0 }}"
+                              sequence:
+                                - delay:
+                                    milliseconds: "{{ _verify_delay_ms }}"
+                          default: []
+                  default: []
+    default: []
+
+  # If bulbs are missing, optionally "power reset" by toggling Smart Bulb Mode OFF->ON (then enforce OFF)
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ (_lights_still_missing | length > 0) and _reset_if_unavailable and _vzw31_ok and _can_sbm_reset }}"
+        sequence:
+          # Force the switch output ON before/after toggling (safer reset)
+          - action: light.turn_on
+            target:
+              entity_id: "{{ vzw31_entity }}"
+            data:
+              brightness_pct: 99
+              transition: 0
+            continue_on_error: true
+
+          - action: zwave_js.set_config_parameter
+            target:
+              entity_id: "{{ vzw31_entity }}"
+            data:
+              parameter: "{{ _param }}"
+              value: "{{ _sbm_off }}"
+            continue_on_error: true
+
+          - delay:
+              milliseconds: "{{ _sbm_toggle_delay_ms }}"
+
+          - action: zwave_js.set_config_parameter
+            target:
+              entity_id: "{{ vzw31_entity }}"
+            data:
+              parameter: "{{ _param }}"
+              value: "{{ _sbm_on }}"
+            continue_on_error: true
+
+          - action: light.turn_on
+            target:
+              entity_id: "{{ vzw31_entity }}"
+            data:
+              brightness_pct: 99
+              transition: 0
+            continue_on_error: true
+
+          - choose:
+
+- conditions:
+    - condition: template
+      value_template: "{{ _last_reset_entity | length > 0 and _last_reset_entity.startswith('input_datetime.') }}"
+  sequence:
+    - service: input_datetime.set_datetime
+      target:
+        entity_id: "{{ _last_reset_entity }}"
+      data:
+        datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+- conditions:
+    - condition: template
+      value_template: "{{ _last_reset_entity | length > 0 and (not _last_reset_entity.startswith('input_datetime.')) }}"
+  sequence:
+    - service: homeassistant.event
+      data:
+        event_type: "{{ _sbm_reset_event_type }}"
+        event_data:
+          switch_entity: "{{ vzw31_entity }}"
+          profile: "vzw31_sn_switch_bulb"
+          action: "off"
+          tracker_entity: "{{ _last_reset_entity }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _availability_timeout_s > 0 }}"
+                sequence:
+                  - wait_template: >-
+                      {% set ns = namespace(still=false) %}
+                      {% for e in _lights_still_missing %}
+                        {% if states(e) in ['unavailable','unknown',''] %}
+                          {% set ns.still = true %}
+                        {% endif %}
+                      {% endfor %}
+                      {{ not ns.still }}
+                    timeout:
+                      seconds: "{{ _availability_timeout_s }}"
+                    continue_on_timeout: true
+            default: []
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _settle_after_rejoin_ms > 0 }}"
+                sequence:
+                  - delay:
+                      milliseconds: "{{ _settle_after_rejoin_ms }}"
+            default: []
+
+          - variables:
+              _recovered_after_reset: >-
+                {% set ns = namespace(ok=[]) %}
+                {% for e in _lights | default([]) %}
+                  {% if states(e) not in ['unavailable','unknown',''] %}
+                    {% set ns.ok = ns.ok + [e] %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.ok }}
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _recovered_after_reset | length > 0 }}"
+                sequence:
+                  - action: light.turn_off
+                    target:
+                      entity_id: "{{ _recovered_after_reset }}"
+                    data:
+                      transition: "{{ _transition }}"
+            default: []
+
+      - conditions:
+          - condition: template
+            value_template: "{{ (_lights_still_missing | length > 0) and _reset_if_unavailable and _vzw31_ok and (not _can_sbm_reset) and _notify_enabled }}"
+        sequence:
+          - variables:
+              _n_title: "{{ _notify_prefix }}: SBM reset cooldown (VZW31-SN)"
+              _n_msg: >-
+                DEVICE_ISSUE: Skipping SBM reset due to cooldown.
+                last_reset={{ states(_last_reset_entity) if _last_reset_entity|length>0 else 'n/a' }} cooldown_s={{ _cooldown_s }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      notification_id: "{{ _notify_id_device }}"
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                sequence:
+                  - service: "{{ _notify_service }}"
+                    data:
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+    default: []
+
+  # Recheck loop: some bulbs/protocols take longer to rejoin. When they do, enforce OFF state.
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {% set ns = namespace(bad=[]) %}
+              {% for e in _lights | default([]) %}
+                {% if states(e) in ['unavailable','unknown',''] %}
+                  {% set ns.bad = ns.bad + [e] %}
+                {% endif %}
+              {% endfor %}
+              {{ _recheck_enabled and (_recheck_attempts > 0) and ((not _recheck_only_if_any_missing) or (ns.bad | length > 0)) }}
+        sequence:
+          - variables:
+              _lights_to_recover: >-
+                {% set ns = namespace(bad=[]) %}
+                {% for e in _lights | default([]) %}
+                  {% if states(e) in ['unavailable','unknown',''] %}
+                    {% set ns.bad = ns.bad + [e] %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.bad }}
+
+          - repeat:
+              count: "{{ _recheck_attempts }}"
+              sequence:
+                - delay:
+                    seconds: "{{ _recheck_interval_s }}"
+
+                - variables:
+                    _recovered_now: >-
+                      {% set ns = namespace(ok=[]) %}
+                      {% for e in _lights_to_recover | default([]) %}
+                        {% if states(e) not in ['unavailable','unknown',''] %}
+                          {% set ns.ok = ns.ok + [e] %}
+                        {% endif %}
+                      {% endfor %}
+                      {{ ns.ok }}
+
+                    _still_missing: >-
+                      {% set ns = namespace(bad=[]) %}
+                      {% for e in _lights_to_recover | default([]) %}
+                        {% if states(e) in ['unavailable','unknown',''] %}
+                          {% set ns.bad = ns.bad + [e] %}
+                        {% endif %}
+                      {% endfor %}
+                      {{ ns.bad }}
+
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ _recovered_now | length > 0 }}"
+                      sequence:
+                        - action: light.turn_off
+                          target:
+                            entity_id: "{{ _recovered_now }}"
+                          data:
+                            transition: "{{ _transition }}"
+                  default: []
+
+                - choose:
+                    - conditions:
+                        - condition: template
+                          value_template: "{{ _still_missing | length == 0 }}"
+                      sequence:
+                        - stop: "All bulbs recovered"
+                  default: []
+    default: []
+
+  # Final missing notify
+  - variables:
+      _final_missing: >-
+        {% set ns = namespace(bad=[]) %}
+        {% for e in _lights | default([]) %}
+          {% if states(e) in ['unavailable','unknown',''] %}
+            {% set ns.bad = ns.bad + [e] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.bad }}
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ _notify_enabled and (_final_missing | length > 0) }}"
+        sequence:
+          - variables:
+              _n_title: "{{ _notify_prefix }}: Lights OFF incomplete (VZW31-SN)"
+              _n_msg: >-
+                DEVICE_ISSUE: Some bulbs still unavailable after retries (OFF enforced when they return).
+                Missing: {{ _final_missing | join(', ') }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      notification_id: "{{ _notify_id_status }}"
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                sequence:
+                  - service: "{{ _notify_service }}"
+                    data:
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+    default: []
+
+  # Final verify notify (available lights that still didn't turn off)
+  - variables:
+      _final_still_on: >-
+        {% set ns = namespace(bad=[]) %}
+        {% for e in _lights | default([]) %}
+          {% if states(e) not in ['unavailable','unknown',''] and states(e) == 'on' %}
+            {% set ns.bad = ns.bad + [e] %}
+          {% endif %}
+        {% endfor %}
+        {{ ns.bad }}
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ _notify_enabled and (_final_still_on | length > 0) }}"
+        sequence:
+          - variables:
+              _n_title: "{{ _notify_prefix }}: Lights OFF verify failed (VZW31-SN)"
+              _n_msg: >-
+                DEVICE_ISSUE: Some lights are available but still ON after verification retries.
+                Still on: {{ _final_still_on | join(', ') }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['persistent','both'] }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      notification_id: "{{ _notify_id_status }}"
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _notify_mode in ['notify','both'] and (_notify_service | length > 0) }}"
+                sequence:
+                  - service: "{{ _notify_service }}"
+                    data:
+                      title: "{{ _n_title }}"
+                      message: "{{ _n_msg }}"
+            default: []
+    default: []
