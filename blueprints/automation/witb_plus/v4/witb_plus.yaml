@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.0.1 (Modernized & Integrated)
+  name: WITB+ v4.0.2 (Modernized & Integrated)
   description: |
     ### Key Improvements:
     1. **Modernization**: Replaces legacy `service:` calls with the new `action:` syntax.
@@ -328,21 +328,20 @@ blueprint:
               max: 1440
               unit_of_measurement: minutes
               mode: slider
-    
+
         failsafe_timeout_helper:
-              name: Failsafe Timeout Helper
-              description: Link to input_number.room_slug_failsafe_timeout
-              selector:
-                entity:
-                  domain: input_number
-        
+          name: Failsafe Timeout Helper
+          description: Link to input_number.room_slug_failsafe_timeout
+          selector:
+            entity:
+              domain: input_number
+
         entry_window_helper:
           name: Entry Window Helper
           description: Link to input_number.room_slug_entry_window_seconds
           selector:
             entity:
               domain: input_number
-
 
 mode: restart
 max_exceeded: silent
@@ -429,7 +428,6 @@ variables:
       {{ as_timestamp(v) | int }}
     {% endif %}
   seconds_since_door: "{{ (now().timestamp() | int) - (last_door_ts | int) }}"
-
   # For sleep-safe exit marking: seconds since last motion ON
   last_motion_ts: >-
     {% set v = states(last_motion) %}
@@ -439,8 +437,6 @@ variables:
       {{ as_timestamp(v) | int }}
     {% endif %}
   seconds_since_motion: "{{ (now().timestamp() | int) - (last_motion_ts | int) }}"
-
-
   # For "door can close after leaving": timestamp when a door OPENED while already occupied
   last_exit: !input last_exit_door_helper
   exit_win_s: !input exit_recent_window_seconds
@@ -460,7 +456,6 @@ variables:
     {% endif %}
   seconds_since_exit: "{{ (now().timestamp() | int) - (last_exit_ts | int) }}"
   exit_recent: "{{ exit_enabled and (seconds_since_exit | int) <= (exit_win_s | int) }}"
-
 
 trigger:
   - id: motion_on
@@ -561,7 +556,6 @@ action:
               timestamp: "{{ now().timestamp() }}"
     default: []
 
-
   # 1c) Mark a "possible exit" when a door OPENS while already occupied.
   #     This enables clearing even if the door closes behind you.
   - choose:
@@ -583,7 +577,6 @@ action:
             data:
               timestamp: "{{ now().timestamp() }}"
     default: []
-
 
   # 2) Force Occupied: pin ON and block clearing
   - choose:
@@ -816,7 +809,6 @@ action:
                     target:
                       entity_id: "{{ latch }}"
             default: []
-
           - choose:
               - conditions:
                   - condition: template
@@ -828,6 +820,10 @@ action:
                     data:
                       timestamp: 0
             default: []
+          - action: timer.cancel
+            target:
+              entity_id: "{{ fs_timer }}"
+            enabled: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
     default: []
 
   # 6) Motion OFF for exit timeout: attempt clear (only if door is open)
@@ -869,6 +865,10 @@ action:
                     data:
                       timestamp: 0
             default: []
+          - action: timer.cancel
+            target:
+              entity_id: "{{ fs_timer }}"
+            enabled: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
     default: []
 
   # 6b) mmWave OFF for exit timeout: attempt clear (requires PIR off too)
@@ -911,6 +911,10 @@ action:
                     data:
                       timestamp: 0
             default: []
+          - action: timer.cancel
+            target:
+              entity_id: "{{ fs_timer }}"
+            enabled: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
     default: []
 
   # 7) Keep latch helper in sync on seal door changes (debugging only)
@@ -937,7 +941,7 @@ action:
             default: []
     default: []
 
-# 8) SAFE failsafe: only clears when exit is possible (door open) and motion is off.
+  # 8) SAFE failsafe: only clears when exit is possible (door open) and motion is off.
   #    DEADLOCK FIX: If motion has been off for a massive amount of time, clear anyway.
   - choose:
       - conditions:
@@ -976,7 +980,7 @@ action:
                     value_template: >
                       {% set last_m = states(last_motion) %}
                       {% set seconds_idle = (now().timestamp() - as_timestamp(last_m, 0)) %}
-                      {{ seconds_idle > (fs_min * 60 * 1.5) }} 
+                      {{ seconds_idle > (fs_min * 60 * 1.5) }}
                 sequence:
                   - action: input_boolean.turn_off
                     target:
