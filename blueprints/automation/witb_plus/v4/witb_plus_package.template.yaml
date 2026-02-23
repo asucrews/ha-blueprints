@@ -1,4 +1,4 @@
-# WITB+ package template (v3.7.0 Optimized)
+# WITB+ package template (v4.0.3)
 # Tokens:
 #   - room_slug          -> e.g., master_bedroom
 #   - Room Friendly Name -> e.g., Master Bedroom
@@ -34,7 +34,8 @@ input_number:
     step: 5
     unit_of_measurement: "min"
     icon: mdi:clock
-    initial: 180 
+    initial: 180
+    mode: box
 
   room_slug_entry_window_seconds:
     name: "Room Friendly Name Entry Window Seconds"
@@ -44,6 +45,7 @@ input_number:
     unit_of_measurement: "seconds"
     icon: mdi:timer-sand
     initial: 15
+    mode: box
 
 input_datetime:
   room_slug_last_motion:
