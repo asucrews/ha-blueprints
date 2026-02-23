@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.0.0 (Modernized & Integrated)
+  name: WITB+ v4.0.1 (Modernized & Integrated)
   description: |
     ### Key Improvements:
     1. **Modernization**: Replaces legacy `service:` calls with the new `action:` syntax.
@@ -372,13 +372,13 @@ variables:
   # Entry gating
   entry_window_input: !input entry_window_helper
   require_door: !input require_door_for_entry
-  entry_s: "{{ states(entry_window_helper) | int(15) }}"
+  entry_s: "{{ states(entry_window_input) | int(15) }}"
 
   # Failsafe
   failsafe_timeout_input: !input failsafe_timeout_helper
   enable_fs: !input enable_failsafe
   fs_timer: !input failsafe_timer
-  fs_min: "{{ states(failsafe_timeout_helper) | int(180) }}"
+  fs_min: "{{ states(failsafe_timeout_input) | int(180) }}"
 
   # Door semantics
   sealed_now: "{{ is_state(seal, 'off') }}"
