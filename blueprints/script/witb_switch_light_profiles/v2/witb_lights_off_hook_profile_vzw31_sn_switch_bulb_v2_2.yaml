@@ -1,8 +1,8 @@
 
 blueprint:
-  name: WITB Lights ON Hook - VZW31-SN Switch + Bulb
+  name: WITB Lights OFF Hook - VZW31-SN Switch + Bulb
   description: >
-    Profile for turning lights ON based on VZW31-SN Switch.
+    Profile for turning lights OFF based on VZW31-SN Switch.
     Accepts dynamic parameters for lights and transition logic.
   domain: script
   input:
@@ -41,25 +41,4 @@ blueprint:
       description: "Notification ID for status updates"
       selector:
         text:
-  fields:
-    lights:
-      description: "List of lights to turn on"
-      example: "['light.office', 'light.living_room']"
-    brightness_pct:
-      description: "Brightness percentage for lights (0-100)"
-      example: 100
-    transition:
-      description: "Time in seconds to transition the lights"
-      example: 5
-    reason:
-      description: "Reason for turning on lights"
-      example: "motion detected"
-    is_night:
-      description: "Boolean flag if it's night time"
-      example: true
-    lux_value:
-      description: "Lux value for light level"
-      example: 300
-    lux_threshold:
-      description: "Threshold lux value to trigger action"
-      example: 150
+  source_url: "https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_9.yaml"
