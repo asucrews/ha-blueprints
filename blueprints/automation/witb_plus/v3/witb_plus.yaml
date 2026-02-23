@@ -370,10 +370,12 @@ variables:
   manual: !input manual_occupied
 
   # Entry gating
+  entry_window_input: !input entry_window_helper
   require_door: !input require_door_for_entry
   entry_s: "{{ states(entry_window_helper) | int(15) }}"
 
   # Failsafe
+  failsafe_timeout_input: !input failsafe_timeout_helper
   enable_fs: !input enable_failsafe
   fs_timer: !input failsafe_timer
   fs_min: "{{ states(failsafe_timeout_helper) | int(180) }}"
