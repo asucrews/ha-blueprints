@@ -1,14 +1,4 @@
 # Humidity baseline + delta (package template)
-# Tokens:
-#   - room_slug            -> replaced with generated slug (e.g. master_bathroom)
-#   - Room Friendly Name   -> replaced with friendly room name (e.g. Master Bathroom)
-#   - __HUMIDITY_SENSOR__  -> replaced with humidity sensor entity_id (e.g. sensor.master_bath_humidity)
-#   - __FAN_ENTITY__       -> replaced with fan entity_id (fan.* or switch.*)
-
-# Optional blocks:
-#   # --- BEGIN tuning_helpers --- / # --- END tuning_helpers ---
-
-# --- BEGIN tuning_helpers ---
 input_boolean:
   room_slug_humidity_freeze_while_fan_on:
     name: "Room Friendly Name Freeze baseline while fan on"
@@ -61,7 +51,6 @@ input_number:
     max: 50
     step: 0.1
     unit_of_measurement: "%"
-# --- END tuning_helpers ---
 
 template:
   # Adaptive humidity baseline (trigger-based template sensor)

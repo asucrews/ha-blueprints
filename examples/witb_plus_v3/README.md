@@ -1,7 +1,10 @@
 # WITB+ v3 Examples
 
 Blueprint source:
-- `blueprints/automation/witb_plus/v3/witb_plus.yaml`
+- `blueprints/automation/witb_plus/v4/witb_plus.yaml`
+
+Note:
+- The example folder name remains `witb_plus_v3`, but active source blueprint is under `v4`.
 
 ## Files
 

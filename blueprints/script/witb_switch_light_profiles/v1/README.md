@@ -1,11 +1,13 @@
-# WITB Lights Hook Scripts v1.7 (VZW31-SN Profile)
+# WITB Lights Hook Scripts (VZW31-SN Profile)
 
 This folder contains script blueprints used as ON/OFF hook implementations for WITB Actions when bulbs are behind an Inovelli VZW31-SN dimmer.
 
 ## Files
 
-- `witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
-- `witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
+- `final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`
+- `final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`
+- `package_room_witb_profile_with_sbm_helpers.yaml` (optional helper package template)
+- `witb_hook_on_vzw31sn.yaml.txt` / `witb_hook_off_vzw31sn.yaml.txt` (text copies)
 
 ## Purpose
 

@@ -1,11 +1,11 @@
-# WITB Lights Hook Scripts v1.7 (VZW31-SN)
+# WITB Lights Hook Scripts (VZW31-SN)
 
 ## Scope
 
 Script blueprints:
 
-- `blueprints/script/witb_lights/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
-- `blueprints/script/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
+- `blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`
+- `blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`
 
 Both are `domain: script` with minimum Home Assistant `2024.6.0`.
 

@@ -17,4 +17,4 @@ Blueprint source:
 3. Copy automation example YAML and update:
    - `use_blueprint.path`
    - entity IDs in `input`
-4. Point `occupied_effective` to your WITB+ v3 effective occupancy sensor.
+4. Point `occupied_effective` to your WITB+ effective occupancy sensor (currently from `witb_plus/v4`).

@@ -115,3 +115,8 @@ automation:
         off_for_seconds: 600
         min_run_seconds: 300
         max_run_seconds: 5400
+```
+
+## Companion package generator
+
+Use `generate_humidity_packages_templated.py` with `room_humidity_baseline_delta_package.template.yaml` to generate helper packages in `packages/`.

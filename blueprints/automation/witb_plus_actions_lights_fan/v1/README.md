@@ -2,7 +2,7 @@
 
 This folder contains the **actions blueprint** that pairs with WITB+ occupancy.
 
-Use this when you already have room occupancy sensors from `witb_plus/v3` (for example
+Use this when you already have room occupancy sensors from `witb_plus/v4` (for example
 `binary_sensor.<slug>_occupied_effective`) and want reliable light/fan actions with safety tags.
 
 ---
@@ -24,7 +24,7 @@ It is intended to be used from the Home Assistant UI via **Create Automation fro
 
 ## 2. Package Helpers (helpers only)
 
-**Reference template:** `package.yaml`  
+**Reference template:** `room_witb_actions_package.template.yaml`  
 **Generated output location:** `packages/`
 
 Package files provide helper entities such as:
@@ -47,7 +47,7 @@ homeassistant:
 
 ## 3. Generator Script
 
-**File:** `generate_witb_plus_actions_packages.py`
+**File:** `generate_witb_plus_actions_packages_templated.py`
 
 The script generates helper package YAML files only.  
 It does **not** generate automations.
@@ -55,22 +55,27 @@ It does **not** generate automations.
 Example:
 
 ```bash
-python3 generate_witb_plus_actions_packages.py \
+python3 generate_witb_plus_actions_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
+  --template room_witb_actions_package.template.yaml \
   --out ./packages
 ```
 
 Dry run:
 
 ```bash
-python3 generate_witb_plus_actions_packages.py --rooms "Office" --out ./packages --dry-run
+python3 generate_witb_plus_actions_packages_templated.py \
+  --rooms "Office" \
+  --template room_witb_actions_package.template.yaml \
+  --out ./packages \
+  --dry-run
 ```
 
 ---
 
 ## 4. Typical Setup Flow
 
-1. Create room occupancy with `witb_plus/v3`.
+1. Create room occupancy with `witb_plus/v4`.
 2. Generate helpers into `packages/`.
 3. Reload/restart Home Assistant so helpers exist.
 4. Create an automation from `WITB+ Actions - Lights + Fan`.
@@ -81,6 +86,6 @@ python3 generate_witb_plus_actions_packages.py --rooms "Office" --out ./packages
 
 ## Summary
 
-- **WITB+ v3** handles occupancy inference.
+- **WITB+ v4** handles occupancy inference.
 - **WITB+ Actions** handles light/fan behavior.
 - **Package files** provide helper entities for safe automation behavior and dashboard tuning.

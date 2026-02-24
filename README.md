@@ -3,7 +3,7 @@
 Home Assistant blueprints and helper package generators.
 
 This repository currently centers on a WITB+ occupancy/action workflow plus related automation and script blueprints:
-- Occupancy inference (`WITB+ v3`)
+- Occupancy inference (`WITB+ v4`)
 - Actions control for lights/fan (`WITB+ Actions - Lights + Fan`)
 - Bathroom fan control from humidity delta (`Bathroom Fan From Humidity Delta`)
 - Vacuum Job Manager automation for iRobot jobs + helper state + optional WITB overrides
@@ -18,8 +18,8 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
 
 ## Active Blueprint Files
 
-1. [`blueprints/automation/witb_plus/v3/witb_plus.yaml`](blueprints/automation/witb_plus/v3/witb_plus.yaml)
-   - Docs: [`blueprints/automation/witb_plus/v3/README.md`](blueprints/automation/witb_plus/v3/README.md)
+1. [`blueprints/automation/witb_plus/v4/witb_plus.yaml`](blueprints/automation/witb_plus/v4/witb_plus.yaml)
+   - Docs: [`blueprints/automation/witb_plus/v4/README.md`](blueprints/automation/witb_plus/v4/README.md)
    - Purpose: room occupancy inference from doors + motion (+ optional mmWave).
 
 2. [`blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml)
@@ -34,11 +34,11 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/vacuum_job_manager/v1/README.md`](blueprints/automation/vacuum_job_manager/v1/README.md)
    - Purpose: queued/scheduled vacuum job orchestration with mission-counter completion and optional WITB/light integration.
 
-5. [`blueprints/script/witb_switch_light_profiles/v1/witb_hook_on_vzw31sn.yaml`](blueprints/script/witb_switch_light_profiles/v1/witb_hook_on_vzw31sn.yaml)
+5. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml)
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
    - Purpose: resilient ON hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
-6. [`blueprints/script/witb_switch_light_profiles/v1/witb_hook_off_vzw31sn.yaml`](blueprints/script/witb_switch_light_profiles/v1/witb_hook_off_vzw31sn.yaml)
+6. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml)
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
@@ -49,10 +49,10 @@ Run from repo root.
 1. Generate occupancy helpers/templates:
 
 ```bash
-python blueprints/automation/witb_plus/v3/generate_witb_packages_templated.py \
+python blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --template blueprints/automation/witb_plus/v3/witb_plus_package.template.yaml \
-  --out blueprints/automation/witb_plus/v3/packages
+  --template blueprints/automation/witb_plus/v4/witb_plus_package.template.yaml \
+  --out blueprints/automation/witb_plus/v4/packages
 ```
 
 2. Generate actions helpers:

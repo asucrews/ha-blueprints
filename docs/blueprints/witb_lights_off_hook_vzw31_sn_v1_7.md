@@ -1,9 +1,9 @@
-# WITB Lights OFF Hook (VZW31-SN) v1.7
+# WITB Lights OFF Hook (VZW31-SN)
 
 ## Scope
 
-- Source blueprint: `blueprints/script/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml`
-- Blueprint name: `WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb)`
+- Source blueprint: `blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`
+- Blueprint name: `WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb) v2.1 (inputs)`
 - Domain: `script`
 - Home Assistant minimum: `2024.6.0`
 

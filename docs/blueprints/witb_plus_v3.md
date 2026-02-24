@@ -1,9 +1,9 @@
-# WITB+ v3 Occupancy
+# WITB+ Occupancy (v4)
 
 ## Scope
 
-- Source blueprint: `blueprints/automation/witb_plus/v3/witb_plus.yaml`
-- Blueprint name: `WITB+ v3.5`
+- Source blueprint: `blueprints/automation/witb_plus/v4/witb_plus.yaml`
+- Blueprint name: `WITB+ v4.0.3 (Modernized & Integrated)`
 - Home Assistant minimum: `2026.2.0`
 - Domain: `automation`
 
@@ -41,9 +41,10 @@ Optional but supported:
 Use generator:
 
 ```bash
-python blueprints/automation/witb_plus/v3/generate_witb_packages.py \
+python blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --out blueprints/automation/witb_plus/v3/packages
+  --template blueprints/automation/witb_plus/v4/witb_plus_package.template.yaml \
+  --out blueprints/automation/witb_plus/v4/packages
 ```
 
 ## Input Reference
