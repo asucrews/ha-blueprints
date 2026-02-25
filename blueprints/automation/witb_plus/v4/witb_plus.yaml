@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.0.4 (Modernized & Integrated)
+  name: WITB+ v4.0.5 (Modernized & Integrated)
   description: |
     ### Key Improvements:
     1. **Modernization**: Replaces legacy `service:` calls with the new `action:` syntax.
@@ -825,13 +825,15 @@ action:
                     data:
                       timestamp: 0
             default: []
-          - conditions:
-              - condition: template
-                value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
-            sequence:
-              - action: timer.cancel
-                target:
-                  entity_id: "{{ fs_timer }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
     default: []
 
   # 6) Motion OFF for exit timeout: attempt clear (only if door is open)
@@ -873,13 +875,15 @@ action:
                     data:
                       timestamp: 0
             default: []
-          - conditions:
-              - condition: template
-                value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
-            sequence:
-              - action: timer.cancel
-                target:
-                  entity_id: "{{ fs_timer }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
     default: []
 
   # 6b) mmWave OFF for exit timeout: attempt clear (requires PIR off too)
@@ -922,13 +926,15 @@ action:
                     data:
                       timestamp: 0
             default: []
-          - conditions:
-              - condition: template
-                value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
-            sequence:
-              - action: timer.cancel
-                target:
-                  entity_id: "{{ fs_timer }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
     default: []
 
   # 7) Keep latch helper in sync on seal door changes (debugging only)
