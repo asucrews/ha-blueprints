@@ -5,65 +5,34 @@ blueprint:
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
   name: WITB+ Actions - Lights + Fan v2.2.1
   description: |
-    Version: 2.2.1 (Bed Sensor Integration)
+    Version: 2.2.1 — see CHANGELOG.md for full version history.
 
-    Changes over v2.2.0:
-      ADD #1 - New optional input: bed_occupied (binary_sensor). When set, allows
-               the blueprint to know when someone is in bed.
-      ADD #2 - New optional input: suppress_lights_on_when_in_bed (boolean, default true).
-               When enabled, prevents occupied_on from turning lights ON if the bed
-               sensor is ON and lights are currently OFF. Solves the "midnight
-               bathroom return" false-trigger and in-bed motion re-assertion cases.
-      ADD #3 - New variable: in_bed. Safe guard that handles none/'' input gracefully.
-      ADD #4 - New variable: manual_off_hold. Detects when the automation previously
-               turned lights on but they are now off (user manually turned them off).
-               Prevents lights from auto-reasserting until the room goes vacant and
-               auto_tag_lights resets. Falls back to false when auto_tag_lights is
-               not configured (no-op, backward compatible).
-      ADD #5 - Two new condition guards added to the Lights ON branch in occupied_on:
-               (a) manual_off_hold guard — don't re-assert lights after manual off.
-               (b) in-bed suppress guard — don't turn lights on when in bed and dark.
+    Action orchestrator for a WITB+ room. Responds to occupancy state changes
+    from an occupied_effective sensor and controls lights and a fan accordingly.
 
-    Backward compatibility: All new inputs are optional with safe defaults.
-    Existing automations using v2.2.0 will behave identically unless bed_occupied
-    is configured or suppress_lights_on_when_in_bed is explicitly set to true.
+    LIGHTS
+      • Turns lights ON when the room becomes occupied (lux / sun gated).
+      • Day and night brightness profiles with configurable transition speeds.
+      • Soft-Off warning: dims to 10% for 15s before full off.
+      • Turns lights OFF after a configurable vacancy delay, with retry/verify logic.
+      • Manual-off hold: if you turn lights off while occupied, they stay off until
+        the room goes vacant — no re-assertion from continued motion.
+      • Bed suppress: if a bed sensor is configured and someone is in bed, lights
+        will not auto-turn ON from occupancy re-assertion (e.g. midnight bathroom
+        return, rolling over in bed).
 
-    Fixes over v2.1.1:
-      FIX #1 - CRITICAL: timer_finished trigger now scoped to fan_runon_timer only
-               via event_data filter. Previously fired on EVERY timer.finished event
-               in the entire HA instance, causing the automation to evaluate all its
-               variables on every room's exit_eval, failsafe, and cooldown timer
-               completions across the whole home.
-      FIX #2 - CRITICAL: override_ok and force_ok inlined in all blocking while-loops.
-               Both are top-level variables frozen at trigger time. In humidity hold
-               loops that can run for up to humidity_hold_max (default 1h), turning
-               on automation_override or a blocking entity mid-loop had no effect —
-               the loop kept running. Now checks the live entity state directly.
-               Same fix applied to the lights-off retry loop occupancy condition.
-      FIX #3 - Lux hysteresis actually implemented. Changelog claimed "10% buffer
-               added" but the check was strict `lux_value < lux_threshold` with no
-               buffer at all. Fixed: `lux_value < (lux_threshold * 1.1)` so lights
-               will turn on up to 10% above threshold to prevent dusk flicker.
-      FIX #4 - fan_runon_active and any_light_on re-evaluated inline in startup
-               cleanup. Both were top-level variables computed at ha_start time, then
-               checked after startup_cleanup_delay + 15s double-tap — by which point
-               the cached values could be stale.
-      FIX #5 - fan_switches domain selector indentation corrected from 1 space to
-               2 spaces. Technically invalid YAML that could break on strict parsers.
-      FIX #6 - Optional entity defaults standardized: single-entity optionals use
-               default: '' consistently, multi-entity optionals use default: [].
-               Previously mixed usage made guard logic fragile.
-      FIX #7 - Removed stale comment that contradicted the hysteresis fix (lines
-               saying "Actually, simple gate... If you want hysteresis...").
-      FIX #8 - Startup cleanup override/force checks now use inline live evaluation
-               instead of the frozen top-level variables for consistency.
+    FAN
+      • Turns fan ON on occupancy (optional delay, night-disable mode).
+      • Turns fan OFF on vacancy with configurable run-on timer.
+      • Day and night speed/preset profiles.
+      • Humidity hold: delays fan-off if humidity is still high.
 
-    Original v2.1.1 features:
-      - "Soft-Off" Warning - Lights dim to 10% for 15s before turning off.
-      - Dynamic Fan Run-On - input_number helper for run-on minutes.
-      - Lux Hysteresis - 10% buffer on illuminance threshold (now actually applied).
-      - Hardened Startup Cleanup with double-tap validation.
-      - Availability checks in verification loops.
+    SAFETY / RELIABILITY
+      • Automation override and blocking entity inputs halt all actions.
+      • Cooldown timer prevents rapid ON re-triggering.
+      • Hardened startup cleanup with double-tap validation after HA restart.
+      • Auto-tag helpers (input_boolean) track automation-driven state for safe
+        off-only-what-we-turned-on behavior.
 
   input:
     core:

@@ -3,72 +3,52 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.2.0 (Reliability Fixes)
+  name: WITB+ v4.2.0
   description: |
-    ### Key Improvements over v4.0.5:
-    1. **Fix #1 – Duplicate triggers removed**: `transition_open` and `seal_open` triggers
-       removed. Door-open logic now uses `trigger.to_state.state == 'on'` checks inside
-       `transition_change` / `seal_change` to eliminate double-execution races under
-       mode: restart.
-    2. **Fix #2 – Timer-based exit evaluation**: Block 5 now starts a dedicated
-       `exit_eval_timer` instead of blocking with `wait_template`. The automation
-       run completes immediately. When the timer fires, a new run evaluates whether
-       to clear. Motion returning cancels the timer cleanly. This allows mode: restart
-       to be used (fast, non-blocking) and eliminates stale queued evaluations.
-    3. **Fix #3 – `exit_recent` recomputed post-delay**: The `exit_eval_done` handler
-       recalculates `exit_recent_rt` at runtime so an expired exit window is never
-       treated as still-recent.
-    4. **Fix #4 – Deadlock break guards `force_on`**: Condition B of the failsafe no
-       longer clears occupancy when `force_occupied` is ON.
-    5. **Fix #5 – Latch sync gated to relevant triggers**: Action 1 only fires on
-       door/seal/motion triggers, preventing churn on failsafe/override events.
-    6. **Fix #6 – mmWave uses `state` triggers**: Replaced unreliable template triggers
-       with proper `platform: state` triggers for mmwave_on / mmwave_off_for.
-    7. **Fix #7 – Optional entity triggers safely ignored**: Control triggers
-       (override/force/manual) use empty-list inputs that HA 2024.4+ skips cleanly.
-    8. **Fix #8 – `fs_duration_hms` capped at 99 hours**: Prevents invalid timer
-       strings for durations >= 100 hours.
-    9. **Fix #9 – Shared "assert occupied" logic**: Occupancy-assertion steps are
-       consistently structured across all assert paths (motion, mmwave, force, manual).
-    10. **Fix #10 – `seconds_since_door` precision**: Integer truncation removed from
-        `now().timestamp()` so sub-second precision is preserved for short entry windows.
+    Version: 4.2.0 — see CHANGELOG.md for full version history.
 
-    ### WITB Overview:
-    The **WITB** system provides occupancy inference for a **single room** using:
-    - **1 PIR Motion Sensor** (default for occupancy detection)
-    - **1+ Transition Door Contact Sensors** (to detect boundary crossings)
-    - **1 Seal Door Contact Sensor** (main/privacy door — blocks clearing when closed)
+    Occupancy inference for a single room using doors, PIR motion, and optional
+    mmWave presence. Drives an input_boolean occupancy helper that downstream
+    automations (e.g. WITB+ Actions) react to.
 
-    ### Exit Evaluation Timer:
-    Create one `timer` helper per room for exit evaluation (e.g. `timer.bedroom_exit_eval`).
-    When a door opens while occupied, this timer starts for `exit_timeout_seconds`.
-    If motion returns before it finishes, the timer is cancelled. When the timer fires,
-    the automation re-checks door and motion state and clears if it is safe to do so.
-    This is the recommended pattern — it is fully non-blocking and event-driven.
+    OCCUPANCY ASSERTION
+      • PIR motion ON → room asserts occupied.
+      • Optional mmWave ON → can assert occupied (disabled by default; only enable
+        if your sensor has clean room isolation).
+      • Force Occupied ON → pins occupancy ON, blocks all clearing paths.
+      • Manual Occupied ON → asserts occupied but still allows exit-based clearing.
 
-    ### Core Rules:
-    1. **PIR Motion**: PIR motion is the default signal that asserts the room as occupied.
-       Optionally, mmWave sensors can also be used if enabled.
-    2. **Clearing Occupancy**: Occupancy clears only when the exit is possible:
-       - If occupied and any transition door is **open** with motion off for
-         `exit_timeout_seconds`, occupancy will be cleared.
-       - **Seal Door Block**: If the seal door is **closed**, clearing is blocked even
-         if a transition door is open and motion is off.
-    3. **Failsafe Timer**: An optional long-running failsafe prevents stuck states:
-       - Clears only if seal door is open (or exit_recent) and motion is off.
-       - If seal door is closed, timer restarts (useful for sleeping or sitting still).
-    4. **Room-Specific Controls** (priority order):
-       - **Automation Override ON**: Automation does nothing (manual control).
-       - **Force Occupied ON**: Pins occupancy ON and blocks all clearing.
-       - **Manual Occupied ON**: Asserts occupancy but still allows exit-based clearing.
+    OCCUPANCY CLEARING
+      • Transition door OPEN + motion off for exit_timeout_seconds → starts exit
+        evaluation timer. When timer fires, clears if conditions still hold.
+        Motion returning before the timer fires cancels it immediately.
+      • Seal door CLOSED → blocks all clearing (protects sleeping/still occupants).
+        Failsafe restarts instead of clearing when sealed.
+      • mmWave ON → blocks clearing while ON (recommended mode).
+      • "Door closes behind you" path (optional): supports bedroom/garage-style
+        exits where the door closes after you leave.
 
-    ### Configuration Notes:
-    - **Transition Doors**: Doors representing entry/exit points for this room.
-    - **Seal Door**: Main/privacy door that prevents clearing while closed.
-    - **Exit Eval Timer**: Required for the door-open exit path. Create one per room.
+    FAILSAFE
+      • Long-running timer prevents permanently stuck occupied states.
+      • Safe: never clears while seal door is closed — restarts instead.
+      • Hard deadlock break: clears if motion has been off for 1.5× the failsafe
+        duration AND force_occupied is OFF.
 
-    ### User Interface:
-    - Organized into collapsible sections using the HA 2024.6+ input sections feature.
+    ENTRY GATING (optional)
+      • Prevents walk-by false positives on open-door sightlines.
+      • Motion only asserts if a door event occurred within entry_window_seconds,
+        or the seal door is currently closed, or the room is already occupied.
+
+    CONTROLS (priority order)
+      1. Automation Override ON → automation does nothing (full manual handoff).
+      2. Force Occupied ON → pins ON, blocks all clearing including deadlock break.
+      3. Manual Occupied ON → asserts ON, allows normal exit-based clearing.
+
+    REQUIRED HELPERS (create one set per room)
+      • input_boolean  — occupancy_helper
+      • input_datetime — last_motion_helper
+      • input_datetime — last_door_helper
+      • timer          — exit_eval_timer
 
   input:
     doors_and_motion:
