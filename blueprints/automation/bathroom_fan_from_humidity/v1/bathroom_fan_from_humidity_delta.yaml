@@ -5,6 +5,7 @@ blueprint:
     and OFF when it falls below a lower threshold for a while (hysteresis),
     with optional minimum runtime and a failsafe max runtime.
     Also re-evaluates state on Home Assistant restart.
+  source_url: https://github.com/asucrews/ha-blueprints/edit/main/blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml
   domain: automation
   author: asucrews
   homeassistant:
