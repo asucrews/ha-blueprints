@@ -2,7 +2,7 @@ blueprint:
   homeassistant:
     min_version: 2024.6.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_bed_force_occupied/v1/witb_plus_bed_force_occupied.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml
   name: WITB+ Bed → Force Occupied v1.0.0
   description: |
     Version: 1.0.0
