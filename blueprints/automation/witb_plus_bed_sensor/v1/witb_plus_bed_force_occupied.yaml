@@ -1,0 +1,155 @@
+blueprint:
+  homeassistant:
+    min_version: 2024.6.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_bed_force_occupied/v1/witb_plus_bed_force_occupied.yaml
+  name: WITB+ Bed → Force Occupied v1.0.0
+  description: |
+    Version: 1.0.0
+
+    Drives an input_boolean force_occupied helper so WITB+ keeps a bedroom
+    "occupied" while someone is in bed — preventing false vacancy clearances
+    and the lights/fan turning off on a sleeping occupant.
+
+    How it works:
+      ON path  — After the bed sensor has been ON for bed_on_delay (default 30s),
+                 force_occupied is turned ON. The room's occupied_effective sensor
+                 must ALREADY be ON at that moment. This is the mandatory safety
+                 guard: force_occupied can extend occupancy but can never initiate
+                 it (prevents objects on the bed — laundry basket, pet — from
+                 creating occupancy in an empty room).
+
+      OFF path — After the bed sensor has been OFF for bathroom_grace (default 5 min),
+                 force_occupied is turned OFF unconditionally. This covers the
+                 "midnight bathroom" scenario: leave the bed, leave the room briefly,
+                 return, and the system does NOT treat it as a fresh entry.
+
+    ⚠ ESPHome double-delay warning:
+      If your bed sensor's ESPHome config already applies a delayed_off (e.g. 5 min)
+      on the Normal sensor, and bathroom_grace here is also 5 min, you will get
+      ~10 min total before force_occupied clears. Enforce the bathroom grace in
+      ONE place only:
+        • Option A (recommended): keep ESPHome delayed_off short; use bathroom_grace here.
+        • Option B: put the full delay in ESPHome; set bathroom_grace to 0s here.
+
+    Pairing with WITB+ Actions v2.2.1:
+      This blueprint drives force_occupied (occupancy persistence).
+      For the Actions blueprint, use the FAST variant of your bed sensor as the
+      bed_occupied input — it handles instant lights-on suppression separately.
+
+  input:
+    core:
+      name: Core
+      icon: mdi:bed
+      description: Required entities for bed → occupancy persistence.
+      collapsed: false
+      input:
+        bed_sensor:
+          name: Bed sensor
+          description: >
+            Binary sensor that reports when someone is in bed.
+            Recommended: use your "Either (Normal)" or "Either (Slow)" variant
+            to avoid jitter from weight shifts. The "Fast" variant is better
+            suited for the Actions blueprint's instant suppression input.
+          selector:
+            entity:
+              domain: binary_sensor
+
+        occupied_effective:
+          name: Effective occupancy sensor (WITB+)
+          description: >
+            The room's WITB+ effective occupancy sensor
+            (binary_sensor.<room_slug>_occupied_effective).
+            Used as the mandatory safety gate on the bed-ON path: force_occupied
+            will only be set if this sensor is already ON.
+          selector:
+            entity:
+              domain: binary_sensor
+
+        force_occupied:
+          name: Force occupied helper
+          description: >
+            The input_boolean that tells WITB+ to hold the room occupied
+            (input_boolean.<room_slug>_force_occupied).
+          selector:
+            entity:
+              domain: input_boolean
+
+    timing:
+      name: Timing
+      icon: mdi:timer-outline
+      description: Debounce and grace period tunables.
+      collapsed: false
+      input:
+        bed_on_delay:
+          name: Bed-ON debounce
+          description: >
+            How long the bed sensor must be ON before force_occupied is set.
+            Filters out quick sits or brief weight events.
+            Recommended: 30s. Increase to 60–90s if you see spurious triggers.
+          default: 00:00:30
+          selector:
+            duration: null
+
+        bathroom_grace:
+          name: Bathroom grace period
+          description: >
+            How long to wait after the bed sensor turns OFF before clearing
+            force_occupied. Covers a midnight bathroom trip.
+            ⚠ See ESPHome double-delay warning in the blueprint description.
+            Recommended: 5 min (00:05:00). Increase to 10 min if needed.
+          default: 00:05:00
+          selector:
+            duration: null
+
+mode: restart
+max_exceeded: silent
+
+triggers:
+  # Bed occupied long enough → candidate to set force_occupied
+  - trigger: state
+    entity_id: !input bed_sensor
+    to: "on"
+    for: !input bed_on_delay
+    id: bed_on
+
+  # Bed empty long enough → bathroom grace expired, release the hold
+  - trigger: state
+    entity_id: !input bed_sensor
+    to: "off"
+    for: !input bathroom_grace
+    id: bed_off
+
+variables:
+  occ_effective: !input occupied_effective
+  force_occ: !input force_occupied
+
+actions:
+  - choose:
+
+      # ── BED ON ──────────────────────────────────────────────────────────────
+      # MANDATORY SAFETY: only extend occupancy, never create it.
+      # The occupied_effective condition is NOT optional — removing it would allow
+      # objects on the bed (laundry basket, pet) to initiate room occupancy and
+      # potentially turn lights on in an empty room.
+      - conditions:
+          - condition: trigger
+            id: bed_on
+          - condition: state
+            entity_id: !input occupied_effective
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: "{{ force_occ }}"
+
+      # ── BED OFF (bathroom grace expired) ────────────────────────────────────
+      # No occupancy condition here — always release the hold unconditionally
+      # once the grace period expires so WITB+ can resume normal vacancy evaluation.
+      - conditions:
+          - condition: trigger
+            id: bed_off
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: "{{ force_occ }}"

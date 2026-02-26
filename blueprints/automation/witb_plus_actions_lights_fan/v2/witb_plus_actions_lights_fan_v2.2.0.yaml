@@ -3,30 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.2.1
+  name: WITB+ Actions - Lights + Fan v2.2.0
   description: |
-    Version: 2.2.1 (Bed Sensor Integration)
-
-    Changes over v2.2.0:
-      ADD #1 - New optional input: bed_occupied (binary_sensor). When set, allows
-               the blueprint to know when someone is in bed.
-      ADD #2 - New optional input: suppress_lights_on_when_in_bed (boolean, default true).
-               When enabled, prevents occupied_on from turning lights ON if the bed
-               sensor is ON and lights are currently OFF. Solves the "midnight
-               bathroom return" false-trigger and in-bed motion re-assertion cases.
-      ADD #3 - New variable: in_bed. Safe guard that handles none/'' input gracefully.
-      ADD #4 - New variable: manual_off_hold. Detects when the automation previously
-               turned lights on but they are now off (user manually turned them off).
-               Prevents lights from auto-reasserting until the room goes vacant and
-               auto_tag_lights resets. Falls back to false when auto_tag_lights is
-               not configured (no-op, backward compatible).
-      ADD #5 - Two new condition guards added to the Lights ON branch in occupied_on:
-               (a) manual_off_hold guard — don't re-assert lights after manual off.
-               (b) in-bed suppress guard — don't turn lights on when in bed and dark.
-
-    Backward compatibility: All new inputs are optional with safe defaults.
-    Existing automations using v2.2.0 will behave identically unless bed_occupied
-    is configured or suppress_lights_on_when_in_bed is explicitly set to true.
+    Version: 2.2.0 (Reliability Fixes)
 
     Fixes over v2.1.1:
       FIX #1 - CRITICAL: timer_finished trigger now scoped to fan_runon_timer only
@@ -155,27 +134,6 @@ blueprint:
           selector:
             entity:
               domain: input_boolean
-
-        bed_occupied:
-          name: 'Lights: bed sensor (optional)'
-          description: >
-            Binary sensor that is ON when someone is in bed (e.g. Bed Occupied Either Fast).
-            Used by suppress_lights_on_when_in_bed. Leave empty to disable bed awareness.
-          default: ''
-          selector:
-            entity:
-              domain: binary_sensor
-
-        suppress_lights_on_when_in_bed:
-          name: 'Lights: suppress auto-ON when in bed'
-          description: >
-            When ON: if the bed sensor is ON and lights are currently OFF,
-            occupied_on will NOT turn lights on. Prevents motion re-assertion
-            (e.g. midnight bathroom return) from waking lights.
-            Requires bed_occupied to be set. Has no effect if bed_occupied is empty.
-          default: true
-          selector:
-            boolean: null
 
         lights_on_script:
           name: Lights ON script (optional)
@@ -827,27 +785,6 @@ variables:
   any_light_on: >-
     {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
 
-  # ADD #3 (v2.2.1): Safe in-bed check. Handles none and '' input gracefully.
-  bed_occupied_entity: !input bed_occupied
-  suppress_lights_on_when_in_bed: !input suppress_lights_on_when_in_bed
-
-  in_bed: >-
-    {{ bed_occupied_entity is not none
-       and bed_occupied_entity != ''
-       and is_state(bed_occupied_entity, 'on') }}
-
-  # ADD #4 (v2.2.1): Manual-off hold.
-  # True when: automation tagged the lights as turned-on (auto_tag_lights is ON)
-  # but the lights are now all off — meaning the user manually turned them off.
-  # Holds until vacancy clears auto_tag_lights.
-  # Falls back to false when auto_tag_lights is not configured (fully backward compatible).
-  manual_off_hold: >-
-    {% if auto_tag_lights != '' and states(auto_tag_lights) not in ['unknown', 'unavailable'] %}
-      {{ is_state(auto_tag_lights, 'on') and (not any_light_on) }}
-    {% else %}
-      false
-    {% endif %}
-
   fan_is_on: >-
     {{ fan_entity != '' and is_state(fan_entity, 'on') }}
 
@@ -916,16 +853,6 @@ actions:
                     value_template: "{{ lights_ok_to_turn_on }}"
                   - condition: template
                     value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
-                  # ADD #5a (v2.2.1): manual-off hold guard.
-                  # If the automation previously turned lights on but they are now off,
-                  # the user manually turned them off — don't bring them back.
-                  - condition: template
-                    value_template: "{{ not manual_off_hold }}"
-                  # ADD #5b (v2.2.1): in-bed suppress guard.
-                  # If someone is in bed and lights are currently off, don't turn them
-                  # on due to occupancy re-assertion (e.g. midnight bathroom return).
-                  - condition: template
-                    value_template: "{{ not (suppress_lights_on_when_in_bed and in_bed and (not any_light_on)) }}"
                 sequence:
                   - choose:
                       - conditions:
