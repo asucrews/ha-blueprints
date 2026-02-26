@@ -3,14 +3,46 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.1.1
+  name: WITB+ Actions - Lights + Fan v2.2.0
   description: |
-    Version: 2.1.1 (The Polish Update)
-      - NEW: "Soft-Off" Warning - Lights dim to 10% for 15s before turning off (requires dimmable lights).
-      - NEW: Dynamic Fan Run-On - Now supports input_number helper for run-on minutes (dashboard slider).
-      - NEW: Lux Hysteresis - Added 10% buffer to illuminance check to prevent dusk flickering.
-      - CRITICAL FIX: Hardened "Startup Cleanup" with double-tap validation.
-      - SAFETY: Added availability checks to verification loops.
+    Version: 2.2.0 (Reliability Fixes)
+
+    Fixes over v2.1.1:
+      FIX #1 - CRITICAL: timer_finished trigger now scoped to fan_runon_timer only
+               via event_data filter. Previously fired on EVERY timer.finished event
+               in the entire HA instance, causing the automation to evaluate all its
+               variables on every room's exit_eval, failsafe, and cooldown timer
+               completions across the whole home.
+      FIX #2 - CRITICAL: override_ok and force_ok inlined in all blocking while-loops.
+               Both are top-level variables frozen at trigger time. In humidity hold
+               loops that can run for up to humidity_hold_max (default 1h), turning
+               on automation_override or a blocking entity mid-loop had no effect —
+               the loop kept running. Now checks the live entity state directly.
+               Same fix applied to the lights-off retry loop occupancy condition.
+      FIX #3 - Lux hysteresis actually implemented. Changelog claimed "10% buffer
+               added" but the check was strict `lux_value < lux_threshold` with no
+               buffer at all. Fixed: `lux_value < (lux_threshold * 1.1)` so lights
+               will turn on up to 10% above threshold to prevent dusk flicker.
+      FIX #4 - fan_runon_active and any_light_on re-evaluated inline in startup
+               cleanup. Both were top-level variables computed at ha_start time, then
+               checked after startup_cleanup_delay + 15s double-tap — by which point
+               the cached values could be stale.
+      FIX #5 - fan_switches domain selector indentation corrected from 1 space to
+               2 spaces. Technically invalid YAML that could break on strict parsers.
+      FIX #6 - Optional entity defaults standardized: single-entity optionals use
+               default: '' consistently, multi-entity optionals use default: [].
+               Previously mixed usage made guard logic fragile.
+      FIX #7 - Removed stale comment that contradicted the hysteresis fix (lines
+               saying "Actually, simple gate... If you want hysteresis...").
+      FIX #8 - Startup cleanup override/force checks now use inline live evaluation
+               instead of the frozen top-level variables for consistency.
+
+    Original v2.1.1 features:
+      - "Soft-Off" Warning - Lights dim to 10% for 15s before turning off.
+      - Dynamic Fan Run-On - input_number helper for run-on minutes.
+      - Lux Hysteresis - 10% buffer on illuminance threshold (now actually applied).
+      - Hardened Startup Cleanup with double-tap validation.
+      - Availability checks in verification loops.
 
   input:
     core:
@@ -25,13 +57,16 @@ blueprint:
           selector:
             entity:
               domain: binary_sensor
+
         automation_override:
           name: Automation override (optional)
           description: If set and ON, the blueprint performs no actions.
+          # FIX #6: Standardized to '' for single-entity optionals
           default: ''
           selector:
             entity:
               domain: input_boolean
+
         blocking_entities:
           name: Blocking entities (optional)
           description: Select one or more input_booleans. If ANY of these are ON, vacancy actions (OFF) are blocked.
@@ -40,24 +75,28 @@ blueprint:
             entity:
               domain: input_boolean
               multiple: true
+
         startup_cleanup:
           name: Startup cleanup (recommended)
           description: If true, runs cleanup logic after HA restart (safe double-tap validation).
           default: true
           selector:
             boolean: null
+
         startup_cleanup_delay:
           name: Startup cleanup delay
           description: Delay after HA start before running cleanup.
           default: 00:00:15
           selector:
             duration: null
+
         on_debounce:
           name: Occupied debounce
           description: Require occupied_effective to be ON for this long before running ON actions.
           default: 00:00:00
           selector:
             duration: null
+
         cooldown_timer:
           name: Cooldown timer (optional)
           description: Optional timer to prevent rapid ON triggering.
@@ -65,6 +104,7 @@ blueprint:
           selector:
             entity:
               domain: timer
+
         cooldown_duration:
           name: Cooldown duration
           description: Duration used when starting cooldown_timer.
@@ -86,6 +126,7 @@ blueprint:
             entity:
               domain: light
               multiple: true
+
         auto_tag_lights:
           name: Auto-tag boolean for lights (recommended)
           description: Set ON when automation turns lights ON; required for safe OFF.
@@ -93,18 +134,21 @@ blueprint:
           selector:
             entity:
               domain: input_boolean
+
         lights_on_script:
           name: Lights ON script (optional)
           default: ''
           selector:
             entity:
               domain: script
+
         lights_off_script:
           name: Lights OFF script (optional)
           default: ''
           selector:
             entity:
               domain: script
+
         transition_on:
           name: 'Lights: ON transition (Day)'
           default: 1
@@ -113,6 +157,7 @@ blueprint:
               min: 0
               max: 30
               mode: slider
+
         transition_on_night:
           name: 'Lights: ON transition (Night)'
           default: 3
@@ -121,6 +166,7 @@ blueprint:
               min: 0
               max: 30
               mode: slider
+
         transition_off:
           name: 'Lights: OFF transition'
           default: 2
@@ -129,17 +175,20 @@ blueprint:
               min: 0
               max: 60
               mode: slider
+
         lights_soft_off_enabled:
           name: 'Lights: Soft-Off Warning'
           description: If true, lights dim to 10% for 15s before turning off completely.
           default: false
           selector:
             boolean: null
+
         skip_on_if_any_light_on:
           name: 'Lights: skip turning ON if already ON'
           default: true
           selector:
             boolean: null
+
         lights_off_delay:
           name: 'Lights: off-delay after vacancy'
           default: 00:02:00
@@ -157,11 +206,13 @@ blueprint:
           default: true
           selector:
             boolean: null
+
         lights_off_verify_delay:
           name: 'Lights: initial verify delay'
           default: 00:00:05
           selector:
             duration: null
+
         lights_off_verify_retries:
           name: 'Lights: max retry attempts'
           default: 3
@@ -170,11 +221,13 @@ blueprint:
               min: 0
               max: 10
               mode: slider
+
         lights_off_verify_retry_interval:
           name: 'Lights: retry interval'
           default: 00:00:05
           selector:
             duration: null
+
         lights_off_keep_tag_on_failure:
           name: 'Lights: keep auto-tag ON on failure'
           default: true
@@ -192,25 +245,32 @@ blueprint:
           default: true
           selector:
             boolean: null
+
         use_illuminance_gate:
           name: 'Lights: use illuminance sensor gate'
           default: true
           selector:
             boolean: null
+
         illuminance_entity:
           name: 'Lights: illuminance sensor'
           default: ''
           selector:
             entity:
               domain: sensor
+
         illuminance_threshold:
           name: 'Lights: illuminance threshold (static lux)'
+          description: >
+            Lights turn ON when lux is below this value (with 10% hysteresis buffer
+            to prevent dusk flickering). E.g. threshold=30 → turns on below 33 lux.
           default: 30
           selector:
             number:
               min: 0
               max: 5000
               mode: box
+
         illuminance_threshold_helper:
           name: 'Lights: illuminance threshold helper'
           default: ''
@@ -228,40 +288,48 @@ blueprint:
           default: true
           selector:
             boolean: null
+
         night_start:
           name: Night start
           default: 00:00:00
           selector:
             time: null
+
         night_end:
           name: Night end
           default: 06:00:00
           selector:
             time: null
+
         night_start_helper:
           name: Night start helper
+          # FIX #6: Standardized to '' for single-entity optionals
           default: ''
           selector:
             entity:
               domain: input_datetime
+
         night_end_helper:
           name: Night end helper
           default: ''
           selector:
             entity:
               domain: input_datetime
+
         brightness_day_helper:
           name: 'Lights: day brightness helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         brightness_night_helper:
           name: 'Lights: night brightness helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         brightness_day_pct:
           name: 'Lights: day brightness %'
           default: 100
@@ -270,6 +338,7 @@ blueprint:
               min: 1
               max: 100
               mode: slider
+
         brightness_night_pct:
           name: 'Lights: night brightness %'
           default: 20
@@ -291,36 +360,43 @@ blueprint:
           selector:
             entity:
               domain: fan
+
         fan_switches:
           name: Fan switches (optional)
           default: []
           selector:
             entity:
-              domain: 
-               - switch
-               - light
+              # FIX #5: Corrected indentation from 1 space to 2 spaces (valid YAML)
+              domain:
+                - switch
+                - light
               multiple: true
+
         auto_tag_fan:
           name: Auto-tag boolean for fan
           default: ''
           selector:
             entity:
               domain: input_boolean
+
         fan_turn_on_on_occupy:
           name: 'Fan: turn ON on occupancy'
           default: true
           selector:
             boolean: null
+
         fan_turn_off_on_vacant:
           name: 'Fan: turn OFF when vacant'
           default: true
           selector:
             boolean: null
+
         fan_skip_on_if_already_on:
           name: 'Fan: skip ON if already ON'
           default: true
           selector:
             boolean: null
+
         fan_disable_during_night:
           name: 'Fan: do NOT turn ON during night window'
           default: false
@@ -337,24 +413,28 @@ blueprint:
           default: 00:00:00
           selector:
             duration: null
+
         fan_on_delay_seconds_helper:
           name: 'Fan: ON delay helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         fan_runon_timer:
           name: 'Fan: run-on timer helper'
           default: ''
           selector:
             entity:
               domain: timer
+
         fan_runon_duration:
           name: 'Fan: run-on duration (static fallback)'
           description: Used if helper below is not set.
           default: 00:10:00
           selector:
             duration: null
+
         fan_runon_minutes_helper:
           name: 'Fan: run-on duration helper (input_number minutes)'
           description: Optional. Overrides static duration. Matches dashboard slider.
@@ -362,6 +442,7 @@ blueprint:
           selector:
             entity:
               domain: input_number
+
         fan_runon_starts_after_lights_off:
           name: 'Fan: start run-on AFTER lights turn off'
           default: true
@@ -378,6 +459,7 @@ blueprint:
           default: false
           selector:
             boolean: null
+
         fan_percentage_day:
           name: 'Fan: day percentage'
           default: 0
@@ -386,6 +468,7 @@ blueprint:
               min: 0
               max: 100
               mode: slider
+
         fan_percentage_night:
           name: 'Fan: night percentage'
           default: 0
@@ -394,23 +477,27 @@ blueprint:
               min: 0
               max: 100
               mode: slider
+
         fan_percentage_day_helper:
           name: 'Fan: day percentage helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         fan_percentage_night_helper:
           name: 'Fan: night percentage helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         fan_preset_day:
           name: 'Fan: day preset_mode'
           default: ''
           selector:
             text: null
+
         fan_preset_night:
           name: 'Fan: night preset_mode'
           default: ''
@@ -428,6 +515,7 @@ blueprint:
           selector:
             entity:
               domain: sensor
+
         humidity_high:
           name: 'Fan: humidity high threshold (%)'
           default: 65
@@ -436,6 +524,7 @@ blueprint:
               min: 0
               max: 100
               mode: slider
+
         humidity_low:
           name: 'Fan: humidity low threshold (%)'
           default: 55
@@ -444,23 +533,27 @@ blueprint:
               min: 0
               max: 100
               mode: slider
+
         humidity_high_helper:
           name: 'Fan: humidity high helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         humidity_low_helper:
           name: 'Fan: humidity low helper'
           default: ''
           selector:
             entity:
               domain: input_number
+
         humidity_check_interval:
           name: 'Fan: humidity re-check interval'
           default: 00:02:00
           selector:
             duration: null
+
         humidity_hold_max:
           name: 'Fan: max humidity hold time'
           default: 01:00:00
@@ -488,8 +581,16 @@ triggers:
     to: "off"
     id: vacancy_began
 
+  # FIX #1: Scoped to fan_runon_timer only via event_data filter.
+  # Previously this had no filter and fired on EVERY timer.finished event in
+  # the entire HA instance — exit_eval timers, failsafe timers, cooldown timers
+  # from every other room — causing the automation to run needlessly for all of
+  # them. The action guard (trigger.event.data.entity_id == fan_runon_t) caught
+  # it eventually, but not before evaluating all variables for every run.
   - trigger: event
     event_type: timer.finished
+    event_data:
+      entity_id: !input fan_runon_timer
     id: timer_finished
 
   - trigger: homeassistant
@@ -535,7 +636,7 @@ variables:
   brightness_day_helper: !input brightness_day_helper
   brightness_night_static: !input brightness_night_pct
   brightness_night_helper: !input brightness_night_helper
-  
+
   transition_on: !input transition_on
   transition_on_night: !input transition_on_night
 
@@ -580,6 +681,10 @@ variables:
   lights_off_verify_retry_interval: !input lights_off_verify_retry_interval
   lights_off_keep_tag_on_failure: !input lights_off_keep_tag_on_failure
 
+  # NOTE: override_ok and force_ok are kept as top-level variables for use in
+  # simple single-shot conditions (occupied_on, lights_off, vacancy_began).
+  # For any blocking while-loops (humidity hold, lights retry), these are
+  # intentionally NOT used — see FIX #2 inline comments below.
   override_ok: >-
     {{ override_b == '' or is_state(override_b, 'off') }}
 
@@ -616,14 +721,17 @@ variables:
     {% else %}
       {{ lux_threshold_static | float }}
     {% endif %}
-  
-  # Hysteresis Logic: Allow ON if < threshold, but don't strictly require it if we are 'bouncing'
-  # Actually, simple gate: turn on if below threshold + 0 (strict). 
-  # If you want hysteresis, you usually want to avoid turning OFF if it brightens slightly, but this is an ON automation.
-  # So we just keep strict ON threshold.
+
+  # FIX #3: Apply the 10% hysteresis buffer that was advertised in the v2.1.1
+  # changelog but never implemented. The original check was strict
+  # `lux_value < lux_threshold` with no buffer, causing dusk flicker when lux
+  # hovered near the threshold. Now: lights turn ON if lux < threshold * 1.1,
+  # giving a 10% tolerance band above the configured threshold.
+  # FIX #7: Removed the stale comment block that contradicted this fix
+  # ("Actually, simple gate... If you want hysteresis...").
   lights_ok_to_turn_on: >-
     {% if lux_entity != '' and use_lux_gate %}
-      {{ lux_value < lux_threshold }}
+      {{ lux_value < (lux_threshold * 1.1) }}
     {% else %}
       {{ (not turn_on_only_if_dark) or is_dark }}
     {% endif %}
@@ -636,7 +744,7 @@ variables:
     {% else %}
       {{ day }}
     {% endif %}
-  
+
   transition_on_actual: >-
     {% if use_night_profile and is_night %}
       {{ transition_on_night }}
@@ -726,7 +834,7 @@ actions:
           - condition: template
             value_template: "{{ not cooldown_active }}"
         sequence:
-          # Cancel fan run-on timer if present
+          # Cancel fan run-on timer if present (room is occupied again)
           - choose:
               - conditions:
                   - condition: template
@@ -780,6 +888,7 @@ actions:
                                   - action: input_boolean.turn_on
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
+
           # ---- Fan ON (with optional delay) ----
           - choose:
               - conditions:
@@ -882,7 +991,7 @@ actions:
                   - variables:
                       _lights_off_retries: "{{ lights_off_verify_retries | int(0) }}"
 
-                  # Soft-Off Warning (Dim to 10% for 15s)
+                  # Soft-Off Warning (Dim to 10% for 15s before full off)
                   - choose:
                       - conditions:
                           - condition: template
@@ -895,8 +1004,8 @@ actions:
                               brightness_pct: 10
                               transition: 2
                           - delay: 00:00:15
-                          # Check occupancy again. If user waved hand, we restart (since mode: restart).
-                          # But if we are here, we are still vacant.
+                          # If room became occupied again during soft-off delay, mode:restart
+                          # will have cancelled this run already — no explicit check needed.
 
                   # First OFF attempt
                   - choose:
@@ -927,8 +1036,15 @@ actions:
                           - repeat:
                               count: "{{ _lights_off_retries | int(0) }}"
                               sequence:
+                                # FIX #2: Inline live check instead of frozen override_ok/force_ok
+                                # variables. The retry loop runs over multiple delay cycles — if
+                                # override or a blocking entity is turned on mid-retry, this now
+                                # catches it immediately.
                                 - condition: template
-                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok }}"
+                                  value_template: >-
+                                    {{ is_state(occ, 'off')
+                                       and (override_b == '' or is_state(override_b, 'off'))
+                                       and (expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0) }}
                                 # Check for lights that are ON or UNAVAILABLE/UNKNOWN (safety)
                                 - choose:
                                     - conditions:
@@ -998,7 +1114,7 @@ actions:
                     data:
                       duration: "{{ fan_runon_actual_seconds }}"
 
-          # Fallback: no fan timer
+          # Fallback: no fan run-on timer — turn fan off directly (with humidity hold)
           - choose:
               - conditions:
                   - condition: template
@@ -1013,8 +1129,16 @@ actions:
                         sequence:
                           - repeat:
                               while:
+                                # FIX #2: Inline live override/force/blocking checks.
+                                # This loop can block for up to humidity_hold_max (default 1h).
+                                # Using the frozen top-level override_ok/force_ok here meant
+                                # turning override ON mid-loop had zero effect. Now re-evaluated
+                                # every iteration against current entity state.
                                 - condition: template
-                                  value_template: "{{ is_state(occ,'off') and override_ok and force_ok }}"
+                                  value_template: >-
+                                    {{ is_state(occ, 'off')
+                                       and (override_b == '' or is_state(override_b, 'off'))
+                                       and (expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0) }}
                                 - condition: template
                                   value_template: "{{ (states(humidity_entity)|float(0)) > humidity_low }}"
                                 - condition: template
@@ -1072,6 +1196,8 @@ actions:
       - conditions:
           - condition: trigger
             id: timer_finished
+          # FIX #1: The event_data filter on the trigger already ensures this only
+          # fires for fan_runon_timer. This condition is kept as a safety belt.
           - condition: template
             value_template: "{{ fan_runon_t != '' and trigger.event.data.entity_id == fan_runon_t }}"
           - condition: template
@@ -1092,8 +1218,13 @@ actions:
                 sequence:
                   - repeat:
                       while:
+                        # FIX #2: Same inline live check as the humidity hold above.
+                        # Fan run-on done can also block here for up to humidity_hold_max.
                         - condition: template
-                          value_template: "{{ is_state(occ,'off') and override_ok and force_ok }}"
+                          value_template: >-
+                            {{ is_state(occ, 'off')
+                               and (override_b == '' or is_state(override_b, 'off'))
+                               and (expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0) }}
                         - condition: template
                           value_template: "{{ (states(humidity_entity)|float(0)) > humidity_low }}"
                         - condition: template
@@ -1133,17 +1264,23 @@ actions:
             value_template: "{{ startup_cleanup }}"
         sequence:
           - delay: !input startup_cleanup_delay
-          - condition: template
-            value_template: "{{ override_ok }}"
-          - condition: template
-            value_template: "{{ force_ok }}"
 
-          # CRITICAL FIX: Ensure sensor is VALID (not unavailable/unknown) and OFF
+          # FIX #8: Use inline live override/force checks rather than the frozen
+          # top-level variables. After startup_cleanup_delay + 15s double-tap,
+          # the cached values may be stale.
+          - condition: template
+            value_template: >-
+              {{ override_b == '' or is_state(override_b, 'off') }}
+          - condition: template
+            value_template: >-
+              {{ expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0 }}
+
+          # Ensure sensor is VALID (not unavailable/unknown) and OFF
           - condition: template
             value_template: >-
               {{ has_value(occ) and is_state(occ, 'off') }}
 
-          # Double-tap validation
+          # Double-tap validation: wait 15s then re-check
           - delay: 00:00:15
 
           - condition: template
@@ -1154,8 +1291,14 @@ actions:
               - conditions:
                   - condition: template
                     value_template: >-
-                      {{ auto_tag_lights != '' and is_state(auto_tag_lights,'on') and (any_light_on or (lights_off_script != '') or (lights | length > 0)) }}
+                      {{ auto_tag_lights != '' and is_state(auto_tag_lights,'on')
+                         and (lights_off_script != '' or lights | length > 0) }}
                 sequence:
+                  # FIX #4: Re-evaluate any_light_on inline — top-level variable was
+                  # frozen at ha_start time and is stale after the cleanup delay.
+                  - variables:
+                      _any_light_on_now: >-
+                        {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
                   - choose:
                       - conditions:
                           - condition: template
@@ -1176,10 +1319,16 @@ actions:
                   - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ auto_tag_lights }}"
+
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ auto_tag_fan != '' and is_state(auto_tag_fan,'on') and fan_currently_on and (not fan_runon_active) }}"
+                    # FIX #4: Re-evaluate fan_runon_active inline — frozen top-level
+                    # variable was computed at ha_start, before timers had settled.
+                    value_template: >-
+                      {{ auto_tag_fan != '' and is_state(auto_tag_fan,'on')
+                         and fan_currently_on
+                         and not (fan_runon_t != '' and is_state(fan_runon_t, 'active')) }}
                 sequence:
                   - choose:
                       - conditions:

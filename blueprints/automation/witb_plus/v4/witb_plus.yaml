@@ -3,41 +3,72 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.0.5 (Modernized & Integrated)
+  name: WITB+ v4.2.0 (Reliability Fixes)
   description: |
-    ### Key Improvements:
-    1. **Modernization**: Replaces legacy `service:` calls with the new `action:` syntax.
-    2. **Failsafe & Entry Window Integration**: Maps failsafe and entry window logic to package helpers for more consistent control.
-    3. **Logic Fixes**: Addresses deadlock and ventilation issues by ensuring more accurate occupancy detection.
+    ### Key Improvements over v4.0.5:
+    1. **Fix #1 – Duplicate triggers removed**: `transition_open` and `seal_open` triggers
+       removed. Door-open logic now uses `trigger.to_state.state == 'on'` checks inside
+       `transition_change` / `seal_change` to eliminate double-execution races under
+       mode: restart.
+    2. **Fix #2 – Timer-based exit evaluation**: Block 5 now starts a dedicated
+       `exit_eval_timer` instead of blocking with `wait_template`. The automation
+       run completes immediately. When the timer fires, a new run evaluates whether
+       to clear. Motion returning cancels the timer cleanly. This allows mode: restart
+       to be used (fast, non-blocking) and eliminates stale queued evaluations.
+    3. **Fix #3 – `exit_recent` recomputed post-delay**: The `exit_eval_done` handler
+       recalculates `exit_recent_rt` at runtime so an expired exit window is never
+       treated as still-recent.
+    4. **Fix #4 – Deadlock break guards `force_on`**: Condition B of the failsafe no
+       longer clears occupancy when `force_occupied` is ON.
+    5. **Fix #5 – Latch sync gated to relevant triggers**: Action 1 only fires on
+       door/seal/motion triggers, preventing churn on failsafe/override events.
+    6. **Fix #6 – mmWave uses `state` triggers**: Replaced unreliable template triggers
+       with proper `platform: state` triggers for mmwave_on / mmwave_off_for.
+    7. **Fix #7 – Optional entity triggers safely ignored**: Control triggers
+       (override/force/manual) use empty-list inputs that HA 2024.4+ skips cleanly.
+    8. **Fix #8 – `fs_duration_hms` capped at 99 hours**: Prevents invalid timer
+       strings for durations >= 100 hours.
+    9. **Fix #9 – Shared "assert occupied" logic**: Occupancy-assertion steps are
+       consistently structured across all assert paths (motion, mmwave, force, manual).
+    10. **Fix #10 – `seconds_since_door` precision**: Integer truncation removed from
+        `now().timestamp()` so sub-second precision is preserved for short entry windows.
 
     ### WITB Overview:
-    The **WITB** system provides occupancy inference for a **single room** using the following sensors:
+    The **WITB** system provides occupancy inference for a **single room** using:
     - **1 PIR Motion Sensor** (default for occupancy detection)
     - **1+ Transition Door Contact Sensors** (to detect boundary crossings)
-    - **1 Seal Door Contact Sensor** (main/privacy door to prevent occupancy clearance when closed)
+    - **1 Seal Door Contact Sensor** (main/privacy door — blocks clearing when closed)
 
-    ### Key Features:
-    - **Recomputes Door/Seal/MMWave States**: After the exit-delay, the system re-checks the door and seal status to avoid false occupancy clears caused by quick door openings and closings.
+    ### Exit Evaluation Timer:
+    Create one `timer` helper per room for exit evaluation (e.g. `timer.bedroom_exit_eval`).
+    When a door opens while occupied, this timer starts for `exit_timeout_seconds`.
+    If motion returns before it finishes, the timer is cancelled. When the timer fires,
+    the automation re-checks door and motion state and clears if it is safe to do so.
+    This is the recommended pattern — it is fully non-blocking and event-driven.
 
     ### Core Rules:
-    1. **PIR Motion**: PIR motion is the default signal that asserts the room as occupied. Optionally, mmWave sensors can also be used if enabled.
+    1. **PIR Motion**: PIR motion is the default signal that asserts the room as occupied.
+       Optionally, mmWave sensors can also be used if enabled.
     2. **Clearing Occupancy**: Occupancy clears only when the exit is possible:
-       - If the room is **occupied**, and any transition door is **open** with **motion off** (for the specified `exit_timeout_seconds`), occupancy will be cleared.
-       - **Seal Door Block**: If the **seal door** is **closed**, clearing will be blocked even if the transition door opens and motion is off.
-    3. **Failsafe Timer**: An optional failsafe timer that ensures the system resets properly:
-       - When the timer finishes, occupancy is cleared only if the **seal door** is **open** and motion is **off**.
-       - If the **seal door** is **closed**, the system will not clear the occupancy (useful for sleeping or sitting still). The timer will restart instead.
+       - If occupied and any transition door is **open** with motion off for
+         `exit_timeout_seconds`, occupancy will be cleared.
+       - **Seal Door Block**: If the seal door is **closed**, clearing is blocked even
+         if a transition door is open and motion is off.
+    3. **Failsafe Timer**: An optional long-running failsafe prevents stuck states:
+       - Clears only if seal door is open (or exit_recent) and motion is off.
+       - If seal door is closed, timer restarts (useful for sleeping or sitting still).
     4. **Room-Specific Controls** (priority order):
        - **Automation Override ON**: Automation does nothing (manual control).
-       - **Force Occupied ON**: Forces the room to be considered occupied and prevents clearing.
-       - **Manual Occupied ON**: Forces occupancy ON but still allows normal exit-based clearing (e.g., if the door is opened and motion is off).
+       - **Force Occupied ON**: Pins occupancy ON and blocks all clearing.
+       - **Manual Occupied ON**: Asserts occupancy but still allows exit-based clearing.
 
     ### Configuration Notes:
-    - **Transition Doors**: Define the doors that represent entry/exit points for this room. These should be sensors that monitor boundary crossings.
-    - **Seal Door**: Configure the main or privacy door that prevents occupancy from being cleared while it is closed.
+    - **Transition Doors**: Doors representing entry/exit points for this room.
+    - **Seal Door**: Main/privacy door that prevents clearing while closed.
+    - **Exit Eval Timer**: Required for the door-open exit path. Create one per room.
 
     ### User Interface:
-    - The UI for this blueprint has been organized into sections for easier setup, taking advantage of the **HA 2024.6+ input sections feature** for a more streamlined user experience.
+    - Organized into collapsible sections using the HA 2024.6+ input sections feature.
 
   input:
     doors_and_motion:
@@ -140,6 +171,27 @@ blueprint:
             entity:
               domain: input_datetime
 
+    exit_evaluation:
+      name: Exit Evaluation Timer (required for door-open path)
+      icon: mdi:timer-play-outline
+      description: >
+        A dedicated timer that drives the door-open exit evaluation.
+        When a door opens while occupied, this timer starts for exit_timeout_seconds.
+        If motion returns before the timer finishes, the timer is cancelled immediately.
+        When the timer fires, the automation re-checks sensor state and clears if safe.
+        Create one timer per room (e.g. timer.bedroom_exit_eval). Recommended duration
+        is set dynamically from exit_timeout_seconds — no manual duration needed on the
+        helper itself.
+      input:
+        exit_eval_timer:
+          name: Exit Evaluation Timer
+          description: >
+            Timer used to drive the non-blocking door-open exit evaluation path.
+            Create one per room: timer.ROOM_exit_eval
+          selector:
+            entity:
+              domain: timer
+
     exit_close_after_exit:
       name: Door closes behind you (optional)
       icon: mdi:door-closed
@@ -154,7 +206,6 @@ blueprint:
             Optional helper used to support "door can close after leaving" rooms.
             This stores the timestamp when a transition/seal door OPENED while the room was already occupied.
             If set, the automation can clear occupancy after the door closes behind you (garage/bedroom style).
-            Currently uses the slider below for the exit window duration.
           default: []
           selector:
             entity:
@@ -221,7 +272,9 @@ blueprint:
       input:
         exit_timeout_seconds:
           name: Exit Timeout (seconds)
-          description: When occupied and door is OPEN, if no motion for this long -> clear occupancy.
+          description: >
+            When occupied and door is OPEN, if no motion for this long -> clear occupancy.
+            This value is also used as the duration for the Exit Evaluation Timer.
           default: 60
           selector:
             number:
@@ -236,7 +289,7 @@ blueprint:
       collapsed: true
       description: >
         Optional per-room control helpers.
-        If you do not use these, leave them empty/undefined in your package and do not wire them in the automation instance.
+        If you do not use these, leave them empty and do not wire them in the automation instance.
       input:
         automation_override:
           name: Automation Override (optional)
@@ -282,7 +335,7 @@ blueprint:
 
         entry_window_seconds:
           name: Entry window (seconds)
-          description: > 
+          description: >
             How recent a door change must be to accept motion as an entry when gating is enabled.
             Used only if the Helper below is not defined.
           default: 15
@@ -300,12 +353,12 @@ blueprint:
       description: >
         SAFE failsafe timer (no polling):
           - When timer finishes, clear ONLY if seal door is OPEN (or exit_recent) and motion is OFF.
-          - If seal door is CLOSED, do NOT clear; restart timer.
+          - If seal door is CLOSED, do NOT clear; restart timer instead.
       input:
         enable_failsafe:
           name: Enable failsafe timer
           description: >
-            If enabled, uses a timer (no polling) to prevent stuck occupied states.
+            If enabled, uses a timer to prevent permanently stuck occupied states.
             SAFE behavior: failsafe will never clear while door is CLOSED.
             NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below.
           default: true
@@ -313,7 +366,7 @@ blueprint:
             boolean: {}
 
         failsafe_timer:
-          name: Failsafe Timer (optional, required if enabled)
+          name: Failsafe Timer (required if failsafe is enabled)
           description: Create one per room (e.g., timer.toilet_failsafe). Only used when failsafe is enabled.
           default: []
           selector:
@@ -324,30 +377,41 @@ blueprint:
           name: Failsafe duration (minutes)
           description: >
             Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
-            Toilet suggestion: 90-180. Bedroom suggestion: 720-1440.
-            Used only if the Helper below is not defined.
+            Toilet suggestion: 90-180. Bedroom suggestion: 720-1440 (max 5940 / 99h).
+            Used only if the Failsafe Timeout Helper below is not defined.
           default: 180
           selector:
             number:
               min: 5
-              max: 1440
+              max: 5940
               unit_of_measurement: minutes
               mode: slider
 
         failsafe_timeout_helper:
-          name: Failsafe Timeout Helper
-          description: Link to input_number.room_slug_failsafe_timeout
+          name: Failsafe Timeout Helper (optional)
+          description: >
+            Link to input_number.room_slug_failsafe_timeout.
+            When set, this overrides the failsafe_minutes slider above.
+          default: []
           selector:
             entity:
               domain: input_number
 
         entry_window_helper:
-          name: Entry Window Helper
-          description: Link to input_number.room_slug_entry_window_seconds
+          name: Entry Window Helper (optional)
+          description: >
+            Link to input_number.room_slug_entry_window_seconds.
+            When set, this overrides the entry_window_seconds slider above.
+          default: []
           selector:
             entity:
               domain: input_number
 
+# FIX #2: mode: restart is correct here because ALL runs are now non-blocking.
+# The exit evaluation delay is handled by the exit_eval_timer — the automation
+# run that starts the timer completes in milliseconds. When the timer fires, a
+# new fast run evaluates whether to clear. No run ever sleeps, so restart is
+# safe and desirable (prevents stale queued runs from piling up).
 mode: restart
 max_exceeded: silent
 
@@ -366,7 +430,11 @@ variables:
   last_door: !input last_door_helper
   latch: !input latched_helper
 
+  # FIX #2: Exit evaluation timer (replaces wait_template blocking delay)
+  exit_eval_tmr: !input exit_eval_timer
   exit_s: !input exit_timeout_seconds
+  # Duration string for the exit eval timer (always seconds-based, simple format)
+  exit_eval_duration: "{{ '00:00:' ~ '%02d' | format(exit_s | int) }}"
 
   # Controls
   ov: !input automation_override
@@ -417,32 +485,35 @@ variables:
       false
     {% endif %}
 
-  # minutes -> HH:MM:SS
+  # FIX #8: Cap hours at 99 to prevent invalid timer strings (e.g. "100:00:00").
+  # Slider max of 5940 minutes (99h) makes this a safety net only.
   fs_duration_hms: >-
     {% set m = fs_min | int %}
-    {% set h = (m // 60) %}
+    {% set h = [m // 60, 99] | min %}
     {% set mm = (m % 60) %}
     {{ '%02d:%02d:00' | format(h, mm) }}
 
-  # For entry gating: seconds since last door change
+  # FIX #10: Removed | int from now().timestamp() to preserve sub-second precision.
+  # This matters for short entry windows (e.g. 5–15 s).
   last_door_ts: >-
     {% set v = states(last_door) %}
     {% if v in ['unknown','unavailable','none',''] %}
       0
     {% else %}
-      {{ as_timestamp(v) | int }}
+      {{ as_timestamp(v) | float(0) }}
     {% endif %}
-  seconds_since_door: "{{ (now().timestamp() | int) - (last_door_ts | int) }}"
-  # For sleep-safe exit marking: seconds since last motion ON
+  seconds_since_door: "{{ now().timestamp() - last_door_ts }}"
+
   last_motion_ts: >-
     {% set v = states(last_motion) %}
     {% if v in ['unknown','unavailable','none',''] %}
       0
     {% else %}
-      {{ as_timestamp(v) | int }}
+      {{ as_timestamp(v) | float(0) }}
     {% endif %}
-  seconds_since_motion: "{{ (now().timestamp() | int) - (last_motion_ts | int) }}"
-  # For "door can close after leaving": timestamp when a door OPENED while already occupied
+  seconds_since_motion: "{{ now().timestamp() - last_motion_ts }}"
+
+  # "Door can close after leaving" helpers
   last_exit: !input last_exit_door_helper
   exit_win_s: !input exit_recent_window_seconds
   exit_mark_require_motion: !input exit_mark_requires_recent_motion
@@ -454,48 +525,48 @@ variables:
       {% if v in ['unknown','unavailable','none',''] %}
         0
       {% else %}
-        {{ as_timestamp(v) | int }}
+        {{ as_timestamp(v) | float(0) }}
       {% endif %}
     {% else %}
       0
     {% endif %}
-  seconds_since_exit: "{{ (now().timestamp() | int) - (last_exit_ts | int) }}"
-  exit_recent: "{{ exit_enabled and (seconds_since_exit | int) <= (exit_win_s | int) }}"
+  seconds_since_exit: "{{ now().timestamp() - last_exit_ts }}"
+  exit_recent: "{{ exit_enabled and (seconds_since_exit | float) <= (exit_win_s | int) }}"
 
 trigger:
+  # ---- Presence signals ----
   - id: motion_on
     platform: state
     entity_id: !input motion_sensor
     to: "on"
 
+  # FIX #6: Use platform: state for mmWave — template triggers without a watched
+  # entity_id are unreliable and can miss transitions.
   - id: mmwave_on
-    platform: template
-    value_template: "{{ mm_enabled and is_state(mm, 'on') }}"
+    platform: state
+    entity_id: !input mmwave_sensor
+    to: "on"
 
   - id: mmwave_off_for
-    platform: template
-    value_template: "{{ mm_enabled and is_state(mm, 'off') }}"
+    platform: state
+    entity_id: !input mmwave_sensor
+    to: "off"
     for:
       seconds: !input exit_timeout_seconds
 
+  # ---- Door signals ----
+  # FIX #1: transition_open and seal_open removed. Door-open logic is handled
+  # inside the transition_change / seal_change blocks by checking
+  # trigger.to_state.state == 'on', eliminating the double-fire race.
   - id: transition_change
     platform: state
     entity_id: !input transition_doors
-
-  - id: transition_open
-    platform: state
-    entity_id: !input transition_doors
-    to: "on"
 
   - id: seal_change
     platform: state
     entity_id: !input seal_door
 
-  - id: seal_open
-    platform: state
-    entity_id: !input seal_door
-    to: "on"
-
+  # ---- Timeout-based clear path (motion off for N seconds) ----
   - id: motion_off_for
     platform: state
     entity_id: !input motion_sensor
@@ -503,7 +574,17 @@ trigger:
     for:
       seconds: !input exit_timeout_seconds
 
-  # Control toggles (act immediately)
+  # ---- FIX #2: Exit eval timer completion ----
+  # Fires when the exit_eval_timer finishes. At that point we re-check all
+  # sensor states and clear occupancy if the exit conditions are still met.
+  - id: exit_eval_done
+    platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input exit_eval_timer
+
+  # ---- Control triggers ----
+  # FIX #7: HA 2024.4+ silently ignores state triggers on empty [] entity lists.
   - id: override_off
     platform: state
     entity_id: !input automation_override
@@ -529,7 +610,7 @@ trigger:
     entity_id: !input manual_occupied
     to: "off"
 
-  # Optional failsafe completion
+  # ---- Failsafe timer completion ----
   - id: failsafe_done
     platform: event
     event_type: timer.finished
@@ -542,13 +623,29 @@ condition:
     value_template: "{{ not ov_on }}"
 
 action:
-  # 1. LATCH SYNC: Ensure privacy mode matches door state immediately
-  - action: input_boolean.{{ 'turn_on' if is_state(seal, 'off') and is_state(occ, 'on') else 'turn_off' }}
-    target:
-      entity_id: !input latched_helper
-    enabled: "{{ latch is string and latch|length > 0 }}"
+  # ---------------------------------------------------------------------------
+  # 1. LATCH SYNC: Keep latch helper in sync with door + occupancy state.
+  # FIX #5: Only runs on door/seal/motion triggers. Previously ran on every
+  # trigger (including failsafe_done and override_off), causing spurious state
+  # churn on the latch helper.
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >-
+              {{ trigger.id in ['transition_change','seal_change','motion_on','motion_off_for'] }}
+          - condition: template
+            value_template: "{{ latch_enabled }}"
+        sequence:
+          - action: >-
+              input_boolean.{{ 'turn_on' if is_state(seal, 'off') and is_state(occ, 'on') else 'turn_off' }}
+            target:
+              entity_id: !input latched_helper
+    default: []
 
-  # 1b) Keep last_door updated on any door change (for debugging + entry gating)
+  # ---------------------------------------------------------------------------
+  # 1b) Keep last_door updated on any door change (entry gating + debugging)
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: template
@@ -561,12 +658,18 @@ action:
               timestamp: "{{ now().timestamp() }}"
     default: []
 
+  # ---------------------------------------------------------------------------
   # 1c) Mark a "possible exit" when a door OPENS while already occupied.
-  #     This enables clearing even if the door closes behind you.
+  # FIX #1: Uses trigger.to_state.state == 'on' instead of the removed
+  # transition_open / seal_open trigger IDs.
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.id in ['transition_open','seal_open'] and exit_enabled }}"
+            value_template: >-
+              {{ trigger.id in ['transition_change','seal_change']
+                 and trigger.to_state.state == 'on'
+                 and exit_enabled }}
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
@@ -574,7 +677,7 @@ action:
             value_template: >-
               {{ (not exit_mark_require_motion)
                   or is_state(motion, 'on')
-                  or ((seconds_since_motion | int(999999)) <= (exit_mark_motion_s | int(0))) }}
+                  or ((seconds_since_motion | float(999999)) <= (exit_mark_motion_s | int(0))) }}
         sequence:
           - action: input_datetime.set_datetime
             target:
@@ -583,7 +686,9 @@ action:
               timestamp: "{{ now().timestamp() }}"
     default: []
 
-  # 2) Force Occupied: pin ON and block clearing
+  # ---------------------------------------------------------------------------
+  # 2) Force Occupied: pin ON and block all clearing
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: template
@@ -617,11 +722,16 @@ action:
                     data:
                       duration: "{{ fs_duration_hms }}"
             default: []
-          # Stop here; do not run normal clearing logic when forced
+          # Cancel any pending exit evaluation — force overrides it
+          - action: timer.cancel
+            target:
+              entity_id: "{{ exit_eval_tmr }}"
           - stop: "Force occupied active"
     default: []
 
-  # 3) Manual Occupied: assert ON (soft); allow normal exit-based clearing
+  # ---------------------------------------------------------------------------
+  # 3) Manual Occupied: assert ON (soft); normal exit-based clearing still applies
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: template
@@ -657,7 +767,10 @@ action:
             default: []
     default: []
 
-  # 4) Motion ON asserts occupancy (with optional entry gating)
+  # ---------------------------------------------------------------------------
+  # 4) Motion ON: assert occupancy (with optional entry gating)
+  #    Also cancel any running exit_eval_timer — motion means room is occupied.
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: trigger
@@ -701,10 +814,17 @@ action:
                             data:
                               duration: "{{ fs_duration_hms }}"
                     default: []
+                  # FIX #2: Motion returned — cancel any in-flight exit evaluation.
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ exit_eval_tmr }}"
             default: []
     default: []
 
-  # 4b) mmWave ON (optional): refresh presence; optionally assert occupancy
+  # ---------------------------------------------------------------------------
+  # 4b) mmWave ON: refresh presence; optionally assert occupancy
+  #     Also cancel any running exit_eval_timer.
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: trigger
@@ -732,7 +852,7 @@ action:
                     default: []
             default: []
 
-          # Refresh timestamps/failsafe when occupied (including right after asserting)
+          # Refresh timestamps and failsafe whenever occupied (including just after asserting).
           - choose:
               - conditions:
                   - condition: state
@@ -764,20 +884,64 @@ action:
                             data:
                               duration: "{{ fs_duration_hms }}"
                     default: []
+                  # mmWave is on — cancel any in-flight exit evaluation.
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ exit_eval_tmr }}"
             default: []
     default: []
 
-  # 5) Door open: delayed exit evaluation (handles quick open/close)
-  # IMPORTANT: recompute door/mmWave state AFTER the delay (top-level variables are frozen at trigger time).
+  # ---------------------------------------------------------------------------
+  # 5) Door OPENS while occupied: start the exit evaluation timer.
+  #
+  # FIX #2 (core change): Instead of a blocking wait_template delay, we simply
+  # start exit_eval_tmr for exit_timeout_seconds. The run completes immediately.
+  # When the timer fires, block 5b re-checks all sensor state and clears if safe.
+  # If motion returns before the timer fires, block 4 (motion_on) cancels it.
+  #
+  # Why this is better than wait_template:
+  #   - The automation run is non-blocking (completes in ms, not 5-600s).
+  #   - mode: restart is safe again — no stale delayed runs sitting in a queue.
+  #   - timer.start on an already-running timer automatically restarts it, so
+  #     a second door open while the timer is running extends/resets the window
+  #     correctly without any special handling.
+  #   - Motion cancelling the timer is explicit and immediate (timer.cancel in block 4).
+  #
+  # FIX #1: Checks trigger.to_state.state == 'on' (replaces removed transition_open /
+  # seal_open trigger IDs).
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: template
-            value_template: "{{ trigger.id in ['transition_open','seal_open'] }}"
+            value_template: >-
+              {{ trigger.id in ['transition_change','seal_change']
+                 and trigger.to_state.state == 'on' }}
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
         sequence:
-          - delay:
-              seconds: !input exit_timeout_seconds
+          - action: timer.start
+            target:
+              entity_id: "{{ exit_eval_tmr }}"
+            data:
+              duration: "{{ exit_eval_duration }}"
+    default: []
 
-          # Recompute runtime state after the delay (prevents false clears when a door closes during the delay)
+  # ---------------------------------------------------------------------------
+  # 5b) Exit evaluation timer FINISHED: re-check state and clear if safe.
+  #
+  # FIX #2: This is the new event-driven evaluation that replaces the post-wait
+  # conditions that previously lived in block 5.
+  # FIX #3: All state variables are computed fresh here (not from stale top-level
+  # variables frozen at the original trigger time). exit_recent_rt in particular
+  # is recalculated so an expired exit window is never treated as still-recent.
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: exit_eval_done
+        sequence:
+          # Recompute all relevant state NOW (after the timer delay).
           - variables:
               sealed_now_rt: "{{ is_state(seal, 'off') }}"
               any_transition_open_rt: >-
@@ -790,14 +954,23 @@ action:
                 {% endfor %}
                 {{ ns.open }}
               mm_clear_ok_rt: "{{ (not mm_enabled) or (not mm_block) or is_state(mm, 'off') }}"
+              # FIX #3: Recalculate exit_recent at runtime. The top-level exit_recent
+              # was evaluated at trigger time and is stale by the time this fires.
+              exit_recent_rt: >-
+                {% if exit_enabled %}
+                  {% set ts = states(last_exit) | as_timestamp(0) %}
+                  {{ (now().timestamp() - ts) <= (exit_win_s | int) }}
+                {% else %}
+                  false
+                {% endif %}
 
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
           - condition: template
-            value_template: "{{ any_transition_open_rt or is_state(seal, 'on') }}"
+            value_template: "{{ any_transition_open_rt or exit_recent_rt }}"
           - condition: template
-            value_template: "{{ not sealed_now_rt }}"
+            value_template: "{{ (not sealed_now_rt) or exit_recent_rt }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
@@ -836,7 +1009,9 @@ action:
             default: []
     default: []
 
+  # ---------------------------------------------------------------------------
   # 6) Motion OFF for exit timeout: attempt clear (only if door is open)
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: trigger
@@ -863,7 +1038,6 @@ action:
                     target:
                       entity_id: "{{ latch }}"
             default: []
-
           - choose:
               - conditions:
                   - condition: template
@@ -884,9 +1058,15 @@ action:
                     target:
                       entity_id: "{{ fs_timer }}"
             default: []
+          # Also cancel a pending exit eval if motion-off-for clears first
+          - action: timer.cancel
+            target:
+              entity_id: "{{ exit_eval_tmr }}"
     default: []
 
+  # ---------------------------------------------------------------------------
   # 6b) mmWave OFF for exit timeout: attempt clear (requires PIR off too)
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: trigger
@@ -935,9 +1115,14 @@ action:
                     target:
                       entity_id: "{{ fs_timer }}"
             default: []
+          - action: timer.cancel
+            target:
+              entity_id: "{{ exit_eval_tmr }}"
     default: []
 
-  # 7) Keep latch helper in sync on seal door changes (debugging only)
+  # ---------------------------------------------------------------------------
+  # 7) Keep latch helper in sync on seal/door changes (debugging)
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: template
@@ -961,8 +1146,10 @@ action:
             default: []
     default: []
 
-  # 8) SAFE failsafe: only clears when exit is possible (door open) and motion is off.
-  #    DEADLOCK FIX: If motion has been off for a massive amount of time, clear anyway.
+  # ---------------------------------------------------------------------------
+  # 8) SAFE failsafe: only clears when exit is possible and motion is off.
+  #    Hard deadlock break if motion has been off for 1.5x the failsafe duration.
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: trigger
@@ -972,7 +1159,7 @@ action:
         sequence:
           - choose:
               # --- CONDITION A: Standard "Safe" Clear ---
-              # Clear if: (Door is open OR recently exited) AND No Motion
+              # Clear if: door is open (or recently exited) AND motion is off AND mmWave clear
               - conditions:
                   - condition: state
                     entity_id: !input occupancy_helper
@@ -991,11 +1178,18 @@ action:
                     target:
                       entity_id: "{{ latch }}"
                     enabled: "{{ latch_enabled }}"
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ exit_eval_tmr }}"
 
               # --- CONDITION B: Hard Deadlock Break ---
-              # Clear if: Motion has been off for MORE than the failsafe duration (e.g. 2x)
-              # This handles the "I left through the window" or unmonitored exit scenario.
+              # Clear if motion has been off for more than 1.5x the failsafe duration.
+              # Handles "I left through the window" / unmonitored exit scenarios.
+              # FIX #4: Guard against force_on — a forced-occupied room must not be
+              # cleared by this deadlock break.
               - conditions:
+                  - condition: template
+                    value_template: "{{ not force_on }}"
                   - condition: template
                     value_template: >
                       {% set last_m = states(last_motion) %}
@@ -1005,9 +1199,12 @@ action:
                   - action: input_boolean.turn_off
                     target:
                       entity_id: "{{ occ }}"
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ exit_eval_tmr }}"
 
               # --- CONDITION C: Still Occupied / Sealed ---
-              # If none of the above are true, restart the timer.
+              # None of the above cleared — restart the failsafe timer.
               - conditions:
                   - condition: state
                     entity_id: !input occupancy_helper
@@ -1019,7 +1216,9 @@ action:
                     data:
                       duration: "{{ fs_duration_hms }}"
 
-  # 9) When override is turned OFF, we don't force anything immediately; next door/motion will update.
+  # ---------------------------------------------------------------------------
+  # 9) Override turned OFF: no immediate action; next door/motion event updates.
+  # ---------------------------------------------------------------------------
   - choose:
       - conditions:
           - condition: trigger

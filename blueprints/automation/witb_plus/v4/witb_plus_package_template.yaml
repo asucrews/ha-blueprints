@@ -1,0 +1,133 @@
+room_witb:
+  # WITB+ Core Package Template
+  # Tokens: room_slug, Room Friendly Name
+  #
+  # This template covers ONLY the helpers consumed by the WITB+ v4.2 occupancy
+  # blueprint. It does NOT include lights/fan/lux/humidity/night helpers —
+  # those live in the separate room_witb_actions_package_template.yaml.
+  #
+  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  #   helpers     - required core: occupancy (input_boolean) + last_motion,
+  #                 last_door (input_datetime) + exit_eval (timer)
+  #   controls    - optional: override, force_occupied, manual_occupied (input_boolean)
+  #   latched     - optional: latched debug helper (input_boolean)
+  #   exit_close  - optional: last_exit_door (input_datetime) for "door closes
+  #                 behind you" rooms (bedroom/garage style)
+  #   failsafe    - optional: failsafe timer + failsafe_timeout input_number
+  #   entry_gating - optional: entry_window_seconds input_number
+
+  input_boolean:
+    # NOTE: `initial` only sets the value on FIRST creation in the DB.
+    # After that, HA restores the last known state from the recorder.
+
+    # --- BEGIN helpers ---
+    room_slug_occupied:
+      name: "Room Friendly Name occupied"
+      icon: mdi:home-account
+      initial: false
+    # --- END helpers ---
+
+    # --- BEGIN controls ---
+    room_slug_override:
+      name: "Room Friendly Name override"
+      icon: mdi:hand-back-right-outline
+      initial: false
+
+    room_slug_force_occupied:
+      name: "Room Friendly Name force occupied"
+      icon: mdi:account-lock
+      initial: false
+
+    room_slug_manual_occupied:
+      name: "Room Friendly Name manual occupied"
+      icon: mdi:account-edit
+      initial: false
+    # --- END controls ---
+
+    # --- BEGIN latched ---
+    room_slug_latched:
+      name: "Room Friendly Name latched"
+      icon: mdi:door-closed-lock
+      initial: false
+    # --- END latched ---
+
+  input_datetime:
+    # input_datetime always restores last value from recorder — no restore_value needed.
+
+    # --- BEGIN helpers ---
+    room_slug_last_motion:
+      name: "Room Friendly Name last motion"
+      icon: mdi:motion-sensor
+      has_date: true
+      has_time: true
+
+    room_slug_last_door:
+      name: "Room Friendly Name last door"
+      icon: mdi:door
+      has_date: true
+      has_time: true
+    # --- END helpers ---
+
+    # --- BEGIN exit_close ---
+    room_slug_last_exit_door:
+      name: "Room Friendly Name last exit door"
+      icon: mdi:door-open
+      has_date: true
+      has_time: true
+    # --- END exit_close ---
+
+  input_number:
+    # IMPORTANT: restore_value: true on all input_number helpers.
+    # Without it, HA resets to `initial` on every restart, wiping user-set values.
+
+    # --- BEGIN failsafe ---
+    room_slug_failsafe_timeout:
+      name: "Room Friendly Name failsafe timeout (min)"
+      icon: mdi:timer-alert-outline
+      unit_of_measurement: "min"
+      min: 5
+      max: 5940
+      step: 5
+      mode: box
+      initial: 180
+      restore_value: true
+    # --- END failsafe ---
+
+    # --- BEGIN entry_gating ---
+    room_slug_entry_window_seconds:
+      name: "Room Friendly Name entry window (sec)"
+      icon: mdi:door-closed
+      unit_of_measurement: "s"
+      min: 1
+      max: 60
+      step: 1
+      mode: box
+      initial: 15
+      restore_value: true
+    # --- END entry_gating ---
+
+  timer:
+    # --- BEGIN helpers ---
+    # Required by WITB+ v4.2. Drives the non-blocking door-open exit path.
+    # When a door opens while occupied, this timer starts for exit_timeout_seconds.
+    # Motion returning cancels it. When it fires, the automation re-evaluates
+    # whether to clear occupancy. Use no_helpers: true to exclude entirely,
+    # or no_exit_eval: true if you need the other helpers but not this timer.
+    room_slug_exit_eval:
+      name: "Room Friendly Name exit eval"
+      icon: mdi:door-open
+      duration: "00:01:00"
+      # NOTE: Duration is a fallback only. WITB+ v4.2 always calls timer.start
+      # with an explicit duration from exit_timeout_seconds at runtime.
+      restore: false
+    # --- END helpers ---
+
+    # --- BEGIN failsafe ---
+    room_slug_failsafe:
+      name: "Room Friendly Name failsafe"
+      icon: mdi:timer-alert-outline
+      duration: "03:00:00"
+      # NOTE: Duration is a fallback only. The blueprint loads failsafe_timeout
+      # dynamically from the helper or slider at runtime.
+      restore: false
+    # --- END failsafe ---

@@ -1,0 +1,202 @@
+room_witb_actions:
+  # WITB+ Actions Package Template
+  # Tokens: room_slug, Room Friendly Name
+  #
+  # This template covers ONLY the helpers consumed by the WITB+ Actions
+  # (lights + fan) blueprint. It does NOT include core occupancy helpers —
+  # those live in the separate witb_plus_package_template.yaml.
+  #
+  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  #   lights    - auto_lights_on, keep_on (input_boolean) + brightness day/night
+  #               (input_number) + actions_cooldown (timer)
+  #   fan       - auto_fan_on (input_boolean) + fan_pct_day/night, fan_runon_minutes,
+  #               fan_on_delay (input_number) + fan_runon (timer)
+  #   lux       - lux_threshold (input_number)
+  #   humidity  - humidity_high/low (input_number)
+  #   night     - night_start/end (input_datetime)
+  #
+  # CHANGELOG:
+  #   - Added # --- BEGIN/END --- markers to ALL optional sections so feature
+  #     flags (--no-X / no_X: true) actually work. Previously no markers existed
+  #     so all feature flags were silently doing nothing against this template.
+  #   - Added restore_value: true to all input_number entries (without it, every
+  #     HA restart resets numbers back to `initial`, wiping user-set values)
+  #   - Renamed room_slug_fan_runon -> room_slug_actions_fan_runon for naming
+  #     consistency (update automations referencing the old entity id)
+  #   - Differentiated humidity icons: high=mdi:water-percent-alert, low=mdi:water-percent
+  #   - Added icons and restore: false explicitly on all timers
+  #   - Removed timer.room_slug_exit_eval — that belongs in witb_plus template
+
+  input_boolean:
+    # NOTE: `initial` only sets the value on FIRST creation in the DB.
+    # After that, HA restores the last known state from the recorder.
+
+    # --- BEGIN lights ---
+    room_slug_auto_lights_on:
+      name: "Room Friendly Name auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+      initial: false
+
+    room_slug_keep_on:
+      name: "Room Friendly Name keep on (block off)"
+      icon: mdi:lock-open-variant-outline
+      initial: false
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_auto_fan_on:
+      name: "Room Friendly Name auto fan on (tag)"
+      icon: mdi:fan-auto
+      initial: false
+    # --- END fan ---
+
+  input_datetime:
+    # input_datetime always restores last value from recorder — no restore_value needed.
+
+    # --- BEGIN night ---
+    room_slug_actions_night_start:
+      name: "Room Friendly Name night start"
+      icon: mdi:weather-night
+      has_date: false
+      has_time: true
+      initial: "22:00:00"
+
+    room_slug_actions_night_end:
+      name: "Room Friendly Name night end"
+      icon: mdi:weather-sunny
+      has_date: false
+      has_time: true
+      initial: "06:00:00"
+    # --- END night ---
+
+  input_number:
+    # IMPORTANT: restore_value: true on all input_number helpers.
+    # Without it, HA resets to `initial` on every restart, wiping user-set values.
+
+    # --- BEGIN lights ---
+    room_slug_actions_brightness_day_pct:
+      name: "Room Friendly Name brightness day %"
+      icon: mdi:brightness-6
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+      initial: 60
+      restore_value: true
+
+    room_slug_actions_brightness_night_pct:
+      name: "Room Friendly Name brightness night %"
+      icon: mdi:brightness-4
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+      initial: 10
+      restore_value: true
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_actions_fan_pct_day:
+      name: "Room Friendly Name fan day %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
+      min: 0
+      max: 100
+      step: 5
+      mode: box
+      initial: 0
+      restore_value: true
+
+    room_slug_actions_fan_pct_night:
+      name: "Room Friendly Name fan night %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
+      min: 0
+      max: 100
+      step: 5
+      mode: box
+      initial: 0
+      restore_value: true
+
+    room_slug_actions_fan_runon_minutes:
+      name: "Room Friendly Name fan run-on (minutes)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "min"
+      min: 0
+      max: 60
+      step: 1
+      mode: box
+      initial: 5
+      restore_value: true
+      # NOTE: Keep in sync with timer.room_slug_actions_fan_runon duration below.
+
+    room_slug_actions_fan_on_delay_seconds:
+      name: "Room Friendly Name fan ON delay (sec)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "s"
+      min: 0
+      max: 180
+      step: 5
+      mode: box
+      initial: 20
+      restore_value: true
+    # --- END fan ---
+
+    # --- BEGIN lux ---
+    room_slug_actions_lux_threshold:
+      name: "Room Friendly Name lux threshold"
+      icon: mdi:weather-sunny-alert
+      unit_of_measurement: "lx"
+      min: 0
+      max: 5000
+      step: 1
+      mode: box
+      initial: 30
+      restore_value: true
+    # --- END lux ---
+
+    # --- BEGIN humidity ---
+    room_slug_actions_humidity_high:
+      name: "Room Friendly Name humidity high %"
+      icon: mdi:water-percent-alert
+      unit_of_measurement: "%"
+      min: 30
+      max: 100
+      step: 1
+      mode: box
+      initial: 65
+      restore_value: true
+
+    room_slug_actions_humidity_low:
+      name: "Room Friendly Name humidity low %"
+      icon: mdi:water-percent
+      unit_of_measurement: "%"
+      min: 30
+      max: 100
+      step: 1
+      mode: box
+      initial: 55
+      restore_value: true
+    # --- END humidity ---
+
+  timer:
+    # --- BEGIN lights ---
+    room_slug_actions_cooldown:
+      name: "Room Friendly Name actions cooldown"
+      icon: mdi:timer-pause-outline
+      duration: "00:00:30"
+      restore: false
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    # Renamed from room_slug_fan_runon -> room_slug_actions_fan_runon for
+    # consistency. Update any automations referencing the old entity id:
+    #   timer.room_slug_fan_runon  ->  timer.room_slug_actions_fan_runon
+    room_slug_actions_fan_runon:
+      name: "Room Friendly Name fan run-on"
+      icon: mdi:fan-clock
+      duration: "00:05:00"
+      restore: false
+    # --- END fan ---
