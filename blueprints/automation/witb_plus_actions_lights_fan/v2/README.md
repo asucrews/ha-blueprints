@@ -24,7 +24,7 @@ It is intended to be used from the Home Assistant UI via **Create Automation fro
 
 ## 2. Package Helpers (helpers only)
 
-**Reference template:** `room_witb_actions_package.template.yaml`  
+**Reference template:** `room_witb_actions_package_template.yaml`  
 **Generated output location:** `packages/`
 
 Package files provide helper entities such as:
@@ -57,7 +57,7 @@ Example:
 ```bash
 python3 generate_witb_plus_actions_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --template room_witb_actions_package.template.yaml \
+  --template room_witb_actions_package_template.yaml \
   --out ./packages
 ```
 
@@ -66,7 +66,7 @@ Dry run:
 ```bash
 python3 generate_witb_plus_actions_packages_templated.py \
   --rooms "Office" \
-  --template room_witb_actions_package.template.yaml \
+  --template room_witb_actions_package_template.yaml \
   --out ./packages \
   --dry-run
 ```

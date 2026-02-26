@@ -22,8 +22,8 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/witb_plus/v4/README.md`](blueprints/automation/witb_plus/v4/README.md)
    - Purpose: room occupancy inference from doors + motion (+ optional mmWave).
 
-2. [`blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml)
-   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v1/README.md`](blueprints/automation/witb_plus_actions_lights_fan/v1/README.md)
+2. [`blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml)
+   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v2/README.md`](blueprints/automation/witb_plus_actions_lights_fan/v2/README.md)
    - Purpose: occupancy-driven light/fan actions with safety tags, run-on, and optional humidity/lux tuning.
 
 3. [`blueprints/automation/bathroom_fan_from_humidity/bathroom_fan_from_humidity_delta.yaml`](blueprints/automation/bathroom_fan_from_humidity/bathroom_fan_from_humidity_delta.yaml)
@@ -58,10 +58,10 @@ python blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py \
 2. Generate actions helpers:
 
 ```bash
-python blueprints/automation/witb_plus_actions_lights_fan/v1/generate_witb_plus_actions_packages_templated.py \
+python blueprints/automation/witb_plus_actions_lights_fan/v2/generate_witb_plus_actions_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --template blueprints/automation/witb_plus_actions_lights_fan/v1/room_witb_actions_package.template.yaml \
-  --out blueprints/automation/witb_plus_actions_lights_fan/v1/packages
+  --template blueprints/automation/witb_plus_actions_lights_fan/v2/room_witb_actions_package_template.yaml \
+  --out blueprints/automation/witb_plus_actions_lights_fan/v2/packages
 ```
 
 3. Generate bathroom humidity helper packages:

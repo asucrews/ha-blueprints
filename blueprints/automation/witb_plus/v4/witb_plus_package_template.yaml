@@ -11,7 +11,7 @@ room_witb:
   #                  last_door (input_datetime) + exit_eval (timer) +
   #                  occupied_effective binary_sensor (the glue consumed by
   #                  the WITB+ Actions blueprint as its trigger sensor)
-  #   controls     - optional: override, force_occupied, manual_occupied (input_boolean)
+  #   controls     - optional: automation_override, force_occupied, manual_occupied (input_boolean)
   #   latched      - optional: latched debug helper (input_boolean)
   #   exit_close   - optional: last_exit_door (input_datetime) for "door closes
   #                  behind you" rooms (bedroom/garage style)
@@ -28,8 +28,8 @@ room_witb:
     # --- END helpers ---
 
     # --- BEGIN controls ---
-    room_slug_override:
-      name: "Room Friendly Name override"
+    room_slug_automation_override:
+      name: "Room Friendly Name automation override"
       icon: mdi:hand-back-right-outline
 
     room_slug_force_occupied:
@@ -108,9 +108,6 @@ room_witb:
     room_slug_exit_eval:
       name: "Room Friendly Name exit eval"
       icon: mdi:door-open
-      duration: "00:01:00"
-      # NOTE: Duration is a fallback only. WITB+ v4.2 always calls timer.start
-      # with an explicit duration from exit_timeout_seconds at runtime.
       restore: true
     # --- END helpers ---
 
@@ -119,40 +116,22 @@ room_witb:
       name: "Room Friendly Name failsafe"
       icon: mdi:timer-alert-outline
       duration: "03:00:00"
-      # NOTE: Duration is a fallback only. The blueprint loads failsafe_timeout
-      # dynamically from the helper or slider at runtime.
       restore: true
     # --- END failsafe ---
 
+# --- BEGIN helpers ---
+  # Modern 'template' integration syntax (Fixes legacy warning)
   template:
-    # --- BEGIN helpers ---
-    # occupied_effective is the glue between the WITB+ occupancy blueprint and
-    # the WITB+ Actions (lights/fan) blueprint.
-    #
-    # WITB+ v4.2 writes to:    input_boolean.room_slug_occupied
-    # Actions v2.2.0 reads:    binary_sensor.room_slug_occupied_effective
-    #
-    # This sensor is ON when any of the following are ON:
-    #   - room_slug_occupied       (set by WITB+ core automation)
-    #   - room_slug_force_occupied (pins occupancy, blocks all clearing)
-    #   - room_slug_manual_occupied (asserts occupancy, allows exit clearing)
-    #
-    # is_state() safely returns false for entities that don't exist, so this
-    # works even if controls (force/manual) are disabled for this room.
     - binary_sensor:
         # Raw occupancy — mirrors input_boolean.room_slug_occupied directly.
-        # Use this for dashboards, history, and automations that want to know
-        # about real detected occupancy without force/manual overlays.
         - name: "Room Friendly Name Occupied"
           unique_id: "room_slug_occupied_sensor"
           device_class: occupancy
           state: >-
             {{ is_state('input_boolean.room_slug_occupied', 'on') }}
 
-        # Effective occupancy — the entity consumed by the WITB+ Actions blueprint.
+        # Effective occupancy — consumed by the WITB+ Actions blueprint.
         # ON when occupied OR force_occupied OR manual_occupied.
-        # is_state() safely returns false for entities that don't exist, so force
-        # and manual references are safe even if controls are disabled for this room.
         - name: "Room Friendly Name Occupied Effective"
           unique_id: "room_slug_occupied_effective"
           device_class: occupancy
@@ -160,4 +139,11 @@ room_witb:
             {{ is_state('input_boolean.room_slug_occupied', 'on')
                or is_state('input_boolean.room_slug_force_occupied', 'on')
                or is_state('input_boolean.room_slug_manual_occupied', 'on') }}
-    # --- END helpers ---  
+
+        - name: "Room Friendly WITB Override Active"
+          unique_id: "room_slug_witb_override_active"
+          icon: mdi:hand-back-right-outline
+          state: >-
+            {{ is_state('input_boolean.room_slug_automation_override', 'on')
+              or is_state('input_boolean.room_slug_force_occupied', 'on') }}
+  # --- END helpers ---

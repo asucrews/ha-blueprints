@@ -6,8 +6,8 @@ This folder contains implementation-focused documentation for the active bluepri
 
 | Blueprint | Type | Version | Min HA | Docs |
 | --- | --- | --- | --- | --- |
-| `witb_plus.yaml` | automation | `v4.0.3` | `2026.2.0` | `witb_plus_v3.md` |
-| `witb_plus_actions_lights_fan.yaml` | automation | `v2.1.1` | `2026.2.0` | `witb_plus_actions_lights_fan_v1.md` |
+| `witb_plus.yaml` | automation | `v4.2.0` | `2026.2.0` | `witb_plus_v3.md` |
+| `witb_plus_actions_lights_fan.yaml` | automation | `v2.2.0` | `2026.2.0` | `witb_plus_actions_lights_fan_v1.md` |
 | `bathroom_fan_from_humidity_delta.yaml` | automation | `v1.0.1` | `2026.2.0` | `bathroom_fan_from_humidity_delta_v1.md` |
 | `vacuum_job_manager.yaml` | automation | `v1.1` | `2026.2.0` | `vacuum_job_manager_v1.md` |
 | `final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml` | script | `v2.1` | `2024.6.0` | `witb_lights_on_hook_vzw31_sn_v1_7.md` |
@@ -20,8 +20,8 @@ This folder contains implementation-focused documentation for the active bluepri
    - Companion helpers generator: `blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py`
 
 2. [WITB+ Actions - Lights + Fan](./witb_plus_actions_lights_fan_v1.md)
-   - Source: `blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml`
-   - Companion helpers generator: `blueprints/automation/witb_plus_actions_lights_fan/v1/generate_witb_plus_actions_packages_templated.py`
+   - Source: `blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`
+   - Companion helpers generator: `blueprints/automation/witb_plus_actions_lights_fan/v2/generate_witb_plus_actions_packages_templated.py`
 
 3. [Bathroom Fan From Humidity Delta](./bathroom_fan_from_humidity_delta_v1.md)
    - Source: `blueprints/automation/bathroom_fan_from_humidity/bathroom_fan_from_humidity_delta.yaml`

@@ -393,7 +393,7 @@ Per-room config override example (rooms.yaml):
         # BUG #1 FIX: Added input_number to this list. It was previously missing,
         # meaning a bare `input_number:` key would remain if all its helpers were
         # stripped, producing structurally invalid YAML.
-        for sec in ("input_boolean", "input_datetime", "input_number", "timer", "template"):
+        for sec in ("input_boolean", "input_datetime", "input_number", "timer", "template", "binary_sensor"):
             current_text = remove_empty_section(current_text, sec)
 
         # D. Replace tokens with room-specific values
