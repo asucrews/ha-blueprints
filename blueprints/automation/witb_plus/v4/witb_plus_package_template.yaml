@@ -7,52 +7,48 @@ room_witb:
   # those live in the separate room_witb_actions_package_template.yaml.
   #
   # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
-  #   helpers     - required core: occupancy (input_boolean) + last_motion,
-  #                 last_door (input_datetime) + exit_eval (timer)
-  #   controls    - optional: override, force_occupied, manual_occupied (input_boolean)
-  #   latched     - optional: latched debug helper (input_boolean)
-  #   exit_close  - optional: last_exit_door (input_datetime) for "door closes
-  #                 behind you" rooms (bedroom/garage style)
-  #   failsafe    - optional: failsafe timer + failsafe_timeout input_number
+  #   helpers      - required core: occupancy (input_boolean) + last_motion,
+  #                  last_door (input_datetime) + exit_eval (timer) +
+  #                  occupied_effective binary_sensor (the glue consumed by
+  #                  the WITB+ Actions blueprint as its trigger sensor)
+  #   controls     - optional: override, force_occupied, manual_occupied (input_boolean)
+  #   latched      - optional: latched debug helper (input_boolean)
+  #   exit_close   - optional: last_exit_door (input_datetime) for "door closes
+  #                  behind you" rooms (bedroom/garage style)
+  #   failsafe     - optional: failsafe timer + failsafe_timeout input_number
   #   entry_gating - optional: entry_window_seconds input_number
 
   input_boolean:
-    # NOTE: `initial` only sets the value on FIRST creation in the DB.
-    # After that, HA restores the last known state from the recorder.
+    # input_boolean restores last known state from recorder on restart.
 
     # --- BEGIN helpers ---
     room_slug_occupied:
       name: "Room Friendly Name occupied"
       icon: mdi:home-account
-      initial: false
     # --- END helpers ---
 
     # --- BEGIN controls ---
     room_slug_override:
       name: "Room Friendly Name override"
       icon: mdi:hand-back-right-outline
-      initial: false
 
     room_slug_force_occupied:
       name: "Room Friendly Name force occupied"
       icon: mdi:account-lock
-      initial: false
 
     room_slug_manual_occupied:
       name: "Room Friendly Name manual occupied"
       icon: mdi:account-edit
-      initial: false
     # --- END controls ---
 
     # --- BEGIN latched ---
     room_slug_latched:
       name: "Room Friendly Name latched"
       icon: mdi:door-closed-lock
-      initial: false
     # --- END latched ---
 
   input_datetime:
-    # input_datetime always restores last value from recorder — no restore_value needed.
+    # input_datetime restores last value from recorder on restart.
 
     # --- BEGIN helpers ---
     room_slug_last_motion:
@@ -77,8 +73,8 @@ room_witb:
     # --- END exit_close ---
 
   input_number:
-    # IMPORTANT: restore_value: true on all input_number helpers.
-    # Without it, HA resets to `initial` on every restart, wiping user-set values.
+    # input_number restores last value from recorder on restart.
+    # Do NOT set `initial` — it resets the value on every HA restart.
 
     # --- BEGIN failsafe ---
     room_slug_failsafe_timeout:
@@ -89,8 +85,6 @@ room_witb:
       max: 5940
       step: 5
       mode: box
-      initial: 180
-      restore_value: true
     # --- END failsafe ---
 
     # --- BEGIN entry_gating ---
@@ -102,8 +96,6 @@ room_witb:
       max: 60
       step: 1
       mode: box
-      initial: 15
-      restore_value: true
     # --- END entry_gating ---
 
   timer:
@@ -119,7 +111,7 @@ room_witb:
       duration: "00:01:00"
       # NOTE: Duration is a fallback only. WITB+ v4.2 always calls timer.start
       # with an explicit duration from exit_timeout_seconds at runtime.
-      restore: false
+      restore: true
     # --- END helpers ---
 
     # --- BEGIN failsafe ---
@@ -129,5 +121,43 @@ room_witb:
       duration: "03:00:00"
       # NOTE: Duration is a fallback only. The blueprint loads failsafe_timeout
       # dynamically from the helper or slider at runtime.
-      restore: false
+      restore: true
     # --- END failsafe ---
+
+  template:
+    # --- BEGIN helpers ---
+    # occupied_effective is the glue between the WITB+ occupancy blueprint and
+    # the WITB+ Actions (lights/fan) blueprint.
+    #
+    # WITB+ v4.2 writes to:    input_boolean.room_slug_occupied
+    # Actions v2.2.0 reads:    binary_sensor.room_slug_occupied_effective
+    #
+    # This sensor is ON when any of the following are ON:
+    #   - room_slug_occupied       (set by WITB+ core automation)
+    #   - room_slug_force_occupied (pins occupancy, blocks all clearing)
+    #   - room_slug_manual_occupied (asserts occupancy, allows exit clearing)
+    #
+    # is_state() safely returns false for entities that don't exist, so this
+    # works even if controls (force/manual) are disabled for this room.
+    - binary_sensor:
+        # Raw occupancy — mirrors input_boolean.room_slug_occupied directly.
+        # Use this for dashboards, history, and automations that want to know
+        # about real detected occupancy without force/manual overlays.
+        - name: "Room Friendly Name Occupied"
+          unique_id: "room_slug_occupied_sensor"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on') }}
+
+        # Effective occupancy — the entity consumed by the WITB+ Actions blueprint.
+        # ON when occupied OR force_occupied OR manual_occupied.
+        # is_state() safely returns false for entities that don't exist, so force
+        # and manual references are safe even if controls are disabled for this room.
+        - name: "Room Friendly Name Occupied Effective"
+          unique_id: "room_slug_occupied_effective"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on')
+               or is_state('input_boolean.room_slug_force_occupied', 'on')
+               or is_state('input_boolean.room_slug_manual_occupied', 'on') }}
+    # --- END helpers ---  
