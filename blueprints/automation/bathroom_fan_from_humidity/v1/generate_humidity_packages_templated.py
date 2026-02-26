@@ -12,6 +12,11 @@ Reads a YAML template file and does:
   - optional block removal via markers (# --- BEGIN <block> --- / # --- END <block> ---)
   - wraps the result under a per-room package key and writes one file per room
 
+Supported template blocks
+  tuning_helpers   input_boolean + input_number helper entities used to tune
+                   the baseline algorithm at runtime. Omit with --no-tuning-helpers
+                   when you prefer to rely on the hardcoded Jinja2 defaults instead.
+
 Usage (pattern-based entities):
   ./generate_humidity_packages_templated.py \
       --rooms "Master Bathroom" "Guest Bath" \
@@ -32,7 +37,9 @@ import json
 import re
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
+
+__version__ = "1.1.0"
 
 
 def slugify(name: str) -> str:
@@ -56,7 +63,9 @@ def load_config(path: Path) -> dict[str, Any]:
         try:
             import yaml  # type: ignore
         except Exception as e:
-            raise RuntimeError("YAML config requested but PyYAML is not installed. Install with: pip install pyyaml") from e
+            raise RuntimeError(
+                "YAML config requested but PyYAML is not installed. Install with: pip install pyyaml"
+            ) from e
         cfg = yaml.safe_load(txt)
         if not isinstance(cfg, dict):
             raise ValueError("Config file must contain a mapping/object at the top level.")
@@ -163,7 +172,14 @@ def extract_inner_if_single_package(text: str) -> tuple[str, str | None]:
     return "\n".join(out).lstrip("\n"), key
 
 
-def apply_tokens(text: str, room: Room, slug_token: str, name_token: str, humidity_token: str, fan_token: str) -> str:
+def apply_tokens(
+    text: str,
+    room: Room,
+    slug_token: str,
+    name_token: str,
+    humidity_token: str,
+    fan_token: str,
+) -> str:
     text = text.replace(slug_token, room.slug)
     text = text.replace(name_token, room.name)
     text = text.replace(humidity_token, room.humidity_sensor)
@@ -172,20 +188,50 @@ def apply_tokens(text: str, room: Room, slug_token: str, name_token: str, humidi
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
+    ap = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    ap.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     ap.add_argument("--rooms", nargs="*", default=[], help="Room friendly names")
     ap.add_argument("--rooms-file", help="JSON/YAML config file with rooms list")
     ap.add_argument("--out", required=True, help="Output folder for generated package YAML files")
     ap.add_argument("--template", required=True, help="Path to a YAML template file")
 
-    ap.add_argument("--humidity-pattern", help="Pattern like sensor.{room_slug}_humidity (used with --rooms)")
-    ap.add_argument("--fan-pattern", help="Pattern like switch.{room_slug}_fan (used with --rooms)")
+    ap.add_argument(
+        "--humidity-pattern",
+        help="Pattern like sensor.{room_slug}_humidity (used with --rooms)",
+    )
+    ap.add_argument(
+        "--fan-pattern",
+        help="Pattern like switch.{room_slug}_fan (used with --rooms)",
+    )
 
-    ap.add_argument("--package-key-suffix", default="_humidity", help="Suffix for merge_named package key (default: _humidity)")
-    ap.add_argument("--file-suffix", default="_humidity.yaml", help="Suffix for output filename (default: _humidity.yaml)")
-    ap.add_argument("--dry-run", action="store_true", help="Print rendered YAML to stdout instead of writing files")
-
-    ap.add_argument("--no-tuning-helpers", action="store_true", help="Omit input_boolean/input_number tuning helpers (template defaults still apply)")
+    ap.add_argument(
+        "--package-key-suffix",
+        default="_humidity",
+        help="Suffix for merge_named package key (default: _humidity)",
+    )
+    ap.add_argument(
+        "--file-suffix",
+        default="_humidity.yaml",
+        help="Suffix for output filename (default: _humidity.yaml)",
+    )
+    ap.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print rendered YAML to stdout instead of writing files",
+    )
+    ap.add_argument(
+        "--no-tuning-helpers",
+        action="store_true",
+        help=(
+            "Omit input_boolean and input_number tuning helper entities from output. "
+            "The baseline sensor Jinja2 logic will fall back to its own hardcoded defaults. "
+            "Requires the template to mark the helper block with "
+            "# --- BEGIN tuning_helpers --- / # --- END tuning_helpers ---."
+        ),
+    )
 
     ap.add_argument("--template-slug-token", default="room_slug")
     ap.add_argument("--template-name-token", default="Room Friendly Name")
@@ -203,15 +249,25 @@ def main() -> int:
         cfg = load_config(Path(args.rooms_file))
         raw_rooms = cfg.get("rooms")
         if not isinstance(raw_rooms, list) or not raw_rooms:
-            raise SystemExit("rooms-file must contain: rooms: [ {name, humidity_sensor, fan_entity, ...}, ... ]")
+            raise SystemExit(
+                "rooms-file must contain: rooms: [ {name, humidity_sensor, fan_entity, ...}, ... ]"
+            )
         for obj in raw_rooms:
-            if not isinstance(obj, dict) or "name" not in obj or "humidity_sensor" not in obj or "fan_entity" not in obj:
+            if (
+                not isinstance(obj, dict)
+                or "name" not in obj
+                or "humidity_sensor" not in obj
+                or "fan_entity" not in obj
+            ):
                 raise SystemExit("Each room object must include: name, humidity_sensor, fan_entity")
             rooms.append(room_from_obj(obj, args.package_key_suffix))
 
     if args.rooms:
         if not args.humidity_pattern or not args.fan_pattern:
-            raise SystemExit("--humidity-pattern and --fan-pattern are required when using --rooms (unless you use --rooms-file).")
+            raise SystemExit(
+                "--humidity-pattern and --fan-pattern are required when using --rooms "
+                "(unless you use --rooms-file)."
+            )
         for name in args.rooms:
             slug = slugify(name)
             hum = args.humidity_pattern.format(room_slug=slug)
@@ -233,14 +289,17 @@ def main() -> int:
     outdir.mkdir(parents=True, exist_ok=True)
 
     for room in rooms:
-        inner_room = apply_tokens(
-            inner,
-            room,
-            slug_token=args.template_slug_token,
-            name_token=args.template_name_token,
-            humidity_token=args.template_humidity_token,
-            fan_token=args.template_fan_token,
-        ).rstrip() + "\n"
+        inner_room = (
+            apply_tokens(
+                inner,
+                room,
+                slug_token=args.template_slug_token,
+                name_token=args.template_name_token,
+                humidity_token=args.template_humidity_token,
+                fan_token=args.template_fan_token,
+            ).rstrip()
+            + "\n"
+        )
 
         full = "---\n" + f"{room.package_key}:\n" + indent(inner_room, 2)
         if not full.endswith("\n"):

@@ -3,12 +3,18 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml
-  name: Vacuum Job Manager (iRobot) v1.1 - WITB Override + Lights
+  name: Vacuum Job Manager (iRobot) v1.3 - WITB Override + Lights
   description: >
     Roomba-safe job manager. Does NOT treat 'docked' as complete.
     Completes only when mission counters increment (successful/failed/canceled).
     v1.1: turn ON lights/switches + enable WITB automation_override booleans during job;
     on job end, disable overrides and turn OFF lights if NOT occupied.
+    v1.2: fix multi-entity service calls (join(',') → list); add enabled guard on button
+    request; prevent duplicate schedule queue; add unavailable/unknown sensor guard on
+    counter triggers; add post-watchdog docked recovery with 30 s settle delay; add
+    completion notifications; reduce queued max from 10 to 3.
+    v1.3: separate canceled_counter from failures_counter so user-canceled missions are
+    tracked independently; remove deprecated initial: from max_runtime helper.
 
   input:
     vacuum_entity:
@@ -47,6 +53,13 @@ blueprint:
 
     failures_counter:
       name: Failures counter
+      description: Incremented on failed missions and watchdog force-closes.
+      selector: { entity: { domain: counter } }
+
+    # v1.3: separate counter for user-canceled missions
+    canceled_counter:
+      name: Canceled counter
+      description: Incremented when the iRobot reports a canceled mission.
       selector: { entity: { domain: counter } }
 
     watchdog_timer:
@@ -79,13 +92,13 @@ blueprint:
         select:
           multiple: true
           options:
-            - { label: Monday, value: mon }
-            - { label: Tuesday, value: tue }
+            - { label: Monday,    value: mon }
+            - { label: Tuesday,   value: tue }
             - { label: Wednesday, value: wed }
-            - { label: Thursday, value: thu }
-            - { label: Friday, value: fri }
-            - { label: Saturday, value: sat }
-            - { label: Sunday, value: sun }
+            - { label: Thursday,  value: thu }
+            - { label: Friday,    value: fri }
+            - { label: Saturday,  value: sat }
+            - { label: Sunday,    value: sun }
 
     notify_service:
       name: Notify service (optional)
@@ -143,25 +156,34 @@ blueprint:
         entity:
           multiple: true
 
+# v1.2: reduced from 10 — button press spawns at most 2 runs (button_request +
+# requested_on); 3 gives one extra slot for a scheduler overlap without piling up.
 mode: queued
-max: 10
+max: 3
 
 variables:
   notify: !input notify_service
 
   s_success: !input successful_missions_sensor
-  s_failed: !input failed_missions_sensor
+  s_failed:  !input failed_missions_sensor
   s_canceled: !input canceled_missions_sensor
 
   b_success: !input base_successful_input
-  b_failed: !input base_failed_input
+  b_failed:  !input base_failed_input
   b_canceled: !input base_canceled_input
 
   max_runtime: !input max_runtime_min
 
   lights_targets: !input vacuum_lighting_entities
-  overrides: !input witb_automation_override_booleans
-  occ_ents: !input occupancy_entities
+  overrides:      !input witb_automation_override_booleans
+  occ_ents:       !input occupancy_entities
+
+  # v1.3: separate canceled counter
+  c_counter: !input canceled_counter
+
+  # v1.2: needed for post-watchdog docked recovery (block 4)
+  watchdog_ent:   !input watchdog_timer
+  active_bool_ent: !input active_boolean
 
 trigger:
   - id: button_request
@@ -173,7 +195,7 @@ trigger:
     at: !input schedule_time
     enabled: !input use_schedule
 
-  # IMPORTANT: this makes button->request->start reliable
+  # IMPORTANT: makes button->request->start reliable across queued runs
   - id: requested_on
     platform: state
     entity_id: !input requested_boolean
@@ -202,15 +224,25 @@ trigger:
     entity_id: !input canceled_missions_sensor
 
 action:
-  # 1) Requests / watchdog / completion
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Block 1: Requests / watchdog / counter-based completion
+  # ─────────────────────────────────────────────────────────────────────────────
   - choose:
 
-      # Button request -> queue
+      # ── Button request -> queue ──────────────────────────────────────────────
+      # v1.2 FIX: added enabled_boolean and requested_boolean guards so a button
+      # press while disabled or already queued is a no-op.
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'button_request' }}"
           - condition: state
+            entity_id: !input enabled_boolean
+            state: "on"
+          - condition: state
             entity_id: !input active_boolean
+            state: "off"
+          - condition: state
+            entity_id: !input requested_boolean
             state: "off"
         sequence:
           - service: input_boolean.turn_on
@@ -219,7 +251,9 @@ action:
             target: { entity_id: !input phase_select }
             data: { option: queued }
 
-      # Schedule request -> queue
+      # ── Schedule request -> queue ────────────────────────────────────────────
+      # v1.2 FIX: added requested_boolean guard to prevent double-queueing when
+      # a job is already queued but not yet active.
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'schedule_request' }}"
@@ -231,6 +265,9 @@ action:
           - condition: state
             entity_id: !input active_boolean
             state: "off"
+          - condition: state
+            entity_id: !input requested_boolean
+            state: "off"
         sequence:
           - service: input_boolean.turn_on
             target: { entity_id: !input requested_boolean }
@@ -238,7 +275,9 @@ action:
             target: { entity_id: !input phase_select }
             data: { option: queued }
 
-      # Watchdog -> return to base (does NOT end job)
+      # ── Watchdog -> return to base (does NOT end job) ────────────────────────
+      # Post-watchdog recovery (vacuum never gets a counter increment) is handled
+      # separately in Block 4 below.
       - conditions:
           - condition: template
             value_template: "{{ trigger.id == 'watchdog_done' }}"
@@ -255,50 +294,62 @@ action:
                     data:
                       title: "Vacuum watchdog"
                       message: >
-                        Max runtime exceeded ({{ states(max_runtime) | int }} min). Sent return_to_base.
+                        Max runtime exceeded ({{ states(max_runtime) | int }} min).
+                        Sent return_to_base. Job will close when counter updates or
+                        when the robot docks (30 s settle).
 
-      # Mission counters changed -> true end (recharge-safe)
+      # ── Mission counters changed -> true end (recharge-safe) ────────────────
+      # v1.2 FIX: added unavailable/unknown guard so a sensor that briefly drops
+      # to unavailable (parsed as int 0) and recovers cannot trigger a false
+      # completion against a non-zero baseline.
       - conditions:
           - condition: template
-            value_template: "{{ trigger.id in ['success_changed','failed_changed','canceled_changed'] }}"
+            value_template: >
+              {{ trigger.id in ['success_changed','failed_changed','canceled_changed'] }}
+          - condition: template
+            value_template: >
+              {{ states(s_success)  not in ['unavailable','unknown']
+                 and states(s_failed)   not in ['unavailable','unknown']
+                 and states(s_canceled) not in ['unavailable','unknown'] }}
           - condition: state
             entity_id: !input active_boolean
             state: "on"
         sequence:
           - variables:
-              base_s: "{{ states(b_success) | int(0) }}"
-              base_f: "{{ states(b_failed) | int(0) }}"
+              base_s: "{{ states(b_success)  | int(0) }}"
+              base_f: "{{ states(b_failed)   | int(0) }}"
               base_c: "{{ states(b_canceled) | int(0) }}"
-              now_s: "{{ states(s_success) | int(0) }}"
-              now_f: "{{ states(s_failed) | int(0) }}"
-              now_c: "{{ states(s_canceled) | int(0) }}"
-              any_occ_on: "{{ expand(occ_ents) | selectattr('state','eq','on') | list | length > 0 }}"
-              overrides_ids: "{{ overrides | join(',') }}"
-              lights_ids: "{{ lights_targets | join(',') }}"
+              now_s:  "{{ states(s_success)  | int(0) }}"
+              now_f:  "{{ states(s_failed)   | int(0) }}"
+              now_c:  "{{ states(s_canceled) | int(0) }}"
+              any_occ_on: >
+                {{ expand(occ_ents)
+                   | selectattr('state','eq','on') | list | length > 0 }}
           - choose:
 
-              # Failed -> error
+              # Failed -> error ─────────────────────────────────────────────────
               - conditions: "{{ now_f > base_f }}"
                 sequence:
                   - service: timer.cancel
                     target: { entity_id: !input watchdog_timer }
 
-                  # unlock overrides
+                  # v1.2 FIX: pass list directly — join(',') produced an invalid
+                  # comma-separated string that HA rejected silently.
                   - choose:
                       - conditions: "{{ overrides | length > 0 }}"
                         sequence:
                           - service: input_boolean.turn_off
                             target:
-                              entity_id: "{{ overrides_ids }}"
+                              entity_id: "{{ overrides }}"
                             continue_on_error: true
 
-                  # lights off only if not occupied
                   - choose:
-                      - conditions: "{{ (lights_targets | length > 0) and (not any_occ_on) }}"
+                      - conditions: >
+                          {{ (lights_targets | length > 0) and (not any_occ_on) }}
                         sequence:
                           - service: homeassistant.turn_off
                             target:
-                              entity_id: "{{ lights_ids }}"
+                              entity_id: "{{ lights_targets }}"
                             continue_on_error: true
 
                   - service: input_boolean.turn_on
@@ -316,8 +367,20 @@ action:
                     target: { entity_id: !input last_end_datetime }
                     data:
                       datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                  # v1.2: notify on completion
+                  - choose:
+                      - conditions: "{{ notify != '' }}"
+                        sequence:
+                          - service: "{{ notify }}"
+                            data:
+                              title: "Vacuum job failed"
+                              message: "Mission ended with an error."
 
-              # Canceled -> canceled (count as failure)
+              # Canceled -> canceled ─────────────────────────────────────────────
+              # v1.3: increments canceled_counter (not failures_counter) — a
+              # user-initiated cancel is semantically different from an error.
+              # failures_counter remains reserved for failed missions and
+              # watchdog force-closes.
               - conditions: "{{ now_c > base_c }}"
                 sequence:
                   - service: timer.cancel
@@ -328,19 +391,20 @@ action:
                         sequence:
                           - service: input_boolean.turn_off
                             target:
-                              entity_id: "{{ overrides_ids }}"
+                              entity_id: "{{ overrides }}"
                             continue_on_error: true
 
                   - choose:
-                      - conditions: "{{ (lights_targets | length > 0) and (not any_occ_on) }}"
+                      - conditions: >
+                          {{ (lights_targets | length > 0) and (not any_occ_on) }}
                         sequence:
                           - service: homeassistant.turn_off
                             target:
-                              entity_id: "{{ lights_ids }}"
+                              entity_id: "{{ lights_targets }}"
                             continue_on_error: true
 
                   - service: counter.increment
-                    target: { entity_id: !input failures_counter }
+                    target: { entity_id: !input canceled_counter }
                   - service: input_boolean.turn_off
                     target: { entity_id: !input active_boolean }
                   - service: input_boolean.turn_off
@@ -352,8 +416,16 @@ action:
                     target: { entity_id: !input last_end_datetime }
                     data:
                       datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                  # v1.2: notify on completion
+                  - choose:
+                      - conditions: "{{ notify != '' }}"
+                        sequence:
+                          - service: "{{ notify }}"
+                            data:
+                              title: "Vacuum job canceled"
+                              message: "Mission was canceled before completion."
 
-              # Successful -> completed
+              # Successful -> completed ──────────────────────────────────────────
               - conditions: "{{ now_s > base_s }}"
                 sequence:
                   - service: timer.cancel
@@ -364,15 +436,16 @@ action:
                         sequence:
                           - service: input_boolean.turn_off
                             target:
-                              entity_id: "{{ overrides_ids }}"
+                              entity_id: "{{ overrides }}"
                             continue_on_error: true
 
                   - choose:
-                      - conditions: "{{ (lights_targets | length > 0) and (not any_occ_on) }}"
+                      - conditions: >
+                          {{ (lights_targets | length > 0) and (not any_occ_on) }}
                         sequence:
                           - service: homeassistant.turn_off
                             target:
-                              entity_id: "{{ lights_ids }}"
+                              entity_id: "{{ lights_targets }}"
                             continue_on_error: true
 
                   - service: input_boolean.turn_off
@@ -386,10 +459,20 @@ action:
                     target: { entity_id: !input last_end_datetime }
                     data:
                       datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+                  # v1.2: notify on completion
+                  - choose:
+                      - conditions: "{{ notify != '' }}"
+                        sequence:
+                          - service: "{{ notify }}"
+                            data:
+                              title: "Vacuum job completed"
+                              message: "Mission finished successfully."
 
     default: []
 
-  # 2) Start when requested + ready (runs on any trigger, including requested_on)
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Block 2: Start when requested + ready (runs on any trigger, incl. requested_on)
+  # ─────────────────────────────────────────────────────────────────────────────
   - choose:
       - conditions:
           - condition: state
@@ -405,9 +488,8 @@ action:
             entity_id: !input vacuum_entity
             state: "docked"
         sequence:
-          - variables:
-              overrides_ids: "{{ overrides | join(',') }}"
-              lights_ids: "{{ lights_targets | join(',') }}"
+          # v1.2 FIX: removed join(',') variables — overrides and lights_targets
+          # are already lists; pass them directly to entity_id.
 
           # enable overrides + lights ON
           - choose:
@@ -415,7 +497,7 @@ action:
                 sequence:
                   - service: input_boolean.turn_on
                     target:
-                      entity_id: "{{ overrides_ids }}"
+                      entity_id: "{{ overrides }}"
                     continue_on_error: true
 
           - choose:
@@ -423,7 +505,7 @@ action:
                 sequence:
                   - service: homeassistant.turn_on
                     target:
-                      entity_id: "{{ lights_ids }}"
+                      entity_id: "{{ lights_targets }}"
                     continue_on_error: true
 
           # snapshot baselines
@@ -456,7 +538,9 @@ action:
             target: { entity_id: !input vacuum_entity }
     default: []
 
-  # 3) Phase mapping while job active/requested
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Block 3: Phase mapping while job active/requested
+  # ─────────────────────────────────────────────────────────────────────────────
   - choose:
       - conditions:
           - condition: template
@@ -498,4 +582,95 @@ action:
                   - service: input_select.select_option
                     target: { entity_id: !input phase_select }
                     data: { option: "{{ st }}" }
+    default: []
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Block 4 (NEW v1.2): Post-watchdog docked recovery
+  #
+  # Problem: the watchdog fires vacuum.return_to_base and stops. If the iRobot
+  # cloud counter never increments (e.g. brief offline, dock flap), active_boolean
+  # stays on indefinitely — Block 1 never fires and the job hangs.
+  #
+  # Solution: when the vacuum transitions to 'docked' while active AND the watchdog
+  # timer is already idle (meaning it fired), wait 30 s for any in-flight counter
+  # update to arrive. If active_boolean has been cleared by Block 1 during that
+  # wait, do nothing. If active_boolean is still on after the wait, force a
+  # canceled cleanup.
+  # ─────────────────────────────────────────────────────────────────────────────
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ trigger.id == 'vacuum_state'
+                 and trigger.to_state.state == 'docked'
+                 and states(active_bool_ent) == 'on'
+                 and states(watchdog_ent) == 'idle' }}
+        sequence:
+          # Give counter triggers time to arrive and let Block 1 close the job.
+          - delay: "00:00:30"
+          # Re-check: if Block 1 already closed the job, bail out.
+          - condition: state
+            entity_id: !input active_boolean
+            state: "on"
+          # Job is still hanging — force a canceled cleanup.
+          - variables:
+              base_s: "{{ states(b_success)  | int(0) }}"
+              base_f: "{{ states(b_failed)   | int(0) }}"
+              base_c: "{{ states(b_canceled) | int(0) }}"
+              now_s:  "{{ states(s_success)  | int(0) }}"
+              now_f:  "{{ states(s_failed)   | int(0) }}"
+              now_c:  "{{ states(s_canceled) | int(0) }}"
+              any_occ_on: >
+                {{ expand(occ_ents)
+                   | selectattr('state','eq','on') | list | length > 0 }}
+          - choose:
+              # If a counter DID increment during the delay, let Block 1 own it.
+              # (active_boolean would already be off above, so this path is
+              # effectively dead — kept for clarity.)
+              - conditions: >
+                  {{ now_s > base_s or now_f > base_f or now_c > base_c }}
+                sequence: []
+            # No counter incremented — force cleanup.
+            default:
+              - choose:
+                  - conditions: "{{ overrides | length > 0 }}"
+                    sequence:
+                      - service: input_boolean.turn_off
+                        target:
+                          entity_id: "{{ overrides }}"
+                        continue_on_error: true
+
+              - choose:
+                  - conditions: >
+                      {{ (lights_targets | length > 0) and (not any_occ_on) }}
+                    sequence:
+                      - service: homeassistant.turn_off
+                        target:
+                          entity_id: "{{ lights_targets }}"
+                        continue_on_error: true
+
+              # Watchdog force-close is an abnormal/unrecoverable close, not a
+              # clean user cancel — increment failures_counter, not canceled_counter.
+              - service: counter.increment
+                target: { entity_id: !input failures_counter }
+              - service: input_boolean.turn_off
+                target: { entity_id: !input active_boolean }
+              - service: input_boolean.turn_off
+                target: { entity_id: !input requested_boolean }
+              - service: input_select.select_option
+                target: { entity_id: !input phase_select }
+                data: { option: canceled }
+              - service: input_datetime.set_datetime
+                target: { entity_id: !input last_end_datetime }
+                data:
+                  datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}"
+              - choose:
+                  - conditions: "{{ notify != '' }}"
+                    sequence:
+                      - service: "{{ notify }}"
+                        data:
+                          title: "Vacuum watchdog recovery"
+                          message: >
+                            Robot docked after watchdog timeout but no counter update
+                            was received. Job force-closed as canceled.
     default: []

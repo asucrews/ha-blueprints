@@ -43,6 +43,9 @@ roomba_vacjob:
   counter:
     roomba_vacjob_failures:
       name: Roomba VacJob Failures
+    # v1.3: separate counter for user-canceled missions
+    roomba_vacjob_canceled:
+      name: Roomba VacJob Canceled
 
   input_number:
     roomba_vacjob_max_runtime_min:
@@ -52,7 +55,8 @@ roomba_vacjob:
       step: 5
       mode: slider
       unit_of_measurement: min
-      initial: 240
+      # Note: 'initial:' removed — deprecated in recent HA versions; ignored
+      # after first creation. Set the value in the UI after creating the helper.
 
     roomba_vacjob_base_successful:
       name: Roomba Base Successful Missions

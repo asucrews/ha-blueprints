@@ -1,13 +1,14 @@
 blueprint:
-  name: Bathroom Fan From Humidity Delta v1.0.1
+  name: Bathroom Fan From Humidity Delta v1.0.2
   description: >
     Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
     and OFF when it falls below a lower threshold for a while (hysteresis),
     with optional minimum runtime and a failsafe max runtime.
+    Also re-evaluates state on Home Assistant restart.
   domain: automation
   author: asucrews
   homeassistant:
-    min_version: 2026.2.0
+    min_version: 2023.4.0
   input:
     delta_sensor:
       name: Humidity delta sensor (%)
@@ -23,7 +24,7 @@ blueprint:
             - domain: fan
             - domain: switch
             - domain: light
-          
+
     on_threshold:
       name: Turn ON when delta ≥ (%)
       default: 8
@@ -36,6 +37,10 @@ blueprint:
 
     on_for_seconds:
       name: Delta must stay high for (seconds)
+      description: >
+        Debounce: the delta must remain above the ON threshold for this many
+        seconds before the fan turns on. Prevents brief humidity spikes (e.g.
+        a hot drink nearby) from triggering the fan.
       default: 120
       selector:
         number:
@@ -56,6 +61,10 @@ blueprint:
 
     off_for_seconds:
       name: Delta must stay low for (seconds)
+      description: >
+        Debounce: the delta must remain below the OFF threshold for this many
+        seconds before the fan turns off. Prevents the fan from cycling off
+        prematurely while humidity is still falling.
       default: 600
       selector:
         number:
@@ -66,6 +75,9 @@ blueprint:
 
     min_run_seconds:
       name: Minimum fan runtime (seconds)
+      description: >
+        The fan will not turn off until it has been running for at least this
+        long, even if the delta drops quickly. Set to 0 to disable.
       default: 300
       selector:
         number:
@@ -76,6 +88,10 @@ blueprint:
 
     max_run_seconds:
       name: Failsafe max runtime (seconds)
+      description: >
+        The fan will always be turned off after this many seconds, regardless
+        of humidity levels. Guards against the sensor going unavailable while
+        the fan is running.
       default: 5400
       selector:
         number:
@@ -84,7 +100,7 @@ blueprint:
           step: 60
           unit_of_measurement: seconds
 
-mode: single
+mode: restart
 
 triggers:
   - trigger: numeric_state
@@ -108,6 +124,10 @@ triggers:
       seconds: !input max_run_seconds
     id: failsafe
 
+  - trigger: homeassistant
+    event: start
+    id: ha_start
+
 actions:
   - choose:
       - conditions:
@@ -127,9 +147,6 @@ actions:
           - condition: state
             entity_id: !input fan_entity
             state: "on"
-          - condition: state
-            entity_id: !input fan_entity
-            state: "on"
             for:
               seconds: !input min_run_seconds
         sequence:
@@ -144,3 +161,35 @@ actions:
           - action: homeassistant.turn_off
             target:
               entity_id: !input fan_entity
+
+      - conditions:
+          - condition: trigger
+            id: ha_start
+        sequence:
+          # Re-evaluate conditions after HA restarts so the fan reaches the
+          # correct state without waiting for the next humidity change.
+          - delay:
+              seconds: 30
+          - if:
+              - condition: numeric_state
+                entity_id: !input delta_sensor
+                above: !input on_threshold
+              - condition: state
+                entity_id: !input fan_entity
+                state: "off"
+            then:
+              - action: homeassistant.turn_on
+                target:
+                  entity_id: !input fan_entity
+            else:
+              - if:
+                  - condition: numeric_state
+                    entity_id: !input delta_sensor
+                    below: !input off_threshold
+                  - condition: state
+                    entity_id: !input fan_entity
+                    state: "on"
+                then:
+                  - action: homeassistant.turn_off
+                    target:
+                      entity_id: !input fan_entity
