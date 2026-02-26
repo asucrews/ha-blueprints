@@ -1,0 +1,655 @@
+# WITB Transit Room Driver v1 (rev 2026-02-26)
+#
+# Notes on design choices:
+# - This blueprint uses a "case statement" pattern: sequential choose-blocks with early exits (stop).
+#   This keeps logic readable and avoids deeply nested if/else.
+# - `trigger.entity_id` is only referenced inside the motion-case (trigger_id == 'motion').
+#   Early-stop prevents that variable from being evaluated on timer/HA-start events.
+# - Keepalive does NOT restart the hold timer repeatedly. If keepalive is ON, the timer remains idle.
+#   This prevents infinite timer.finished spam during long neighbor occupancy.
+# - Dummy helper entities are recommended for optional selectors because HA state triggers often require
+#   at least one entity to validate.
+
+blueprint:
+  name: WITB Transit Room Driver v1
+  description: >
+    Occupancy driver for transit areas (hallways/stairs/open connectors) using PIR-only decay logic.
+    Outputs a WITB-compatible occupancy signal (input_boolean.*_occupied_effective) that your Actions 2.2
+    automation consumes.
+
+    Core behavior:
+    - Motion ON => occupied_effective ON + restart decay timer (hold_timer)
+    - Keepalive ON holds occupancy WITHOUT looping the timer (prevents timer/event spam)
+    - Keepalive OFF (all) + motion OFF => start decay timer (attempt-to-clear phase)
+    - keepalive_mode extend_and_turn_on: neighbor ON can turn this room ON (keepalive state change triggers included)
+    - Instant OFF: forces occupied_effective OFF + cancels hold timer
+    - Optional instant-off rearm mitigation via suppress timer (reduces PIR dead-time trap)
+    - Maintenance override: forces occupied_effective ON indefinitely
+    - Restart restore (homeassistant.start): recovers state if motion is currently ON
+
+    IMPORTANT (Home Assistant validation):
+    - State triggers must have entities. If you don't want keepalive/instant_off, select the provided per-room dummy helpers
+      from the helpers package template.
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/tree/main/blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml
+
+  input:
+    motion_sensors:
+      name: Motion sensors (PIR)
+      description: One or more PIR motion sensors for this transit area.
+      selector:
+        entity:
+          domain: binary_sensor
+          multiple: true
+
+    occupied_effective:
+      name: Occupied effective (output)
+      description: WITB-compatible occupancy output (Actions 2.2 should watch this).
+      selector:
+        entity:
+          domain: input_boolean
+
+    hold_timer:
+      name: Transit hold timer
+      description: Timer used for decay-based presence (started/restarted on motion; used to clear).
+      selector:
+        entity:
+          domain: timer
+
+    night_mode:
+      name: Night selector mode
+      default: sun
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: "Sun: below_horizon = night"
+              value: sun
+            - label: "Boolean: on = night"
+              value: boolean
+
+    night_entity:
+      name: Night selector entity
+      description: sun.sun (if mode=sun) OR a boolean entity (if mode=boolean).
+      default: sun.sun
+      selector:
+        entity: {}
+
+    hold_seconds_day:
+      name: Hold seconds (day)
+      default: 60
+      selector:
+        number:
+          min: 5
+          max: 3600
+          step: 1
+          mode: box
+          unit_of_measurement: seconds
+
+    hold_seconds_night:
+      name: Hold seconds (night)
+      default: 120
+      selector:
+        number:
+          min: 5
+          max: 3600
+          step: 1
+          mode: box
+          unit_of_measurement: seconds
+
+    min_on_seconds:
+      name: Minimum on seconds
+      description: Prevent flicker; hold duration is always max(hold, min_on_seconds).
+      default: 20
+      selector:
+        number:
+          min: 0
+          max: 600
+          step: 1
+          mode: box
+          unit_of_measurement: seconds
+
+    keepalive_entities:
+      name: Keepalive entities (required - use dummy if unused)
+      description: >
+        Entities that can prevent the transit room from clearing (typically neighbor occupied_effective booleans).
+        If you do not use keepalive, select the per-room dummy keepalive boolean.
+      selector:
+        entity:
+          domain: input_boolean
+          multiple: true
+
+    keepalive_mode:
+      name: Keepalive mode
+      default: extend_only
+      selector:
+        select:
+          mode: dropdown
+          options:
+            - label: "extend_only (prevents OFF only)"
+              value: extend_only
+            - label: "extend_and_turn_on (neighbor ON can turn this room ON)"
+              value: extend_and_turn_on
+
+    keepalive_release_decay_seconds_day:
+      name: Keepalive release decay (day)
+      description: >
+        When ALL keepalives turn OFF and motion is OFF, start decay using this duration.
+        Set 0 to reuse the normal day hold.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          step: 1
+          mode: box
+          unit_of_measurement: seconds
+
+    keepalive_release_decay_seconds_night:
+      name: Keepalive release decay (night)
+      description: >
+        When ALL keepalives turn OFF and motion is OFF, start decay using this duration.
+        Set 0 to reuse the normal night hold.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 3600
+          step: 1
+          mode: box
+          unit_of_measurement: seconds
+
+    instant_off_entities:
+      name: Instant OFF entities (required - use dummy if unused)
+      description: >
+        Entities that force occupied_effective OFF immediately when they turn ON.
+        Use input_booleans (recommended). If unused, select the per-room dummy instant_off boolean.
+        Tip: for repeatable triggering, your goodnight script should set the boolean ON then OFF.
+      selector:
+        entity:
+          domain: input_boolean
+          multiple: true
+
+    instant_off_suppress_timer:
+      name: Instant OFF suppress/rearm timer (optional mitigation)
+      description: >
+        PIR dead-time mitigation: On instant_off, start this timer for rearm seconds.
+        While active, motion/keepalive-on won't re-enable. When finished, re-check current motion.
+        If you don't want this feature, still select the per-room suppress timer and set rearm seconds to 0.
+      selector:
+        entity:
+          domain: timer
+
+    instant_off_rearm_timeout_seconds:
+      name: Instant OFF rearm timeout (seconds)
+      description: >
+        0 disables mitigation (strict OFF). If >0, after this time we re-check current motion and can re-enable.
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 300
+          step: 1
+          mode: box
+          unit_of_measurement: seconds
+
+    maintenance_override_entity:
+      name: Maintenance override (always ON)
+      description: When ON, forces occupied_effective ON and cancels decay timer (stairs safety/cleaning).
+      selector:
+        entity:
+          domain: input_boolean
+
+    last_motion_text:
+      name: Last motion (debug)
+      description: Records the last motion sensor that triggered.
+      selector:
+        entity:
+          domain: input_text
+
+    restore_on_restart:
+      name: Restore on Home Assistant restart
+      default: true
+      selector:
+        boolean: {}
+
+    debug:
+      name: Debug logbook entries
+      default: false
+      selector:
+        boolean: {}
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  # Motion edge: this is the main "turn on and extend" driver
+  - platform: state
+    entity_id: !input motion_sensors
+    to: "on"
+    id: motion
+
+  # Decay timer completion: attempt to clear (only clears if NO motion and NO keepalive)
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input hold_timer
+    id: hold_finished
+
+  # Keepalive changes are explicit triggers (needed for extend_and_turn_on + for release-decay)
+  - platform: state
+    entity_id: !input keepalive_entities
+    id: keepalive_change
+
+  # Instant off: recommended to be a boolean toggled ON then OFF by scripts
+  - platform: state
+    entity_id: !input instant_off_entities
+    to: "on"
+    id: instant_off
+
+  # Suppress timer finished: re-check current motion without needing a fresh PIR edge
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input instant_off_suppress_timer
+    id: suppress_finished
+
+  # Maintenance override toggles
+  - platform: state
+    entity_id: !input maintenance_override_entity
+    id: maintenance_change
+
+  # Restart restore
+  - platform: homeassistant
+    event: start
+    id: ha_start
+
+variables:
+  v_motion: !input motion_sensors
+  v_keepalive: !input keepalive_entities
+  v_occupied: !input occupied_effective
+  v_hold_timer: !input hold_timer
+  v_suppress_timer: !input instant_off_suppress_timer
+  v_night_mode: !input night_mode
+  v_night_entity: !input night_entity
+  v_hold_day: !input hold_seconds_day
+  v_hold_night: !input hold_seconds_night
+  v_min_on: !input min_on_seconds
+  v_keepalive_mode: !input keepalive_mode
+  v_keepalive_rel_day: !input keepalive_release_decay_seconds_day
+  v_keepalive_rel_night: !input keepalive_release_decay_seconds_night
+  v_instant_rearm: !input instant_off_rearm_timeout_seconds
+  v_maint: !input maintenance_override_entity
+  v_last_motion: !input last_motion_text
+  v_restore: !input restore_on_restart
+  v_debug: !input debug
+
+action:
+  # Inline variable definitions keep templates centralized and prevent repeated Jinja blocks.
+  - variables:
+      trigger_id: "{{ trigger.id }}"
+
+      suppress_active: "{{ is_state(v_suppress_timer, 'active') }}"
+      occupied_on: "{{ is_state(v_occupied, 'on') }}"
+      hold_timer_active: "{{ is_state(v_hold_timer, 'active') }}"
+
+      is_night: >
+        {% if v_night_mode == 'sun' %}
+          {{ is_state(v_night_entity, 'below_horizon') }}
+        {% else %}
+          {{ is_state(v_night_entity, 'on') }}
+        {% endif %}
+
+      any_motion_on: >
+        {{ expand(v_motion) | selectattr('state','eq','on') | list | count > 0 }}
+
+      any_keepalive_on: >
+        {{ expand(v_keepalive) | selectattr('state','eq','on') | list | count > 0 }}
+
+      # normal hold (day/night) with min_on (prevents flicker without a second timer)
+      normal_hold_seconds: >
+        {% set base = (v_hold_night if is_night else v_hold_day) | int %}
+        {% set m = v_min_on | int %}
+        {{ [base, m] | max }}
+
+      # keepalive-release decay (optional override; falls back to normal hold)
+      keepalive_release_seconds: >
+        {% set base = (v_keepalive_rel_night if is_night else v_keepalive_rel_day) | int %}
+        {% if base > 0 %}
+          {{ [base, (v_min_on|int)] | max }}
+        {% else %}
+          {{ normal_hold_seconds | int }}
+        {% endif %}
+
+      normal_hold_duration: >
+        {% set s = normal_hold_seconds | int %}
+        {{ '%02d:%02d:%02d' | format(s//3600, (s%3600)//60, s%60) }}
+
+      keepalive_release_duration: >
+        {% set s = keepalive_release_seconds | int %}
+        {{ '%02d:%02d:%02d' | format(s//3600, (s%3600)//60, s%60) }}
+
+  # CASE 1) Maintenance override wins
+  - choose:
+      - conditions: "{{ is_state(v_maint, 'on') }}"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: !input occupied_effective
+          - service: timer.cancel
+            target:
+              entity_id: !input hold_timer
+          - choose:
+              - conditions: "{{ v_debug }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: "Transit Driver"
+                      message: "Maintenance override active → occupied_effective ON (hold timer cancelled)."
+          - stop: "maintenance override"
+    default: []
+
+  # CASE 2) Instant OFF
+  - choose:
+      - conditions: "{{ trigger_id == 'instant_off' }}"
+        sequence:
+          - service: timer.cancel
+            target:
+              entity_id: !input hold_timer
+          - service: input_boolean.turn_off
+            target:
+              entity_id: !input occupied_effective
+          - choose:
+              - conditions: "{{ (v_instant_rearm | int) > 0 }}"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: !input instant_off_suppress_timer
+                    data:
+                      duration: >
+                        {% set s = (v_instant_rearm | int) %}
+                        {{ '%02d:%02d:%02d' | format(s//3600, (s%3600)//60, s%60) }}
+          - choose:
+              - conditions: "{{ v_debug }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: "Transit Driver"
+                      message: >
+                        Instant OFF triggered → occupied_effective OFF (hold timer cancelled).
+                        {% if (v_instant_rearm|int) > 0 %}Suppress/rearm started for {{ v_instant_rearm|int }}s.{% endif %}
+          - stop: "instant off"
+    default: []
+
+  # CASE 3) Suppress finished → re-check current motion (PIR dead-time mitigation)
+  - choose:
+      - conditions: "{{ trigger_id == 'suppress_finished' }}"
+        sequence:
+          - choose:
+              - conditions: "{{ any_motion_on }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: !input occupied_effective
+                  - service: timer.start
+                    target:
+                      entity_id: !input hold_timer
+                    data:
+                      duration: "{{ normal_hold_duration }}"
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "Suppress finished → motion currently ON → re-enable + start hold ({{ normal_hold_seconds }}s)."
+              - default:
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "Suppress finished → motion currently OFF → remain OFF."
+          - stop: "suppress finished"
+    default: []
+
+  # CASE 4) HA restart restore
+  - choose:
+      - conditions: "{{ trigger_id == 'ha_start' and (v_restore | bool) }}"
+        sequence:
+          - choose:
+              - conditions: "{{ any_motion_on }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: !input occupied_effective
+                  - service: timer.start
+                    target:
+                      entity_id: !input hold_timer
+                    data:
+                      duration: "{{ normal_hold_duration }}"
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "HA start → motion ON → occupied_effective ON + hold started ({{ normal_hold_seconds }}s)."
+              - conditions: "{{ any_keepalive_on and v_keepalive_mode == 'extend_and_turn_on' }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: !input occupied_effective
+                  - service: timer.cancel
+                    target:
+                      entity_id: !input hold_timer
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "HA start → keepalive ON + extend_and_turn_on → occupied_effective ON (timer idle)."
+              - default:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: !input occupied_effective
+                  - service: timer.cancel
+                    target:
+                      entity_id: !input hold_timer
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "HA start → no motion/keepalive → occupied_effective OFF."
+          - stop: "ha start restore"
+    default: []
+
+  # CASE 5) Suppress gatekeeper: ignore motion + keepalive triggers while suppress timer is active
+  - choose:
+      - conditions: "{{ suppress_active and (trigger_id == 'motion' or trigger_id == 'keepalive_change') }}"
+        sequence:
+          - choose:
+              - conditions: "{{ v_debug }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: "Transit Driver"
+                      message: "Suppress active → ignoring trigger {{ trigger_id }}."
+          - stop: "suppress active ignore"
+    default: []
+
+  # CASE 6) Motion ON → occupied ON + restart hold timer
+  - choose:
+      - conditions: "{{ trigger_id == 'motion' }}"
+        sequence:
+          - service: input_boolean.turn_on
+            target:
+              entity_id: !input occupied_effective
+          - service: timer.start
+            target:
+              entity_id: !input hold_timer
+            data:
+              duration: "{{ normal_hold_duration }}"
+          - service: input_text.set_value
+            target:
+              entity_id: !input last_motion_text
+            data:
+              value: "{{ trigger.entity_id }}"
+          - choose:
+              - conditions: "{{ v_debug }}"
+                sequence:
+                  - service: logbook.log
+                    data:
+                      name: "Transit Driver"
+                      message: "Motion → occupied_effective ON + hold restarted ({{ normal_hold_seconds }}s)."
+          - stop: "motion"
+    default: []
+
+  # CASE 7) Keepalive change handling (no timer loop spam)
+  - choose:
+      - conditions: "{{ trigger_id == 'keepalive_change' }}"
+        sequence:
+          - choose:
+              # Keepalive ON: hold occupancy; timer should be idle (cancel if active).
+              - conditions: "{{ any_keepalive_on }}"
+                sequence:
+                  - choose:
+                      - conditions: "{{ hold_timer_active }}"
+                        sequence:
+                          - service: timer.cancel
+                            target:
+                              entity_id: !input hold_timer
+                  - choose:
+                      - conditions: "{{ v_keepalive_mode == 'extend_and_turn_on' }}"
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: !input occupied_effective
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: >
+                                Keepalive ON → hold timer cancelled (if active).
+                                {% if v_keepalive_mode == 'extend_and_turn_on' %}Mode extend_and_turn_on → occupied_effective ON.{% endif %}
+              # Keepalive OFF (all): if occupied and no motion, start a decay timer to clear.
+              - default:
+                  - choose:
+                      - conditions: "{{ occupied_on and (not any_motion_on) }}"
+                        sequence:
+                          - service: timer.start
+                            target:
+                              entity_id: !input hold_timer
+                            data:
+                              duration: "{{ keepalive_release_duration }}"
+                          - choose:
+                              - conditions: "{{ v_debug }}"
+                                sequence:
+                                  - service: logbook.log
+                                    data:
+                                      name: "Transit Driver"
+                                      message: "Keepalive OFF (all) + no motion → start release decay ({{ keepalive_release_seconds }}s)."
+                      - default:
+                          - choose:
+                              - conditions: "{{ v_debug }}"
+                                sequence:
+                                  - service: logbook.log
+                                    data:
+                                      name: "Transit Driver"
+                                      message: "Keepalive OFF (all) → no action (either not occupied or motion still on)."
+          - stop: "keepalive change"
+    default: []
+
+  # CASE 8) Hold timer finished → clear only if motion OFF and keepalive OFF
+  - choose:
+      - conditions: "{{ trigger_id == 'hold_finished' }}"
+        sequence:
+          - choose:
+              - conditions: "{{ any_motion_on }}"
+                sequence:
+                  - service: timer.start
+                    target:
+                      entity_id: !input hold_timer
+                    data:
+                      duration: "{{ normal_hold_duration }}"
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "Hold finished → motion still ON → restart hold ({{ normal_hold_seconds }}s)."
+              - conditions: "{{ any_keepalive_on }}"
+                sequence:
+                  # Do nothing: occupied remains ON, timer idle (prevents event spam).
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "Hold finished → keepalive ON → do nothing (occupied stays ON, timer idle)."
+              - default:
+                  - service: input_boolean.turn_off
+                    target:
+                      entity_id: !input occupied_effective
+                  - choose:
+                      - conditions: "{{ v_debug }}"
+                        sequence:
+                          - service: logbook.log
+                            data:
+                              name: "Transit Driver"
+                              message: "Hold finished → no motion + no keepalive → occupied_effective OFF."
+          - stop: "hold finished"
+    default: []
+
+  # CASE 9) Maintenance toggle: when turning OFF, resume normal logic based on current states
+  - choose:
+      - conditions: "{{ trigger_id == 'maintenance_change' }}"
+        sequence:
+          - choose:
+              - conditions: "{{ is_state(v_maint, 'on') }}"
+                sequence:
+                  - service: input_boolean.turn_on
+                    target:
+                      entity_id: !input occupied_effective
+                  - service: timer.cancel
+                    target:
+                      entity_id: !input hold_timer
+              - default:
+                  - choose:
+                      - conditions: "{{ any_motion_on }}"
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: !input occupied_effective
+                          - service: timer.start
+                            target:
+                              entity_id: !input hold_timer
+                            data:
+                              duration: "{{ normal_hold_duration }}"
+                      - conditions: "{{ any_keepalive_on and v_keepalive_mode == 'extend_and_turn_on' }}"
+                        sequence:
+                          - service: input_boolean.turn_on
+                            target:
+                              entity_id: !input occupied_effective
+                          - service: timer.cancel
+                            target:
+                              entity_id: !input hold_timer
+                      - default:
+                          - choose:
+                              - conditions: "{{ occupied_on and (not any_keepalive_on) and (not any_motion_on) }}"
+                                sequence:
+                                  - service: timer.start
+                                    target:
+                                      entity_id: !input hold_timer
+                                    data:
+                                      duration: "{{ normal_hold_duration }}"
+          - stop: "maintenance change"
+    default: []
