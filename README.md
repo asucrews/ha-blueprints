@@ -16,40 +16,41 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
 - Blueprint docs index: [`docs/blueprints/README.md`](docs/blueprints/README.md)
 - Example configs: [`examples/README.md`](examples/README.md)
 - Reference links: [`references/README.md`](references/README.md)
+- Naming standards: [`NAMING.md`](NAMING.md)
 - Doc backlog: [`todo.md`](todo.md)
 
 ## Active Blueprint Files
 
 1. [`blueprints/automation/witb_plus/v4/witb_plus.yaml`](blueprints/automation/witb_plus/v4/witb_plus.yaml)
-   - Docs: [`blueprints/automation/witb_plus/v4/README.md`](blueprints/automation/witb_plus/v4/README.md)
+   - Docs: [`blueprints/automation/witb_plus/v4/README_witb_plus_v4.md`](blueprints/automation/witb_plus/v4/README_witb_plus_v4.md)
    - Purpose: room occupancy inference from doors + motion (+ optional mmWave).
 
 2. [`blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml)
-   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v2/README.md`](blueprints/automation/witb_plus_actions_lights_fan/v2/README.md)
+   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v2/README_witb_plus_actions_lights_fan_v2.md`](blueprints/automation/witb_plus_actions_lights_fan/v2/README_witb_plus_actions_lights_fan_v2.md)
    - Purpose: occupancy-driven light/fan actions with safety tags, run-on, and optional humidity/lux tuning.
 
 3. [`blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml`](blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml)
-   - Docs: [`blueprints/automation/bathroom_fan_from_humidity/v1/README.md`](blueprints/automation/bathroom_fan_from_humidity/v1/README.md)
+   - Docs: [`blueprints/automation/bathroom_fan_from_humidity/v1/README_bathroom_fan_from_humidity_delta_v1.md`](blueprints/automation/bathroom_fan_from_humidity/v1/README_bathroom_fan_from_humidity_delta_v1.md)
    - Purpose: humidity-delta-based bathroom fan control with hysteresis and runtime safety limits.
 
 4. [`blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`](blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml)
-   - Docs: [`blueprints/automation/vacuum_job_manager/v1/README.md`](blueprints/automation/vacuum_job_manager/v1/README.md)
+   - Docs: [`blueprints/automation/vacuum_job_manager/v1/README_vacuum_job_manager_v1.md`](blueprints/automation/vacuum_job_manager/v1/README_vacuum_job_manager_v1.md)
    - Purpose: queued/scheduled vacuum job orchestration with mission-counter completion and optional WITB/light integration.
 
 5. [`blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`](blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml)
-   - Docs: [`blueprints/automation/witb_transit_room/v1/README.md`](blueprints/automation/witb_transit_room/v1/README.md)
+   - Docs: [`blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md`](blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md)
    - Purpose: PIR-only occupancy driver for hallways/stairs using hold-timer decay; outputs WITB-compatible `occupied_effective` signal.
 
 6. [`blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml`](blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml)
-   - Docs: [`blueprints/automation/witb_plus_bed_sensor/v1/README.md`](blueprints/automation/witb_plus_bed_sensor/v1/README.md)
+   - Docs: [`blueprints/automation/witb_plus_bed_sensor/v1/README_witb_plus_bed_force_occupied_v1.md`](blueprints/automation/witb_plus_bed_sensor/v1/README_witb_plus_bed_force_occupied_v1.md)
    - Purpose: bedroom sleep guard — drives `force_occupied` to prevent WITB+ from clearing occupancy while someone is in bed.
 
 7. [`blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_vzw31sn.yaml`](blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_vzw31sn.yaml)
-   - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
+   - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README_witb_lights_hooks_vzw31sn_v1.md`](blueprints/script/witb_switch_light_profiles/v1/README_witb_lights_hooks_vzw31sn_v1.md)
    - Purpose: resilient ON hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
 8. [`blueprints/script/witb_switch_light_profiles/v1/witb_lights_off_hook_vzw31sn.yaml`](blueprints/script/witb_switch_light_profiles/v1/witb_lights_off_hook_vzw31sn.yaml)
-   - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
+   - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README_witb_lights_hooks_vzw31sn_v1.md`](blueprints/script/witb_switch_light_profiles/v1/README_witb_lights_hooks_vzw31sn_v1.md)
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
 ## Helper Packages and Generators

@@ -4,7 +4,7 @@ Bathroom Fan From Humidity Delta blueprint.
 
 ## Current version
 
-**v1** — see [`v1/README.md`](v1/README.md)
+**v1** — see [`v1/README_bathroom_fan_from_humidity_delta_v1.md`](v1/README_bathroom_fan_from_humidity_delta_v1.md)
 
 ## Summary
 

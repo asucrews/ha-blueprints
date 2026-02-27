@@ -1,0 +1,130 @@
+---
+laundry_witb:
+  # WITB+ Core Package Template
+  # Tokens: laundry, Laundry
+  #
+  # This template covers ONLY the helpers consumed by the WITB+ v4.2 occupancy
+  # blueprint. It does NOT include lights/fan/lux/humidity/night helpers —
+  # those live in the separate room_witb_actions_package_template.yaml.
+  #
+  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  #   helpers      - required core: occupancy (input_boolean) + last_motion,
+  #                  last_door (input_datetime) + exit_eval (timer) +
+  #                  occupied_effective binary_sensor (the glue consumed by
+  #                  the WITB+ Actions blueprint as its trigger sensor)
+  #   controls     - optional: automation_override, force_occupied, manual_occupied (input_boolean)
+  #   latched      - optional: latched debug helper (input_boolean)
+  #   exit_close   - optional: last_exit_door (input_datetime) for "door closes
+  #                  behind you" rooms (bedroom/garage style)
+  #   failsafe     - optional: failsafe timer + failsafe_timeout input_number
+  #   entry_gating - optional: entry_window_seconds input_number
+
+  input_boolean:
+    # input_boolean restores last known state from recorder on restart.
+
+    laundry_occupied:
+      name: "Laundry occupied"
+      icon: mdi:home-account
+
+    laundry_automation_override:
+      name: "Laundry automation override"
+      icon: mdi:hand-back-right-outline
+
+    laundry_force_occupied:
+      name: "Laundry force occupied"
+      icon: mdi:account-lock
+
+    laundry_manual_occupied:
+      name: "Laundry manual occupied"
+      icon: mdi:account-edit
+
+    laundry_latched:
+      name: "Laundry latched"
+      icon: mdi:door-closed-lock
+
+  input_datetime:
+    # input_datetime restores last value from recorder on restart.
+
+    laundry_last_motion:
+      name: "Laundry last motion"
+      icon: mdi:motion-sensor
+      has_date: true
+      has_time: true
+
+    laundry_last_door:
+      name: "Laundry last door"
+      icon: mdi:door
+      has_date: true
+      has_time: true
+
+    laundry_last_exit_door:
+      name: "Laundry last exit door"
+      icon: mdi:door-open
+      has_date: true
+      has_time: true
+
+  input_number:
+    # input_number restores last value from recorder on restart.
+    # Do NOT set `initial` — it resets the value on every HA restart.
+
+    laundry_failsafe_timeout:
+      name: "Laundry failsafe timeout (min)"
+      icon: mdi:timer-alert-outline
+      unit_of_measurement: "min"
+      min: 5
+      max: 5940
+      step: 5
+      mode: box
+
+    laundry_entry_window_seconds:
+      name: "Laundry entry window (sec)"
+      icon: mdi:door-closed
+      unit_of_measurement: "s"
+      min: 1
+      max: 60
+      step: 1
+      mode: box
+
+  timer:
+    # Required by WITB+ v4.2. Drives the non-blocking door-open exit path.
+    # When a door opens while occupied, this timer starts for exit_timeout_seconds.
+    # Motion returning cancels it. When it fires, the automation re-evaluates
+    # whether to clear occupancy. Use no_helpers: true to exclude entirely,
+    # or no_exit_eval: true if you need the other helpers but not this timer.
+    laundry_exit_eval:
+      name: "Laundry exit eval"
+      icon: mdi:door-open
+      restore: true
+
+    laundry_failsafe:
+      name: "Laundry failsafe"
+      icon: mdi:timer-alert-outline
+      duration: "03:00:00"
+      restore: true
+
+  # Modern 'template' integration syntax (Fixes legacy warning)
+  template:
+    - binary_sensor:
+        # Raw occupancy — mirrors input_boolean.laundry_occupied directly.
+        - name: "Laundry Occupied"
+          unique_id: "laundry_occupied_sensor"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.laundry_occupied', 'on') }}
+
+        # Effective occupancy — consumed by the WITB+ Actions blueprint.
+        # ON when occupied OR force_occupied OR manual_occupied.
+        - name: "Laundry Occupied Effective"
+          unique_id: "laundry_occupied_effective"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.laundry_occupied', 'on')
+               or is_state('input_boolean.laundry_force_occupied', 'on')
+               or is_state('input_boolean.laundry_manual_occupied', 'on') }}
+
+        - name: "Room Friendly WITB Override Active"
+          unique_id: "laundry_witb_override_active"
+          icon: mdi:hand-back-right-outline
+          state: >-
+            {{ is_state('input_boolean.laundry_automation_override', 'on')
+              or is_state('input_boolean.laundry_force_occupied', 'on') }}

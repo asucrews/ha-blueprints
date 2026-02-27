@@ -4,7 +4,7 @@ WITB Lights Hook Scripts (VZW31-SN Profile) blueprint.
 
 ## Current version
 
-**v1** — see [`v1/README.md`](v1/README.md)
+**v1** — see [`v1/README_witb_lights_hooks_vzw31sn_v1.md`](v1/README_witb_lights_hooks_vzw31sn_v1.md)
 
 ## Summary
 

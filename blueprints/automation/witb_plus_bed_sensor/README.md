@@ -4,7 +4,7 @@ WITB+ Bed → Force Occupied blueprint.
 
 ## Current version
 
-**v1** — see [`v1/README.md`](v1/README.md)
+**v1** — see [`v1/README_witb_plus_bed_force_occupied_v1.md`](v1/README_witb_plus_bed_force_occupied_v1.md)
 
 ## Summary
 

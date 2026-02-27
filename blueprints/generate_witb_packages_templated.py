@@ -5,36 +5,45 @@ r"""
 Template-driven generator for Home Assistant merge_named packages for:
   WITB Standard Helpers (Occupied, Override, Latched, Failsafe)
   WITB Actions Helpers  (Lights, Fan, Thresholds, Timers)
+  Room Humidity Baseline + Delta
+  Transit Room Helpers
+  Vacuum Job Helpers
+  … and any future template files.
 
 Supports per-room configuration overrides via config file.
 
-CHANGELOG (fixes vs previous version):
-  BUG #1  - input_number missing from remove_empty_section cleanup list.
-             If all input_number helpers were stripped, the bare `input_number:`
-             key remained in output, producing invalid YAML.
-  BUG #2  - Config file emit_X overrode CLI --no-X flags, making CLI lower
-             priority than the config file. Unintuitive. CLI now wins.
-  BUG #3  - No duplicate slug detection. Two rooms with the same slug would
-             silently overwrite each other's output file.
-  BUG #4  - slugify() used bare \w which matches Unicode word chars under
-             Python's default re flags. HA entity IDs must be ASCII. Fixed
-             with re.ASCII flag so non-ASCII chars are stripped correctly.
-  BUG #5  - Dead-code regex in apply_tokens(). The str.replace("Room Friendly
-             Name", ...) already replaced all occurrences before the regex ran,
-             so the regex never matched anything. Removed.
-  BUG #6  - No --dry-run mode. Script always wrote files, no way to preview.
-  BUG #7  - No existence check on --template path. Python's FileNotFoundError
-             message is cryptic. Now validated early with a clear message.
-  BUG #8  - Redundant dual override syntax (no_X and emit_X both did the same
-             thing per-room). Unified: per-room config uses `no_X: true` only.
-             emit_X at the config ROOT level (global override) is preserved.
-  BUG #9  - remove_empty_section used (?ms) flags causing `.*` to match across
-             newlines (DOTALL), which greedily consumed all content following
-             the first comment in a section. Sections with real content were
-             incorrectly stripped. Fixed by removing `s` flag and replacing
-             `.*` with `[^\n]*` so comment matching is strictly single-line.
-  ADDED   - exit_eval, lights, fan, lux, humidity, night added to features list
-             to match the new block markers in the actions package template.
+CHANGELOG:
+  v1 → v2 (auto-discovery + multi-template hardening):
+  NEW #1  - Feature blocks are now AUTO-DISCOVERED from the template file at
+            startup by scanning for  # --- BEGIN X ---  markers. The static
+            ALL_FEATURES list is kept as a fallback/documentation artifact but
+            is no longer the sole source of --no-X CLI flags. Any new template
+            block name is picked up automatically without editing this script.
+
+  NEW #2  - apply_tokens() now handles BOTH token styles:
+              "Room Friendly Name"  (witb_plus / witb_actions / humidity templates)
+              "Friendly Name"       (transit template — no "Room" prefix)
+            The first pass replaces "Room Friendly Name" → room.name; the second
+            replaces any remaining bare "Friendly Name" → room.name so transit
+            templates work without modification.
+
+  NEW #3  - remove_empty_section() now covers ALL HA platform section headers,
+            including `input_text` (transit) and `counter` (vacuum) which were
+            previously unhandled, leaving bare section keys in the output.
+
+  NEW #4  - extract_inner_if_single_package() de-indents by the ACTUAL wrapper
+            indentation width instead of hard-coding 2 spaces. Wrapper blocks
+            indented by 4 spaces (or any other depth) now unwrap correctly.
+
+  BUG #1  - input_number missing from remove_empty_section cleanup list. Fixed.
+  BUG #2  - Config emit_X overrode CLI --no-X flags. CLI now wins.
+  BUG #3  - No duplicate slug detection. Added.
+  BUG #4  - slugify() matched Unicode word chars. Fixed with re.ASCII.
+  BUG #5  - Dead-code regex in apply_tokens(). Removed.
+  BUG #6  - No --dry-run mode. Added.
+  BUG #7  - No existence check on --template path. Added.
+  BUG #8  - Redundant dual override syntax. Unified to no_X per-room.
+  BUG #9  - remove_empty_section used DOTALL, ate real content. Fixed.
 """
 
 import argparse
@@ -45,23 +54,96 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-# --- Utilities ---
+# ---------------------------------------------------------------------------
+# Static feature registry
+# ---------------------------------------------------------------------------
+# This list documents known features and supplies --no-X flags even when
+# invoked WITHOUT a --template (e.g. --help).  It is merged at runtime with
+# features auto-discovered from the actual template file, so new templates
+# never require editing this list.
+#
+# witb_plus_package_template.yaml blocks:
+#   helpers       - occupancy (input_boolean) + last_motion, last_door
+#                   (input_datetime) + exit_eval (timer)
+#   controls      - automation_override, force_occupied, manual_occupied (input_boolean)
+#   latched       - latched debug (input_boolean)
+#   exit_close    - last_exit_door (input_datetime)
+#   failsafe      - failsafe (timer) + failsafe_timeout (input_number)
+#   entry_gating  - entry_window_seconds (input_number)
+#
+# room_witb_actions_package_template.yaml blocks:
+#   lights        - auto_lights_on, keep_on (input_boolean) + brightness helpers
+#                   (input_number) + actions_cooldown (timer)
+#   fan           - auto_fan_on (input_boolean) + fan speed/delay/runon helpers
+#                   (input_number) + fan_runon (timer)
+#   lux           - lux_threshold (input_number)
+#   humidity      - humidity_high/low (input_number)
+#   night         - night_start/end (input_datetime)
+#
+# room_humidity_baseline_delta_package_template.yaml blocks:
+#   tuning_helpers - input_boolean + input_number tuning entities
+#
+# transit_helpers_package_template.yaml blocks:
+#   (no feature blocks — flat template, no # --- BEGIN/END --- markers)
+#
+# vacuum_job_helpers.yaml:
+#   (no feature blocks — flat template, no # --- BEGIN/END --- markers)
+#
+# room_witb_profile_with_sbm_helpers_template.yaml blocks:
+#   sbm           - sbm_cooldown_seconds (input_number) + last_sbm_reset
+#                   (trigger timestamp sensor) + sbm_cooldown_active
+#                   (binary_sensor) + sbm_cooldown_remaining (sensor)
+_STATIC_FEATURES: list[str] = [
+    # witb_plus core template
+    "helpers", "controls", "latched", "exit_close", "failsafe", "entry_gating",
+    # witb_actions template
+    "lights", "fan", "lux", "humidity", "night",
+    # humidity template
+    "tuning_helpers",
+    # witb_profile sbm helpers template
+    "sbm",
+]
+
+# All HA platform section keys that may become empty after block stripping.
+# Extend this list if future templates introduce new HA platform keys.
+_HA_SECTIONS: tuple[str, ...] = (
+    "input_boolean",
+    "input_button",
+    "input_datetime",
+    "input_number",
+    "input_select",
+    "input_text",
+    "timer",
+    "counter",
+    "template",
+    "binary_sensor",
+    "sensor",
+    "automation",
+    "script",
+)
+
+
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
 
 def slugify(name: str) -> str:
     """Convert a room name to a valid HA entity slug (ASCII lowercase + underscore)."""
     s = name.strip().lower()
     s = s.replace("&", " and ")
-    # BUG #4 FIX: Use re.ASCII so \w only matches [a-zA-Z0-9_], stripping
-    # accented and other non-ASCII characters that would make invalid HA entity IDs.
+    # Use re.ASCII so \w only matches [a-zA-Z0-9_], stripping accented and
+    # other non-ASCII characters that would make invalid HA entity IDs.
     s = re.sub(r"[^\w\s-]", "", s, flags=re.ASCII)
     s = re.sub(r"[\s-]+", "_", s)
     s = re.sub(r"_+", "_", s).strip("_")
     return s
 
+
 def indent(text: str, spaces: int) -> str:
     """Indent every non-blank line by `spaces` spaces."""
     pad = " " * spaces
     return "\n".join((pad + line) if line.strip() else line for line in text.splitlines())
+
 
 def load_config(path: Path) -> dict[str, Any]:
     """Load a JSON or YAML config file."""
@@ -76,15 +158,38 @@ def load_config(path: Path) -> dict[str, Any]:
             sys.exit("Error: YAML config requested but PyYAML not installed. Run: pip install pyyaml")
     return json.loads(txt)
 
-# --- Data Structures ---
+
+def discover_features_from_text(text: str) -> list[str]:
+    """Return all feature names found via # --- BEGIN X --- markers in *text*."""
+    return re.findall(r"# --- BEGIN (\S+) ---", text)
+
+
+def _prescan_template_features() -> list[str]:
+    """
+    Pre-scan sys.argv for --template and extract feature names from that file
+    before argparse is fully configured.  Returns an empty list if --template
+    is absent, the file doesn't exist, or the file has no markers.
+    """
+    for i, arg in enumerate(sys.argv):
+        if arg == "--template" and i + 1 < len(sys.argv):
+            path = Path(sys.argv[i + 1])
+            if path.exists():
+                return discover_features_from_text(path.read_text(encoding="utf-8"))
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Data structures
+# ---------------------------------------------------------------------------
 
 @dataclass
 class Room:
     name: str
     slug: str
     package_key: str
-    # Per-room feature flag overrides (True=include, False=strip)
+    # Per-room feature flag overrides (True = include, False = strip)
     overrides: dict[str, bool] = field(default_factory=dict)
+
 
 def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
     """Build a Room from either a plain string name or a config dict."""
@@ -96,14 +201,11 @@ def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
         name = str(obj["name"])
         slug = str(obj.get("slug") or slugify(name))
 
-        # BUG #8 FIX: Per-room overrides use `no_X: true` only.
+        # Per-room overrides use `no_X: true` only.
         # emit_X is reserved for config root-level global overrides.
-        # Previously both prefixes did the same thing per-room, which was
-        # confusing and undocumented. Now per-room only supports no_X.
         overrides = {}
         for k, v in obj.items():
             if k.startswith("no_"):
-                # no_latched: true  ->  latched feature disabled
                 feature = k[3:]
                 overrides[feature] = not bool(v)
 
@@ -114,11 +216,14 @@ def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
         overrides=overrides,
     )
 
-# --- Text Processing ---
+
+# ---------------------------------------------------------------------------
+# Text processing
+# ---------------------------------------------------------------------------
 
 def strip_marked_block(text: str, block: str) -> str:
     """
-    Removes blocks delimited by:
+    Remove the block delimited by:
       # --- BEGIN block ---
       ...
       # --- END block ---
@@ -129,58 +234,58 @@ def strip_marked_block(text: str, block: str) -> str:
     pattern = rf"(?ms)^[ \t]*{start}.*?{end}[ \t]*\n?"
     return re.sub(pattern, "", text)
 
+
 def strip_block_markers(text: str) -> str:
     """
-    Removes all remaining # --- BEGIN X --- and # --- END X --- comment lines
-    from the final output. These markers are template scaffolding — they serve
-    no purpose in the generated package files and clutter the output.
-    Also collapses 3+ consecutive blank lines down to 2 for clean formatting.
+    Remove all remaining # --- BEGIN X --- and # --- END X --- comment lines.
+    These are template scaffolding and serve no purpose in generated output.
+    Also collapse 3+ consecutive blank lines down to 2 for clean formatting.
     """
-    # Remove marker comment lines
     text = re.sub(r"(?m)^[ \t]*# --- (BEGIN|END) [^\n]+ ---[ \t]*\n?", "", text)
-    # Collapse runs of 3+ blank lines to 2
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text
 
+
 def remove_empty_section(text: str, section: str) -> str:
     """
-    Removes a top-level YAML key (e.g. `input_boolean:`) if its body contains
-    only comments and/or blank lines -- i.e. all real content was stripped.
+    Remove a top-level YAML key (e.g. `input_boolean:`) if its body contains
+    only comments and/or blank lines — i.e. all real content was stripped.
 
-    BUG #9 FIX: Original used (?ms) flags. The s (DOTALL) flag makes .* match
-    newlines, so the comment pattern greedily consumed entire sections that had
-    real content. Fixed: removed s flag, replaced .* with [^\n]* so comment
-    matching is strictly single-line.
+    The `s` (DOTALL) flag is intentionally omitted and `.*` replaced with
+    `[^\n]*` so comment matching is strictly single-line (avoids eating real
+    content that follows a comment in the same section).
     """
     pat = rf"(?m)^(?P<hdr>{re.escape(section)}:\s*\n)(?P<body>(?:[ \t]*#[^\n]*\n|[ \t]*\n)*)(?=^[A-Za-z0-9_]+:\s*$|\Z)"
     return re.sub(pat, "", text)
 
+
 def extract_inner_if_single_package(text: str) -> str:
     """
-    Smart unwrapping: if the template file has a single top-level wrapper key
-    (e.g. `room_witb_actions:`), unwrap its content (de-indent by 2 spaces)
-    while preserving any header comments above the wrapper key.
-    If no wrapper key is found, returns the content as-is.
+    Smart unwrapping: if the template has a single top-level wrapper key
+    (e.g. `room_witb_actions:` or `roomba_vacjob:`), unwrap its content by
+    removing the wrapper line and de-indenting by the wrapper's indent width.
+
+    The de-indent width is detected from the first non-blank/non-comment line
+    *inside* the wrapper, so templates indented by 2, 4, or any other depth
+    all unwrap correctly.
+
+    Header comments above the wrapper key are preserved.
+    If no wrapper key is found, the content is returned as-is.
     """
     lines = text.splitlines()
 
-    # Strip leading blank lines
+    # Strip leading blank lines and optional YAML document separator
     while lines and not lines[0].strip():
         lines.pop(0)
-
-    # Strip leading YAML document separator
     if lines and lines[0].strip() == "---":
         lines.pop(0)
-
-    # Strip blank lines after separator
     while lines and not lines[0].strip():
         lines.pop(0)
 
     if not lines:
         return ""
 
-    # Find the first non-comment, non-blank content line and check if it's a
-    # bare top-level key (i.e. the package wrapper key like `room_witb_actions:`)
+    # Find the first non-comment, non-blank line and check for a bare top-level key
     wrapper_index = -1
     for i, line in enumerate(lines):
         s = line.strip()
@@ -188,72 +293,73 @@ def extract_inner_if_single_package(text: str) -> str:
             continue
         if re.match(r"^[A-Za-z0-9_]+:\s*$", line):
             wrapper_index = i
-        break
+        break  # Only inspect the very first content line
 
-    # No wrapper key found — return as-is
     if wrapper_index == -1:
         return "\n".join(lines)
 
-    # Wrapper found: keep header comments, de-indent content by 2 spaces
-    result_lines: list[str] = []
-    result_lines.extend(lines[:wrapper_index])
-
+    # Detect actual indentation width from the first substantive child line
+    indent_width = 2  # sensible default
     for line in lines[wrapper_index + 1:]:
-        if line.startswith("  "):
-            result_lines.append(line[2:])
+        if line.strip() and not line.strip().startswith("#"):
+            leading = len(line) - len(line.lstrip())
+            if leading > 0:
+                indent_width = leading
+            break
+
+    # Preserve header comments; de-indent wrapper body
+    result_lines: list[str] = list(lines[:wrapper_index])
+    for line in lines[wrapper_index + 1:]:
+        if line.startswith(" " * indent_width):
+            result_lines.append(line[indent_width:])
         elif not line.strip():
             result_lines.append("")
         else:
-            # Line is at column 0 inside a wrapper — unusual but pass through
+            # Line at column 0 inside a wrapper — unusual, pass through
             result_lines.append(line)
 
     return "\n".join(result_lines)
 
+
 def apply_tokens(text: str, room: Room) -> str:
-    """Replace template tokens with room-specific values."""
-    # BUG #5 FIX: Removed dead-code regex fallback. The str.replace() calls
-    # below replace ALL occurrences of both tokens literally and reliably.
-    # The original regex ran AFTER str.replace had already consumed the token,
-    # so it never matched. A single pass is cleaner and correct.
-    text = text.replace("room_slug", room.slug)
+    """
+    Replace template tokens with room-specific values.
+
+    Two friendly-name token styles are supported:
+      "Room Friendly Name"  — used by witb_plus, witb_actions, humidity templates
+      "Friendly Name"       — used by transit template (no "Room" prefix)
+
+    "room_slug" is shared across all templates.
+
+    Processing order:
+      1. Replace "Room Friendly Name" first (more specific, must come first to
+         avoid the bare "Friendly Name" replacement consuming it partially).
+      2. Replace any remaining "Friendly Name" occurrences (transit compat).
+      3. Replace "room_slug".
+    """
     text = text.replace("Room Friendly Name", room.name)
+    text = text.replace("Friendly Name", room.name)
+    text = text.replace("room_slug", room.slug)
     return text
 
-# --- Main ---
 
-# Canonical feature list — must match the # --- BEGIN X --- block names in templates.
-#
-# witb_plus_package_template.yaml blocks:
-#   helpers       - required: occupancy (input_boolean) + last_motion, last_door
-#                   (input_datetime) + exit_eval (timer)
-#   controls      - optional: override, force_occupied, manual_occupied (input_boolean)
-#   latched       - optional: latched debug (input_boolean)
-#   exit_close    - optional: last_exit_door (input_datetime)
-#   failsafe      - optional: failsafe (timer) + failsafe_timeout (input_number)
-#   entry_gating  - optional: entry_window_seconds (input_number)
-#
-# room_witb_actions_package_template.yaml blocks:
-#   lights        - auto_lights_on, keep_on (input_boolean) + brightness helpers
-#                   (input_number) + actions_cooldown (timer)
-#   fan           - auto_fan_on (input_boolean) + fan speed/delay/runon helpers
-#                   (input_number) + fan_runon (timer)
-#   lux           - lux_threshold (input_number)
-#   humidity      - humidity_high/low (input_number)
-#   night         - night_start/end (input_datetime)
-# room_witb_profile_with_sbm_helpers_template.yaml blocks:
-#   sbm           - sbm_cooldown_seconds (input_number) + last_sbm_reset (trigger
-#                   timestamp sensor) + sbm_cooldown_active (binary_sensor) +
-#                   sbm_cooldown_remaining (sensor)
-ALL_FEATURES = [
-    # witb_plus core template
-    "helpers", "controls", "latched", "exit_close", "failsafe", "entry_gating",
-    # witb_actions template
-    "lights", "fan", "lux", "humidity", "night",
-    # witb_profile sbm helpers template
-    "sbm",
-]
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
 
 def main() -> int:
+    # Auto-discover feature block names from the template before configuring
+    # argparse so that --no-X flags exist for ALL blocks, including those in
+    # templates written after this script was last edited.
+    discovered_features = _prescan_template_features()
+
+    # Merge: static list first (preserves order + supplies flags without
+    # --template), then append any newly discovered names not already listed.
+    all_features: list[str] = list(_STATIC_FEATURES)
+    for f in discovered_features:
+        if f not in all_features:
+            all_features.append(f)
+
     ap = argparse.ArgumentParser(
         description="Generate HA merge_named package files from a WITB template.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -278,6 +384,13 @@ Examples:
     --out ./packages/rooms \\
     --dry-run
 
+  # Transit template (flat, no feature blocks):
+  python generate_witb_packages_templated.py \\
+    --template transit_helpers_package_template.yaml \\
+    --rooms "Hallway" "Stairs" \\
+    --key-suffix _transit \\
+    --out ./packages/transit
+
 Per-room config override example (rooms.yaml):
   rooms:
     - name: Master Bedroom
@@ -287,47 +400,68 @@ Per-room config override example (rooms.yaml):
     - name: Bathroom
 """,
     )
-    ap.add_argument("--out", required=True, type=Path, help="Output directory for generated files")
-    ap.add_argument("--template", required=True, type=Path, help="Template YAML file")
+    ap.add_argument("--out", type=Path, help="Output directory for generated files (can also be set in config as 'out:')")
+    ap.add_argument("--template", type=Path, help="Template YAML file (can also be set in config as 'template:')") 
     ap.add_argument("--rooms", nargs="+", metavar="ROOM", help="One or more room names (quoted if multi-word)")
     ap.add_argument("--config", type=Path, help="JSON or YAML config file defining rooms and global options")
     ap.add_argument("--key-suffix", default="_witb", help="Suffix appended to slug to form the package key (default: _witb)")
     ap.add_argument("--file-suffix", default=".yaml", help="Output file extension (default: .yaml)")
-    # BUG #6 FIX: Added --dry-run flag.
     ap.add_argument("--dry-run", action="store_true", help="Print what would be generated without writing any files")
 
-    # Global feature disable flags
-    for f in ALL_FEATURES:
-        # Use hyphens in CLI flag names (argparse convention).
-        # argparse auto-converts hyphens to underscores for the dest attribute,
-        # so --no-exit-eval is accessible as args.no_exit_eval.
+    # Global feature disable flags — built from the merged feature list so
+    # new template blocks automatically get a --no-X flag.
+    for f in all_features:
         flag = f"--no-{f.replace('_', '-')}"
-        ap.add_argument(flag, dest=f"no_{f}", action="store_true", help=f"Disable the '{f}' block globally for all rooms")
+        ap.add_argument(
+            flag,
+            dest=f"no_{f}",
+            action="store_true",
+            help=f"Disable the '{f}' block globally for all rooms",
+        )
 
     args = ap.parse_args()
 
-    # BUG #7 FIX: Validate template path exists early with a clear error message.
+    # Load config early so template/out defined inside it are available
+    # before validation. CLI values always take priority.
+    cfg: dict[str, Any] = {}
+    if args.config:
+        cfg = load_config(args.config)
+        if not cfg:
+            ap.error(f"Config file is empty or contains no valid YAML: {args.config}")
+        args.key_suffix = cfg.get("key_suffix", args.key_suffix)
+        args.file_suffix = cfg.get("file_suffix", args.file_suffix)
+
+        # Pull template and out from config if not supplied on CLI.
+        # Resolved relative to the config file so the project is portable.
+        if args.template is None and "template" in cfg:
+            args.template = args.config.parent / cfg["template"]
+        if args.out is None and "out" in cfg:
+            args.out = args.config.parent / cfg["out"]
+
+    # Validate required args now that config has had a chance to fill them in.
+    if args.template is None:
+        ap.error("--template is required (or set 'template:' in your config file)")
+    if args.out is None:
+        ap.error("--out is required (or set 'out:' in your config file)")
+
+    # Validate template path exists with a clear error message.
     if not args.template.exists():
         ap.error(f"Template file not found: {args.template}")
 
     # 1. Build global feature defaults from CLI flags (all ON unless --no-X passed)
     global_defaults: dict[str, bool] = {}
-    for f in ALL_FEATURES:
-        global_defaults[f] = not getattr(args, f"no_{f}")
+    for f in all_features:
+        global_defaults[f] = not getattr(args, f"no_{f}", False)
 
     # 2. Parse rooms from config or CLI
     rooms: list[Room] = []
 
     if args.config:
-        cfg = load_config(args.config)
-        args.key_suffix = cfg.get("key_suffix", args.key_suffix)
-        args.file_suffix = cfg.get("file_suffix", args.file_suffix)
-
-        # BUG #2 FIX: Config-level emit_X overrides apply ONLY if the corresponding
-        # CLI --no-X flag was NOT explicitly passed by the user. CLI takes priority.
-        for f in ALL_FEATURES:
+        # Config-level emit_X overrides apply ONLY if the corresponding CLI
+        # --no-X flag was NOT explicitly passed. CLI takes priority.
+        for f in all_features:
             cli_flag_key = f"no_{f}"
-            cli_was_set = getattr(args, cli_flag_key)
+            cli_was_set = getattr(args, cli_flag_key, False)
             config_key = f"emit_{f}"
             if config_key in cfg and not cli_was_set:
                 global_defaults[f] = bool(cfg[config_key])
@@ -341,7 +475,7 @@ Per-room config override example (rooms.yaml):
     else:
         ap.error("Must provide --rooms or --config")
 
-    # BUG #3 FIX: Detect duplicate slugs before generating any files.
+    # Detect duplicate slugs before generating any files.
     seen_slugs: dict[str, str] = {}
     duplicates: list[str] = []
     for room in rooms:
@@ -352,24 +486,24 @@ Per-room config override example (rooms.yaml):
         else:
             seen_slugs[room.slug] = room.name
     if duplicates:
-        sys.exit("Error: Duplicate room slugs detected (would silently overwrite files):\n" + "\n".join(duplicates))
+        sys.exit(
+            "Error: Duplicate room slugs detected (would silently overwrite files):\n"
+            + "\n".join(duplicates)
+        )
 
     # 3. Read and unwrap template once
     raw_template = args.template.read_text(encoding="utf-8")
     base_inner = extract_inner_if_single_package(raw_template)
 
     # Detect which feature blocks are actually present in this template.
-    # Features in ALL_FEATURES that have no matching # --- BEGIN X --- marker
-    # in the template are silently ignored. This means the same script works
-    # correctly against both witb_plus_package_template.yaml (core blocks only)
-    # and room_witb_actions_package_template.yaml (actions blocks only) without
-    # one template's feature flags appearing in the other's reported output.
+    # Features with no matching # --- BEGIN X --- marker are silently ignored,
+    # so the same script works against any template without false warnings.
     template_features = [
-        f for f in ALL_FEATURES
+        f for f in all_features
         if re.search(rf"# --- BEGIN {re.escape(f)} ---", base_inner)
     ]
 
-    # Restrict global_defaults to only the features present in this template
+    # Restrict global_defaults to only features present in this template
     global_defaults = {f: global_defaults[f] for f in template_features}
 
     # Create output directory (unless dry run)
@@ -379,33 +513,32 @@ Per-room config override example (rooms.yaml):
     # 4. Generate per room
     generated_count = 0
     for room in rooms:
-        # A. Effective flags scoped to this template's blocks only.
+        # Effective flags scoped to this template's blocks only.
         # Per-room overrides for blocks not in this template are silently ignored.
         effective_flags = global_defaults.copy()
         effective_flags.update({
             k: v for k, v in room.overrides.items() if k in template_features
         })
 
-        # B. Strip disabled blocks from a fresh copy of the template
+        # Strip disabled blocks from a fresh copy of the template
         current_text = base_inner
         for block, enabled in effective_flags.items():
             if not enabled:
                 current_text = strip_marked_block(current_text, block)
 
-        # B2. Strip all remaining marker comment lines from the output
+        # Strip all remaining marker comment lines from the output
         current_text = strip_block_markers(current_text)
 
-        # C. Clean up any now-empty section headers
-        # BUG #1 FIX: Added input_number to this list. It was previously missing,
-        # meaning a bare `input_number:` key would remain if all its helpers were
-        # stripped, producing structurally invalid YAML.
-        for sec in ("input_boolean", "input_datetime", "input_number", "timer", "template", "binary_sensor"):
+        # Clean up any now-empty section headers.
+        # _HA_SECTIONS covers all known platform keys including input_text and
+        # counter (transit / vacuum templates) — extend that tuple for future needs.
+        for sec in _HA_SECTIONS:
             current_text = remove_empty_section(current_text, sec)
 
-        # D. Replace tokens with room-specific values
+        # Replace tokens with room-specific values
         current_text = apply_tokens(current_text, room)
 
-        # E. Wrap in package key
+        # Wrap in package key
         final_yaml = f"---\n{room.package_key}:\n{indent(current_text, 2)}\n"
 
         fname = f"{room.slug}{args.file_suffix}"
@@ -413,13 +546,14 @@ Per-room config override example (rooms.yaml):
 
         if args.dry_run:
             print(f"[DRY RUN] Would write: {args.out / fname}")
-            print(f"          Features:    {', '.join(active_features)}")
+            print(f"          Features:    {', '.join(active_features) or '(none — flat template)'}")
             print(f"          Package key: {room.package_key}")
             print()
         else:
             out_path = args.out / fname
             out_path.write_text(final_yaml, encoding="utf-8")
-            print(f"Generated {fname}  [pkg: {room.package_key}]  [features: {', '.join(active_features)}]")
+            features_str = ", ".join(active_features) or "(none — flat template)"
+            print(f"Generated {fname}  [pkg: {room.package_key}]  [features: {features_str}]")
 
         generated_count += 1
 
@@ -429,6 +563,7 @@ Per-room config override example (rooms.yaml):
         print(f"\nDone. {generated_count} file(s) written to: {args.out}")
 
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

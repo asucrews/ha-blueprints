@@ -30,10 +30,12 @@ def main() -> int:
         errors.append("No blueprint YAML files found under blueprints/.")
 
     for blueprint in blueprint_files:
-        readme = blueprint.parent / "README.md"
-        if not readme.exists():
+        # Version-level dirs use README_<slug>_<version>.md; family/section dirs use README.md.
+        # Accept either a plain README.md or any README_*.md sibling.
+        siblings = list(blueprint.parent.glob("README*.md"))
+        if not siblings:
             errors.append(
-                f"Missing sibling README.md for blueprint: {blueprint.relative_to(ROOT)}"
+                f"Missing sibling README.md or README_*.md for blueprint: {blueprint.relative_to(ROOT)}"
             )
 
     if not DOCS_INDEX.exists():

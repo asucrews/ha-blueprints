@@ -4,7 +4,7 @@ WITB (Wasp-in-the-Box) Occupancy blueprint.
 
 ## Current version
 
-**v4** — see [`v4/README.md`](v4/README.md)
+**v4** — see [`v4/README_witb_plus_v4.md`](v4/README_witb_plus_v4.md)
 
 ## Summary
 

@@ -4,7 +4,7 @@ WITB Transit Room Driver blueprint.
 
 ## Current version
 
-**v1** — see [`v1/README.md`](v1/README.md)
+**v1** — see [`v1/README_witb_transit_room_v1.md`](v1/README_witb_transit_room_v1.md)
 
 ## Summary
 

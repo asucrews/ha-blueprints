@@ -6,7 +6,7 @@ Implementation documentation for `witb_transit_room.yaml`.
 
 - Blueprint: `blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`
 - Helpers template: `blueprints/automation/witb_transit_room/v1/transit_helpers_package_template.yaml`
-- Blueprint README: `blueprints/automation/witb_transit_room/v1/README.md`
+- Blueprint README: `blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md`
 
 ## Purpose
 

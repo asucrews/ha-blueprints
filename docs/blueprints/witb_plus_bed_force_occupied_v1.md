@@ -5,7 +5,7 @@ Implementation documentation for `witb_plus_bed_force_occupied.yaml`.
 ## Source
 
 - Blueprint: `blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml`
-- Blueprint README: `blueprints/automation/witb_plus_bed_sensor/v1/README.md`
+- Blueprint README: `blueprints/automation/witb_plus_bed_sensor/v1/README_witb_plus_bed_force_occupied_v1.md`
 - Changelog: `blueprints/automation/witb_plus_bed_sensor/v1/CHANGELOG_witb_plus_bed_force_occupied.md`
 
 ## Purpose
