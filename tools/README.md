@@ -6,7 +6,7 @@ Utility scripts for repository validation and maintenance.
 
 - `check_blueprint_docs.py`
   - Validates that each blueprint YAML under `blueprints/` has:
-    - a sibling `README.md`,
+    - a sibling `README.md` or `README_*.md` (version-level READMEs use the descriptive naming convention),
     - a matching mention in `docs/blueprints/README.md`,
     - at least one `docs/blueprints/*.md` page that references the blueprint file name.
 

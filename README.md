@@ -19,6 +19,7 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
 - Example configs: [`examples/README.md`](examples/README.md)
 - Reference links: [`references/README.md`](references/README.md)
 - Naming standards: [`NAMING.md`](NAMING.md)
+- Contributing: [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - Doc backlog: [`todo.md`](todo.md)
 
 ## Active Blueprint Files

@@ -19,11 +19,13 @@ This folder contains implementation-focused documentation for the active bluepri
 
 1. [WITB+ Occupancy](./witb_plus_v3.md)
    - Source: `blueprints/automation/witb_plus/v4/witb_plus.yaml`
-   - Companion helpers generator: `blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py`
+   - Companion helpers template: `blueprints/automation/witb_plus/v4/witb_plus_package_template.yaml`
+   - Generator: `blueprints/generate_witb_packages_templated.py`
 
 2. [WITB+ Actions - Lights + Fan](./witb_plus_actions_lights_fan_v1.md)
    - Source: `blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`
-   - Companion helpers generator: `blueprints/automation/witb_plus_actions_lights_fan/v2/generate_witb_plus_actions_packages_templated.py`
+   - Companion helpers template: `blueprints/automation/witb_plus_actions_lights_fan/v2/room_witb_actions_package_template.yaml`
+   - Generator: `blueprints/generate_witb_packages_templated.py`
 
 3. [Bathroom Fan From Humidity Delta](./bathroom_fan_from_humidity_delta_v1.md)
    - Source: `blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml`

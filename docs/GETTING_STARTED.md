@@ -1,8 +1,10 @@
 # Getting Started
 
-This guide walks you through setting up WITB+ room occupancy and light/fan automation from scratch for a standard enclosed room (e.g., an office or bedroom with a door).
+**Audience:** Anyone new to this project — whether you are new to Home Assistant or just new to WITB+. This guide explains each step and why it exists.
 
-> Already comfortable with HA blueprints and packages? See [`QUICKSTART.md`](QUICKSTART.md) instead.
+> Already comfortable with HA blueprints, YAML packages, and Python? See [`QUICKSTART.md`](QUICKSTART.md) for the condensed version.
+
+This guide walks you through setting up WITB+ room occupancy and light/fan automation from scratch for a standard enclosed room (e.g., an office or bedroom with a door).
 
 ---
 

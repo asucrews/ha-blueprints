@@ -1,8 +1,8 @@
 # Quick Start
 
-Fast setup for a standard enclosed room using WITB+ Occupancy + WITB+ Actions.
+**Audience:** Experienced Home Assistant users comfortable with YAML packages, blueprint imports, and running Python scripts. No explanations — just the steps.
 
-> For a full walkthrough with explanations see [`GETTING_STARTED.md`](GETTING_STARTED.md).
+> New to HA packages or blueprints? Use [`GETTING_STARTED.md`](GETTING_STARTED.md) instead.
 
 ---
 
@@ -52,7 +52,20 @@ Use `--dry-run` to preview without writing files.
 
 ---
 
-## Step 3 — Load packages into Home Assistant
+## Step 3 — Commit generated packages
+
+Track the generated files in git so your room configs are version controlled.
+
+```bash
+git add blueprints/automation/witb_plus/v4/packages/office.yaml \
+        blueprints/automation/witb_plus_actions_lights_fan/v2/packages/office_witb_actions.yaml
+
+git commit -m "Add Office WITB+ and actions helper packages"
+```
+
+---
+
+## Step 4 — Copy packages to Home Assistant
 
 Copy generated files to your HA packages directory:
 
@@ -65,7 +78,7 @@ Then reload: **Developer Tools → YAML → Reload All YAML** (or restart HA).
 
 ---
 
-## Step 4 — Create automations in Home Assistant
+## Step 5 — Create automations in Home Assistant
 
 In HA: **Settings → Automations & Scenes → Create Automation → Use Blueprint**
 
@@ -74,7 +87,7 @@ In HA: **Settings → Automations & Scenes → Create Automation → Use Bluepri
 
 ---
 
-## Step 5 — Verify
+## Step 6 — Verify
 
 Check these entities exist and respond:
 
