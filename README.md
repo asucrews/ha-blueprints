@@ -13,6 +13,8 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
 
 ## Quick Links
 
+- Getting started (full guide): [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md)
+- Getting started (quick start): [`docs/QUICKSTART.md`](docs/QUICKSTART.md)
 - Blueprint docs index: [`docs/blueprints/README.md`](docs/blueprints/README.md)
 - Example configs: [`examples/README.md`](examples/README.md)
 - Reference links: [`references/README.md`](references/README.md)
