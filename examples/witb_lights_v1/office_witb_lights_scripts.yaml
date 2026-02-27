@@ -3,7 +3,7 @@ script:
     alias: Office WITB Lights ON Hook
     use_blueprint:
       # Replace with your installed script blueprint path in Home Assistant.
-      path: YOUR_NAMESPACE/witb_lights/v1/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml
+      path: YOUR_NAMESPACE/witb_switch_light_profiles/v1/witb_lights_on_hook_vzw31sn.yaml
       input:
         vzw31_entity: light.office_dimmer
         vzw31_node_status: sensor.office_dimmer_node_status
@@ -24,7 +24,7 @@ script:
     alias: Office WITB Lights OFF Hook
     use_blueprint:
       # Replace with your installed script blueprint path in Home Assistant.
-      path: YOUR_NAMESPACE/witb_lights/v1/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v1_7.yaml
+      path: YOUR_NAMESPACE/witb_switch_light_profiles/v1/witb_lights_off_hook_vzw31sn.yaml
       input:
         vzw31_entity: light.office_dimmer
         vzw31_node_status: sensor.office_dimmer_node_status

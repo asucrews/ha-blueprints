@@ -240,11 +240,17 @@ def apply_tokens(text: str, room: Room) -> str:
 #   lux           - lux_threshold (input_number)
 #   humidity      - humidity_high/low (input_number)
 #   night         - night_start/end (input_datetime)
+# room_witb_profile_with_sbm_helpers_template.yaml blocks:
+#   sbm           - sbm_cooldown_seconds (input_number) + last_sbm_reset (trigger
+#                   timestamp sensor) + sbm_cooldown_active (binary_sensor) +
+#                   sbm_cooldown_remaining (sensor)
 ALL_FEATURES = [
     # witb_plus core template
     "helpers", "controls", "latched", "exit_close", "failsafe", "entry_gating",
     # witb_actions template
     "lights", "fan", "lux", "humidity", "night",
+    # witb_profile sbm helpers template
+    "sbm",
 ]
 
 def main() -> int:

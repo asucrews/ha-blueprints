@@ -3,7 +3,9 @@
 Home Assistant blueprints and helper package generators.
 
 This repository currently centers on a WITB+ occupancy/action workflow plus related automation and script blueprints:
-- Occupancy inference (`WITB+ v4`)
+- Occupancy inference for enclosed rooms (`WITB+ v4`)
+- Occupancy inference for transit areas / hallways (`WITB Transit Room Driver v1`)
+- Bedroom sleep guard to prevent false vacancy while in bed (`WITB+ Bed → Force Occupied v1`)
 - Actions control for lights/fan (`WITB+ Actions - Lights + Fan`)
 - Bathroom fan control from humidity delta (`Bathroom Fan From Humidity Delta`)
 - Vacuum Job Manager automation for iRobot jobs + helper state + optional WITB overrides
@@ -34,11 +36,19 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/vacuum_job_manager/v1/README.md`](blueprints/automation/vacuum_job_manager/v1/README.md)
    - Purpose: queued/scheduled vacuum job orchestration with mission-counter completion and optional WITB/light integration.
 
-5. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml)
+5. [`blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`](blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml)
+   - Docs: [`blueprints/automation/witb_transit_room/v1/README.md`](blueprints/automation/witb_transit_room/v1/README.md)
+   - Purpose: PIR-only occupancy driver for hallways/stairs using hold-timer decay; outputs WITB-compatible `occupied_effective` signal.
+
+6. [`blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml`](blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml)
+   - Docs: [`blueprints/automation/witb_plus_bed_sensor/v1/README.md`](blueprints/automation/witb_plus_bed_sensor/v1/README.md)
+   - Purpose: bedroom sleep guard — drives `force_occupied` to prevent WITB+ from clearing occupancy while someone is in bed.
+
+7. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml)
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
    - Purpose: resilient ON hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
-6. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml)
+8. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml)
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 

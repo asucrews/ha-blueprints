@@ -1,0 +1,34 @@
+---
+hallway_witb_transit:
+  input_boolean:
+    hallway_occupied_effective:
+      name: "Hallway Occupied Effective"
+      icon: mdi:walk
+
+    hallway_maintenance_override:
+      name: "Hallway Maintenance Override"
+      icon: mdi:broom
+
+    # DUMMY keepalive entity — select this in the blueprint if you don't use keepalive
+    hallway_keepalive_dummy:
+      name: "Hallway Keepalive Dummy"
+      icon: mdi:minus-circle-outline
+
+    # DUMMY instant-off entity — select this in the blueprint if you don't use instant off
+    hallway_instant_off_dummy:
+      name: "Hallway Instant Off Dummy"
+      icon: mdi:minus-circle-outline
+
+  timer:
+    hallway_transit_hold:
+      name: "Hallway Transit Hold"
+      duration: "00:01:00"
+
+    hallway_instant_off_suppress:
+      name: "Hallway Instant Off Suppress"
+      duration: "00:00:30"
+
+  input_text:
+    hallway_last_motion:
+      name: "Hallway Last Motion"
+      max: 255

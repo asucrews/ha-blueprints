@@ -3,7 +3,7 @@
   description: Example bathroom actions automation with switch fan and humidity hold.
   use_blueprint:
     # Replace with your installed blueprint path in Home Assistant.
-    path: YOUR_NAMESPACE/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
+    path: YOUR_NAMESPACE/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
     input:
       occupied_effective: binary_sensor.master_bathroom_toilet_occupied_effective
 

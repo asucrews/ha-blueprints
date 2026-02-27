@@ -1,5 +1,5 @@
 # Example input snippet for:
-# blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml
+# blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
 #
 # Use inside `use_blueprint.input` for your WITB+ Actions automation.
 

@@ -12,6 +12,10 @@ Copy-ready examples for the active blueprints in this repository.
   - Vacuum helper package and automation example.
 - `witb_lights_v1/`
   - Script-hook instance examples and WITB actions binding snippet for VZW31-SN profiles.
+- `witb_transit_room_v1/`
+  - Transit room (hallway) package and automation examples (for WITB Transit Room Driver v1).
+- `witb_plus_bed_sensor_v1/`
+  - Bed sensor automation example (WITB+ Bed → Force Occupied v1; reuses existing WITB+ v4 helpers).
 
 ## Notes
 

@@ -1,8 +1,9 @@
 ---
 room_witb_profile:
+# --- BEGIN sbm ---
   input_number:
     room_slug_sbm_cooldown_seconds:
-      name: "Room SBM cooldown (s)"
+      name: "Room Friendly Name SBM cooldown (s)"
       icon: mdi:timer-sand
       unit_of_measurement: s
       min: 0
@@ -15,15 +16,15 @@ room_witb_profile:
     # --------------------------------------------------------------------------
     # (A) Last SBM Reset Tracker (timestamp sensor)
     # From blueprint: "WITB Switch Light Profiles — Last SBM Reset Tracker"
+    # Event fired by the hook script whenever an SBM reset runs. No switch_entity
+    # filter here — any SBM reset event for this package updates the sensor, which
+    # is correct since each room gets its own package and unique_id.
     # --------------------------------------------------------------------------
     - trigger:
         - platform: event
           event_type: witb_switch_light_profile_sbm_reset
-          event_data:
-            # IMPORTANT: set this to your actual switch/light entity that fires the event
-            switch_entity: light.room_slug_vzw31_sn
       sensor:
-        - name: "Room VZW31 Last SBM Reset"
+        - name: "Room Friendly Name VZW31 Last SBM Reset"
           unique_id: room_slug_vzw31_last_sbm_reset
           device_class: timestamp
           icon: mdi:clock-outline
@@ -39,7 +40,7 @@ room_witb_profile:
         - platform: time_pattern
           minutes: "/1"
       binary_sensor:
-        - name: "Room VZW31 SBM Cooldown Active"
+        - name: "Room Friendly Name VZW31 SBM Cooldown Active"
           unique_id: room_slug_vzw31_sbm_cooldown_active
           icon: mdi:timer-sand
           state: >-
@@ -68,7 +69,7 @@ room_witb_profile:
         - platform: time_pattern
           minutes: "/1"
       sensor:
-        - name: "Room VZW31 SBM Cooldown Remaining"
+        - name: "Room Friendly Name VZW31 SBM Cooldown Remaining"
           unique_id: room_slug_vzw31_sbm_cooldown_remaining
           icon: mdi:timer-sand
           unit_of_measurement: s
@@ -88,3 +89,4 @@ room_witb_profile:
                 {{ [0, (cd - elapsed)] | max }}
               {% endif %}
             {% endif %}
+# --- END sbm ---

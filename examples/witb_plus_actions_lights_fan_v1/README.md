@@ -1,7 +1,7 @@
 # WITB+ Actions - Lights + Fan v1 Examples
 
 Blueprint source:
-- `blueprints/automation/witb_plus_actions_lights_fan/v1/witb_plus_actions_lights_fan.yaml`
+- `blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`
 
 ## Files
 

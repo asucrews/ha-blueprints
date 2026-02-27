@@ -1,11 +1,11 @@
 # WITB Transit Room Driver v1 (rev 2026-02-26)
 #
-# Notes on design choices:
+# Design notes
 # - This blueprint uses a "case statement" pattern: sequential choose-blocks with early exits (stop).
-#   This keeps logic readable and avoids deeply nested if/else.
-# - `trigger.entity_id` is only referenced inside the motion-case (trigger_id == 'motion').
-#   Early-stop prevents that variable from being evaluated on timer/HA-start events.
-# - Keepalive does NOT restart the hold timer repeatedly. If keepalive is ON, the timer remains idle.
+#   This keeps logic readable and avoids deeply nested if/else structures.
+# - `trigger.entity_id` is only referenced inside the Motion case (trigger_id == 'motion').
+#   Early-stop prevents that variable from being evaluated on timer or HA-start events.
+# - Keepalive does NOT loop/restart the hold timer repeatedly. If keepalive is ON, the timer remains idle.
 #   This prevents infinite timer.finished spam during long neighbor occupancy.
 # - Dummy helper entities are recommended for optional selectors because HA state triggers often require
 #   at least one entity to validate.

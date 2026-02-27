@@ -1,0 +1,42 @@
+- id: witb_transit_room_v1_hallway
+  alias: WITB Transit Room - Hallway
+  description: >
+    Example transit room occupancy for a hallway.
+    Uses sun-based night mode, no keepalive, no instant-off (dummies selected).
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_transit_room/v1/witb_transit_room.yaml
+    input:
+      motion_sensors:
+        - binary_sensor.hallway_pir_motion
+
+      occupied_effective: input_boolean.hallway_occupied_effective
+
+      hold_timer: timer.hallway_transit_hold
+
+      night_mode: sun
+      night_entity: sun.sun
+
+      hold_seconds_day: 60
+      hold_seconds_night: 120
+      min_on_seconds: 20
+
+      # Dummy: not using keepalive for this hallway
+      keepalive_entities:
+        - input_boolean.hallway_keepalive_dummy
+      keepalive_mode: extend_only
+      keepalive_release_decay_seconds_day: 0
+      keepalive_release_decay_seconds_night: 0
+
+      # Dummy: not using instant-off for this hallway
+      instant_off_entities:
+        - input_boolean.hallway_instant_off_dummy
+      instant_off_suppress_timer: timer.hallway_instant_off_suppress
+      instant_off_rearm_timeout_seconds: 0
+
+      maintenance_override_entity: input_boolean.hallway_maintenance_override
+
+      last_motion_text: input_text.hallway_last_motion
+
+      restore_on_restart: true
+      debug: false

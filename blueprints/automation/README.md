@@ -15,3 +15,9 @@ Active automation blueprints.
 
 4. [`vacuum_job_manager/`](vacuum_job_manager/README.md) — Vacuum Job Manager (v1)
    - Queued/scheduled vacuum job orchestration with mission-counter completion and optional WITB integration.
+
+5. [`witb_transit_room/`](witb_transit_room/README.md) — WITB Transit Room Driver (v1)
+   - PIR-only occupancy driver for hallways/stairs using hold-timer decay; outputs a WITB-compatible `occupied_effective` signal.
+
+6. [`witb_plus_bed_sensor/`](witb_plus_bed_sensor/README.md) — WITB+ Bed → Force Occupied (v1)
+   - Bedroom sleep guard; drives `force_occupied` to prevent WITB+ from clearing occupancy while someone is in bed.

@@ -1,35 +1,38 @@
 blueprint:
-  name: 'WITB Lights ON Hook (Profile: VZW31-SN Switch + Bulb) v2.1 (inputs)'
-  description: "Hook script blueprint for WITB+ Actions when you have smart bulb(s) behind an Inovelli VZW31-SN Z-Wave dimmer.\n\
-    WITB calls this script and passes:\n  - lights (list of light entity_ids)\n  - brightness_pct (0-100, optional)\n  - transition\
-    \ (seconds, optional)\n  - is_night, lux_value, lux_threshold, reason (optional)\n\nThis profile can \"power reset\" the\
-    \ bulbs by toggling Inovelli Smart Bulb Mode (Parameter 52):\n  - set to disabled (0)\n  - then set to enabled (1)\n\n\
-    v1.9 adds:\n  - Verify + retry loop for command reliability (handles \"missed\" ON/OFF)\n  - Safer SBM reset by forcing\
-    \ the switch output ON before/after toggling\n  - Optional cooldown for SBM resets (requires input_datetime helper OR\
-    \ template timestamp sensor)\n  - Fires an event for template trackers when SBM reset occurs\n  - Optional local protection\
-    \ enforcement (select entity + option)\n  - Notification hygiene using notification_id (updates instead of spamming)\n\
-    \n\nv2.1 refactor: adds blueprint inputs (grouped sections), and lets you choose Prefer runtime vs Prefer inputs. No need\
-    \ to change WITB/WITB Actions automations.\n"
+  name: 'WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb) v2.1.1'
+  description: >
+    Hook script called by WITB / WITB+ Actions to turn smart bulbs OFF when they sit behind an
+    Inovelli VZW31-SN Z-Wave dimmer running in Smart Bulb Mode (Parameter 52). The switch passes
+    power through at all times so bulbs are controlled directly — this script handles everything
+    that can go wrong when they aren't responding.
+
+    Execution order:
+    - Local protection: optionally sets the VZW31-SN local protection select to prevent the paddle from cutting power or changing level.
+    - Z-Wave health check: if the dimmer is unreachable, pings it via the Z-Wave JS Ping button before proceeding. Notifies if ping fails.
+    - Idempotent SBM enable: optionally ensures Parameter 52 is set to enabled on every run. Skipped automatically when an SBM reset is about to run.
+    - Turn off available bulbs: sends light.turn_off with the configured transition to all reachable bulbs.
+    - Verify and retry: re-sends the OFF command to any bulb that didn't respond, up to verify_attempts times. Exits early when all confirm off.
+    - Smart Bulb Mode reset: if any bulb is still unavailable/unknown after the initial OFF attempt, power-cycles it by toggling Parameter 52 OFF then ON. Skips if bulbs recovered on their own (sbm_skip_if_recovered). Enforces a configurable cooldown between resets. Turns off any bulbs that come back after the reset.
+    - Recheck loop: polls unavailable bulbs on a configurable interval for up to recheck_attempts cycles and turns them off as they come back. Exits early when all recover. Optionally limited to only run when bulbs are actually missing (recheck_only_if_any_missing).
+    - Notifications: reports unavailable bulbs, Z-Wave issues, SBM cooldown skips, verify failures, and persistent missing bulbs. All three notification IDs (power, device, status) are dismissed automatically on a clean success.
+
+    Runtime variables passed by WITB (lights is required, all others optional):
+    - lights (list): entity IDs of bulbs to control.
+    - transition (float, seconds): overrides blueprint transition when provided.
+    - is_night (bool): passed through for notification context.
+    - lux_value, lux_threshold (float): passed through for notification context.
+    - reason (string): passed through for notification context.
+
+    See CHANGELOG.md for full version history.
   domain: script
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v2/witb_lights_on_hook_profile_vzw31_sn_switch_bulb_v2_1.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v2/witb_lights_off_hook_profile_vzw31_sn_switch_bulb_v2_1_1.yaml
   homeassistant:
     min_version: 2024.6.0
   input:
     core:
       name: Core
-      icon: mdi:lightbulb
+      icon: mdi:lightbulb-off
       input:
-        value_source:
-          name: Value source (runtime vs inputs)
-          description: Prefer runtime keeps existing Actions automation behavior. Prefer inputs lets you stop passing lights/brightness/transition.
-          default: prefer_runtime
-          selector:
-            select:
-              options:
-              - label: Prefer runtime (backwards compatible)
-                value: prefer_runtime
-              - label: Prefer inputs (no passing)
-                value: prefer_inputs
         vzw31_entity:
           name: VZW31-SN entity
           description: 'Select an entity belonging to the VZW31-SN device (typically the dimmer light entity). Used as the
@@ -42,7 +45,7 @@ blueprint:
               multiple: false
         lights:
           name: Lights to control
-          description: List of light entity_ids to turn on. (Passed by WITB+ Actions)
+          description: List of light entity_ids to turn off. (Passed by WITB+ Actions)
           selector:
             entity:
               domain: light
@@ -58,95 +61,6 @@ blueprint:
               mode: slider
               step: 0.5
           default: 0
-    lighting:
-      name: Brightness (inputs mode)
-      icon: mdi:brightness-6
-      input:
-        brightness_mode:
-          name: Brightness mode (inputs)
-          description: 'When value_source=prefer_inputs: Fixed uses brightness_pct. Day/Night uses day/night + schedule.'
-          default: day_night
-          selector:
-            select:
-              options:
-              - label: Fixed (use brightness_pct)
-                value: fixed
-              - label: Day/Night schedule
-                value: day_night
-        brightness_pct:
-          name: Brightness (%)
-          description: Brightness percent (0-100). Optional; defaults to 100.
-          selector:
-            number:
-              min: 0
-              max: 100
-              mode: slider
-              step: 1
-          default: 100
-        brightness_day_pct:
-          name: Brightness day (%)
-          default: 100
-          selector:
-            number:
-              min: 0
-              max: 100
-              mode: slider
-              step: 1
-          description: Used when Brightness mode = Day/Night schedule.
-        brightness_night_pct:
-          name: Brightness night (%)
-          default: 10
-          selector:
-            number:
-              min: 0
-              max: 100
-              mode: slider
-              step: 1
-          description: Used when Brightness mode = Day/Night schedule.
-        brightness_day_helper:
-          name: Brightness day helper (optional)
-          default: ''
-          selector:
-            entity:
-              domain: input_number
-              multiple: false
-          description: Optional input_number to override day brightness.
-        brightness_night_helper:
-          name: Brightness night helper (optional)
-          default: ''
-          selector:
-            entity:
-              domain: input_number
-              multiple: false
-          description: Optional input_number to override night brightness.
-        night_start_time:
-          name: Night start time
-          default: '22:00:00'
-          selector:
-            time: {}
-          description: Used when Brightness mode = Day/Night and no helper is provided.
-        night_end_time:
-          name: Night end time
-          default: 06:00:00
-          selector:
-            time: {}
-          description: Used when Brightness mode = Day/Night and no helper is provided.
-        night_start_helper:
-          name: Night start helper (optional)
-          default: ''
-          selector:
-            entity:
-              domain: input_datetime
-              multiple: false
-          description: Optional input_datetime (time or datetime) for night start.
-        night_end_helper:
-          name: Night end helper (optional)
-          default: ''
-          selector:
-            entity:
-              domain: input_datetime
-              multiple: false
-          description: Optional input_datetime (time or datetime) for night end.
     sbm:
       name: Smart Bulb Mode
       icon: mdi:toggle-switch
@@ -314,7 +228,7 @@ blueprint:
               unit_of_measurement: s
         power_on_delay_ms:
           name: Post-toggle delay (ms)
-          description: Delay after toggling Smart Bulb Mode before checking bulbs / turning on lights.
+          description: Delay after toggling Smart Bulb Mode before checking bulbs / turning off lights.
           default: 250
           selector:
             number:
@@ -350,7 +264,7 @@ blueprint:
               unit_of_measurement: ms
         recheck_enabled:
           name: Recheck loop enabled
-          description: If enabled, re-check bulbs after the initial attempt and turn on any that recover.
+          description: If enabled, re-check bulbs after the initial attempt and turn off any that recover.
           default: true
           selector:
             boolean: {}
@@ -375,6 +289,15 @@ blueprint:
               max: 60
               mode: slider
               step: 1
+        recheck_only_if_any_missing:
+          name: Recheck only if any missing
+          description: 'If enabled, the recheck loop will only run when at least one bulb is unavailable/unknown after the
+            initial OFF attempt (and optional Smart Bulb Mode reset).
+
+            '
+          default: true
+          selector:
+            boolean: {}
         verify_enabled:
           name: Verify & retry enabled
           description: If enabled, verify lights reached the desired state and retry a few times.
@@ -442,7 +365,7 @@ blueprint:
             a unique value per room/script if you don''t want rooms to overwrite each other.
 
             '
-          default: witb_vzw31_sn_switch_bulb_on
+          default: witb_vzw31_sn_switch_bulb_off
           selector:
             text: {}
         clear_status_notifications_on_success:
@@ -490,20 +413,10 @@ blueprint:
 mode: restart
 sequence:
 - variables:
-    value_source: !input value_source
+    
     vzw31_entity: !input vzw31_entity
     cfg_lights: !input lights
     cfg_transition: !input transition
-    cfg_brightness_fixed_pct: !input brightness_pct
-    brightness_mode: !input brightness_mode
-    brightness_day_pct: !input brightness_day_pct
-    brightness_night_pct: !input brightness_night_pct
-    brightness_day_helper: !input brightness_day_helper
-    brightness_night_helper: !input brightness_night_helper
-    night_start_time: !input night_start_time
-    night_end_time: !input night_end_time
-    night_start_helper: !input night_start_helper
-    night_end_helper: !input night_end_helper
     reset_power_if_unavailable: !input reset_power_if_unavailable
     ensure_smart_bulb_mode_enabled: !input ensure_smart_bulb_mode_enabled
     sbm_last_reset_helper: !input sbm_last_reset_helper
@@ -527,6 +440,7 @@ sequence:
     recheck_enabled: !input recheck_enabled
     recheck_interval_s: !input recheck_interval_s
     recheck_attempts: !input recheck_attempts
+    recheck_only_if_any_missing: !input recheck_only_if_any_missing
     verify_enabled: !input verify_enabled
     verify_attempts: !input verify_attempts
     verify_delay_ms: !input verify_delay_ms
@@ -540,15 +454,14 @@ sequence:
     local_protection_select: !input local_protection_select
     local_protection_option: !input local_protection_option
 - variables:
-    _brightness_pct: '{{ brightness_pct | default(100) | int(100) }}'
-    _transition: "{% if value_source == 'prefer_inputs' %}\n  {{ cfg_transition | float(0) }}\n{% else %}\n  {{ transition\
-      \ | default(cfg_transition) | float(0) }}\n{% endif %}"
+    _transition: "{{ transition | default(cfg_transition) | float(0) }}"
     _power_on_delay_ms: '{{ power_on_delay_ms | default(250) | int(250) }}'
     _availability_timeout_s: '{{ availability_timeout_s | default(10) | int(10) }}'
     _settle_after_rejoin_ms: '{{ settle_after_rejoin_ms | default(750) | int(750) }}'
     _recheck_enabled: '{{ recheck_enabled | default(true) }}'
     _recheck_interval_s: '{{ recheck_interval_s | default(10) | int(10) }}'
     _recheck_attempts: '{{ recheck_attempts | default(6) | int(6) }}'
+    _recheck_only_if_any_missing: '{{ recheck_only_if_any_missing | default(true) }}'
     _reset_if_unavailable: '{{ reset_power_if_unavailable | default(true) }}'
     _ensure_sbm: '{{ ensure_smart_bulb_mode_enabled | default(true) }}'
     _param: '{{ smart_bulb_mode_param | default(52) | int(52) }}'
@@ -564,10 +477,9 @@ sequence:
     _notify_mode: '{{ notify_mode | default(''persistent'') }}'
     _notify_service: '{{ notify_service | default('''') }}'
     _notify_prefix: '{{ notify_prefix | default(''WITB'') }}'
-    _notify_id_base: '{{ notify_notification_id | default(''witb_vzw31_sn_switch_bulb_on'') }}'
-    _notify_id_power: '{{ (notify_notification_id | default(''witb_vzw31_sn_switch_bulb_on'')) ~ ''_power'' }}'
-    _notify_id_device: '{{ (notify_notification_id | default(''witb_vzw31_sn_switch_bulb_on'')) ~ ''_device'' }}'
-    _notify_id_status: '{{ (notify_notification_id | default(''witb_vzw31_sn_switch_bulb_on'')) ~ ''_status'' }}'
+    _notify_id_power: '{{ (notify_notification_id | default(''witb_vzw31_sn_switch_bulb_off'')) ~ ''_power'' }}'
+    _notify_id_device: '{{ (notify_notification_id | default(''witb_vzw31_sn_switch_bulb_off'')) ~ ''_device'' }}'
+    _notify_id_status: '{{ (notify_notification_id | default(''witb_vzw31_sn_switch_bulb_off'')) ~ ''_status'' }}'
     _verify_enabled: '{{ verify_enabled | default(true) }}'
     _verify_attempts: '{{ verify_attempts | default(3) | int(3) }}'
     _verify_delay_ms: '{{ verify_delay_ms | default(600) | int(600) }}'
@@ -576,11 +488,7 @@ sequence:
       \  {{ sbm_reset_cooldown_s | default(600) | int(600) }}\n{% endif %}"
     _sbm_reset_event_type: '{{ sbm_reset_event_type | default(''witb_switch_light_profile_sbm_reset'') }}'
     _last_reset_entity: '{{ sbm_last_reset_helper | default('''') }}'
-    _lights: "{% set src = cfg_lights %}\n{% if value_source != 'prefer_inputs' %}\n  {% set v = (lights if (lights is defined)\
-      \ else none) %}\n  {% if v is string and v|length > 0 %}\n    {% set src = v %}\n  {% elif v is mapping and v.entity_id\
-      \ is defined and (v.entity_id|length>0) %}\n    {% set src = v %}\n  {% elif v is iterable and v is not none and (v|length>0)\
-      \ %}\n    {% set src = v %}\n  {% endif %}\n{% endif %}\n{% set v = src | default([]) %}\n{% if v is string %}\n  {{\
-      \ [v] }}\n{% elif v is mapping and v.entity_id is defined %}\n  {{ v.entity_id }}\n{% else %}\n  {{ v }}\n{% endif %}"
+    _lights: "{{ lights | default([]) }}"
     _lights_bad_initial: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
       \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
     _vzw31_entity_ok: '{{ states(vzw31_entity) not in [''unavailable'',''unknown'',''''] }}'
@@ -591,29 +499,6 @@ sequence:
       \ %}\n  {{ as_datetime(states(_last_reset_entity)) }}\n{% else %}\n  {{ none }}\n{% endif %}"
     _can_sbm_reset: "{% if _last_reset_ts is none or _cooldown_s <= 0 %}\n  {{ true }}\n{% else %}\n  {{ (as_timestamp(now())\
       \ - as_timestamp(_last_reset_ts)) >= _cooldown_s }}\n{% endif %}"
-- variables:
-    _night_start: "{% set t = night_start_time %}\n{% if night_start_helper | length > 0 and states(night_start_helper) not\
-      \ in ['unknown','unavailable',''] %}\n  {% set s = states(night_start_helper) %}\n  {% if s|length > 8 %}\n    {% set\
-      \ t = as_datetime(s).strftime('%H:%M:%S') %}\n  {% else %}\n    {% set t = s %}\n  {% endif %}\n{% endif %}\n{{ t }}"
-    _night_end: "{% set t = night_end_time %}\n{% if night_end_helper | length > 0 and states(night_end_helper) not in ['unknown','unavailable','']\
-      \ %}\n  {% set s = states(night_end_helper) %}\n  {% if s|length > 8 %}\n    {% set t = as_datetime(s).strftime('%H:%M:%S')\
-      \ %}\n  {% else %}\n    {% set t = s %}\n  {% endif %}\n{% endif %}\n{{ t }}"
-    _is_night_calc: "{% set n = as_timestamp(now()) %}\n{% set s = as_timestamp(today_at(_night_start)) %}\n{% set e = as_timestamp(today_at(_night_end))\
-      \ %}\n{% if e <= s %}\n  {{ (n >= s) or (n < e) }}\n{% else %}\n  {{ (n >= s) and (n < e) }}\n{% endif %}"
-    _is_night_effective: "{% set rt = is_night | default(none) %}\n{% if value_source != 'prefer_inputs' and rt is not none\
-      \ and rt != '' %}\n  {{ rt }}\n{% else %}\n  {{ _is_night_calc }}\n{% endif %}"
-    _b_day: "{% set b = brightness_day_pct | float(100) %}\n{% if brightness_day_helper | length > 0 and states(brightness_day_helper)\
-      \ not in ['unknown','unavailable',''] %}\n  {% set b = states(brightness_day_helper) | float(b) %}\n{% endif %}\n{{\
-      \ b }}"
-    _b_night: "{% set b = brightness_night_pct | float(10) %}\n{% if brightness_night_helper | length > 0 and states(brightness_night_helper)\
-      \ not in ['unknown','unavailable',''] %}\n  {% set b = states(brightness_night_helper) | float(b) %}\n{% endif %}\n\
-      {{ b }}"
-    _brightness_calc: "{% if brightness_mode == 'fixed' %}\n  {{ cfg_brightness_fixed_pct | float(100) }}\n{% else %}\n  {%\
-      \ if _is_night_effective %}{{ _b_night }}{% else %}{{ _b_day }}{% endif %}\n{% endif %}"
-    _brightness_pct: "{% set rt = (brightness_pct | default(none)) %}\n{% if value_source != 'prefer_inputs' and rt is not\
-      \ none and rt != '' %}\n  {{ rt | int(_brightness_calc | int(100)) }}\n{% else %}\n  {{ _brightness_calc | int(100)\
-      \ }}\n{% endif %}"
-    is_night: '{{ _is_night_effective }}'
 - condition: template
   value_template: '{{ _lights is defined and (_lights | length > 0) }}'
 - choose:
@@ -635,9 +520,9 @@ sequence:
       value_template: '{{ _notify_enabled and (_lights_bad_initial | length > 0) }}'
     sequence:
     - variables:
-        _n_title: '{{ _notify_prefix }}: Lights ON (VZW31-SN)'
-        _n_msg: 'POWER_EVENT: Bulbs unavailable/unknown at ON request. Missing: {{ _lights_bad_initial | join('', '') }} reason={{
-          reason | default('''') }} is_night={{ is_night | default('''') }}'
+        _n_title: '{{ _notify_prefix }}: Lights OFF (VZW31-SN)'
+        _n_msg: 'POWER_EVENT: Bulbs unavailable/unknown at OFF request. Missing: {{ _lights_bad_initial | join('', '') }}
+          reason={{ reason | default('''') }}'
     - choose:
       - conditions:
         - condition: template
@@ -757,8 +642,8 @@ sequence:
 - choose:
   - conditions:
     - condition: template
-      value_template: "{{ _notify_enabled\n    and (_lights_bad_initial | length > 0)\n    and (_reset_if_unavailable or _ensure_sbm)\n\
-        \    and (not _vzw31_ok)\n    and (_ping_button | length == 0) }}"
+      value_template: "{{ _notify_enabled\n    and ((_lights_bad_initial | length > 0) or _ensure_sbm)\n    and (not _vzw31_ok)\n\
+        \    and (_ping_button | length == 0) }}"
     sequence:
     - variables:
         _n_title: '{{ _notify_prefix }}: Z-Wave unreachable (VZW31-SN)'
@@ -790,11 +675,76 @@ sequence:
 - choose:
   - conditions:
     - condition: template
-      value_template: '{{ (_lights_bad_initial | length > 0) and _reset_if_unavailable and _vzw31_ok and _can_sbm_reset }}'
+      value_template: >
+        {{ _ensure_sbm and _vzw31_ok and not (
+          (_lights_bad_initial | length > 0) and _reset_if_unavailable and _can_sbm_reset
+        ) }}
+    sequence:
+    - action: zwave_js.set_config_parameter
+      target:
+        entity_id: '{{ vzw31_entity }}'
+      data:
+        parameter: '{{ _param }}'
+        value: '{{ _sbm_on }}'
+      continue_on_error: true
+  default: []
+- variables:
+    _lights_available_now: "{% set ns = namespace(ok=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) not in\
+      \ ['unavailable','unknown',''] %}\n    {% set ns.ok = ns.ok + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.ok }}"
+    _lights_still_missing: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
+      \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
+- choose:
+  - conditions:
+    - condition: template
+      value_template: '{{ _lights_available_now | length > 0 }}'
+    sequence:
+    - action: light.turn_off
+      target:
+        entity_id: '{{ _lights_available_now }}'
+      data:
+        transition: '{{ _transition }}'
+  default: []
+- choose:
+  - conditions:
+    - condition: template
+      value_template: '{{ _verify_enabled and (_verify_attempts > 0) }}'
+    sequence:
+    - repeat:
+        count: '{{ _verify_attempts }}'
+        sequence:
+        - variables:
+            _still_on: "{% set ns = namespace(bad=[]) %} {% for e in _lights_available_now | default([]) %}\n  {% if states(e)\
+              \ == 'on' %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
+        - choose:
+          - conditions:
+            - condition: template
+              value_template: '{{ _still_on | length > 0 }}'
+            sequence:
+            - action: light.turn_off
+              target:
+                entity_id: '{{ _still_on }}'
+              data:
+                transition: '{{ _transition }}'
+            - choose:
+              - conditions:
+                - condition: template
+                  value_template: '{{ _verify_delay_ms > 0 }}'
+                sequence:
+                - delay:
+                    milliseconds: '{{ _verify_delay_ms }}'
+              default: []
+          default:
+          - stop: All lights reached desired state
+  default: []
+- choose:
+  - conditions:
+    - condition: template
+      value_template: '{{ (_lights_still_missing | length > 0) and _reset_if_unavailable and _vzw31_ok and _can_sbm_reset
+        }}'
     sequence:
     - variables:
         _lights_bad_now: "{% set ns = namespace(bad=[]) %}\n{% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
-          \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %}\n{{ ns.bad }}"
+          \  %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %}\n{{ ns.bad }}"
     - choose:
       - conditions:
         - condition: template
@@ -856,14 +806,19 @@ sequence:
                 entity_id: '{{ _last_reset_entity }}'
               data:
                 datetime: '{{ now().strftime(''%Y-%m-%d %H:%M:%S'') }}'
+          - conditions:
+            - condition: template
+              value_template: '{{ _last_reset_entity | length > 0 and (not _last_reset_entity.startswith(''input_datetime.''))
+                }}'
+            sequence:
+            - service: homeassistant.event
+              data:
+                event_type: '{{ _sbm_reset_event_type }}'
+                event_data:
+                  switch_entity: '{{ vzw31_entity }}'
+                  profile: vzw31_sn_switch_bulb
+                  action: 'off'
           default: []
-        - service: homeassistant.event
-          data:
-            event_type: '{{ _sbm_reset_event_type }}'
-            event_data:
-              switch_entity: '{{ vzw31_entity }}'
-              profile: vzw31_sn_switch_bulb
-              action: 'on'
         - delay:
             milliseconds: '{{ _power_on_delay_ms }}'
         - choose:
@@ -871,8 +826,8 @@ sequence:
             - condition: template
               value_template: '{{ _availability_timeout_s > 0 }}'
             sequence:
-            - wait_template: "{% set ns = namespace(still=false) %} {% for e in _lights_bad_initial %}\n  {% if states(e)\
-                \ in ['unavailable','unknown',''] %}\n    {% set ns.still = true %}\n  {% endif %}\n{% endfor %} {{ not ns.still\
+            - wait_template: "{% set ns = namespace(still=false) %} {% for e in _lights_still_missing %}\n  {% if states(e) in\
+                \ ['unavailable','unknown',''] %}\n    {% set ns.still = true %}\n  {% endif %}\n{% endfor %} {{ not ns.still\
                 \ }}"
               timeout:
                 seconds: '{{ _availability_timeout_s }}'
@@ -886,10 +841,24 @@ sequence:
             - delay:
                 milliseconds: '{{ _settle_after_rejoin_ms }}'
           default: []
+        - variables:
+            _recovered_after_reset: "{% set ns = namespace(ok=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) not\
+              \ in ['unavailable','unknown',''] %}\n    {% set ns.ok = ns.ok + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.ok }}"
+        - choose:
+          - conditions:
+            - condition: template
+              value_template: '{{ _recovered_after_reset | length > 0 }}'
+            sequence:
+            - action: light.turn_off
+              target:
+                entity_id: '{{ _recovered_after_reset }}'
+              data:
+                transition: '{{ _transition }}'
+          default: []
       default: []
   - conditions:
     - condition: template
-      value_template: '{{ (_lights_bad_initial | length > 0) and _reset_if_unavailable and _vzw31_ok and (not _can_sbm_reset)
+      value_template: '{{ (_lights_still_missing | length > 0) and _reset_if_unavailable and _vzw31_ok and (not _can_sbm_reset)
         and _notify_enabled }}'
     sequence:
     - variables:
@@ -921,72 +890,13 @@ sequence:
 - choose:
   - conditions:
     - condition: template
-      value_template: '{{ _ensure_sbm and _vzw31_ok }}'
-    sequence:
-    - action: zwave_js.set_config_parameter
-      target:
-        entity_id: '{{ vzw31_entity }}'
-      data:
-        parameter: '{{ _param }}'
-        value: '{{ _sbm_on }}'
-      continue_on_error: true
-  default: []
-- variables:
-    _lights_available_now: "{% set ns = namespace(ok=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) not in\
-      \ ['unavailable','unknown',''] %}\n    {% set ns.ok = ns.ok + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.ok }}"
-    _lights_still_missing: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
-      \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
-- choose:
-  - conditions:
-    - condition: template
-      value_template: '{{ _lights_available_now | length > 0 }}'
-    sequence:
-    - action: light.turn_on
-      target:
-        entity_id: '{{ _lights_available_now }}'
-      data:
-        brightness_pct: '{{ _brightness_pct }}'
-        transition: '{{ _transition }}'
-  default: []
-- choose:
-  - conditions:
-    - condition: template
-      value_template: '{{ _verify_enabled and (_verify_attempts > 0) }}'
-    sequence:
-    - repeat:
-        count: '{{ _verify_attempts }}'
-        sequence:
-        - variables:
-            _still_off: "{% set ns = namespace(bad=[]) %} {% for e in _lights_available_now | default([]) %}\n  {% if states(e)\
-              \ != 'on' %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
-        - choose:
-          - conditions:
-            - condition: template
-              value_template: '{{ _still_off | length > 0 }}'
-            sequence:
-            - action: light.turn_on
-              target:
-                entity_id: '{{ _still_off }}'
-              data:
-                brightness_pct: '{{ _brightness_pct }}'
-                transition: '{{ _transition }}'
-            - choose:
-              - conditions:
-                - condition: template
-                  value_template: '{{ _verify_delay_ms > 0 }}'
-                sequence:
-                - delay:
-                    milliseconds: '{{ _verify_delay_ms }}'
-              default: []
-          default: []
-  default: []
-- choose:
-  - conditions:
-    - condition: template
-      value_template: '{{ _recheck_enabled and (_recheck_attempts > 0) and (_lights_still_missing | length > 0) }}'
+      value_template: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
+        \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ _recheck_enabled and (_recheck_attempts\
+        \ > 0) and ((not _recheck_only_if_any_missing) or (ns.bad | length > 0)) }}"
     sequence:
     - variables:
-        _lights_to_recover: '{{ _lights_still_missing }}'
+        _lights_to_recover: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
+          \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
     - repeat:
         count: '{{ _recheck_attempts }}'
         sequence:
@@ -1004,11 +914,10 @@ sequence:
             - condition: template
               value_template: '{{ _recovered_now | length > 0 }}'
             sequence:
-            - action: light.turn_on
+            - action: light.turn_off
               target:
                 entity_id: '{{ _recovered_now }}'
               data:
-                brightness_pct: '{{ _brightness_pct }}'
                 transition: '{{ _transition }}'
           default: []
         - choose:
@@ -1028,8 +937,9 @@ sequence:
       value_template: '{{ _notify_enabled and (_final_missing | length > 0) }}'
     sequence:
     - variables:
-        _n_title: '{{ _notify_prefix }}: Lights ON incomplete (VZW31-SN)'
-        _n_msg: 'DEVICE_ISSUE: Some bulbs still unavailable after retries. Missing: {{ _final_missing | join('', '') }}'
+        _n_title: '{{ _notify_prefix }}: Lights OFF incomplete (VZW31-SN)'
+        _n_msg: 'DEVICE_ISSUE: Some bulbs still unavailable after retries (OFF enforced when they return). Missing: {{ _final_missing
+          | join('', '') }}'
     - choose:
       - conditions:
         - condition: template
@@ -1053,16 +963,16 @@ sequence:
       default: []
   default: []
 - variables:
-    _final_still_off: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) not in ['unavailable','unknown','']\
-      \ and states(e) != 'on' %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
+    _final_still_on: "{% set ns = namespace(bad=[]) %} {% for e in _lights | default([]) %}\n  {% if states(e) not in ['unavailable','unknown','']\
+      \ and states(e) == 'on' %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %} {{ ns.bad }}"
 - choose:
   - conditions:
     - condition: template
-      value_template: '{{ _notify_enabled and (_final_still_off | length > 0) }}'
+      value_template: '{{ _notify_enabled and (_final_still_on | length > 0) }}'
     sequence:
     - variables:
-        _n_title: '{{ _notify_prefix }}: Lights ON verify failed (VZW31-SN)'
-        _n_msg: 'DEVICE_ISSUE: Some lights are available but still not ON after verification retries. Still off: {{ _final_still_off
+        _n_title: '{{ _notify_prefix }}: Lights OFF verify failed (VZW31-SN)'
+        _n_msg: 'DEVICE_ISSUE: Some lights are available but still ON after verification retries. Still on: {{ _final_still_on
           | join('', '') }}'
     - choose:
       - conditions:
@@ -1091,19 +1001,22 @@ sequence:
     - condition: template
       value_template: '{{ _notify_enabled and (clear_status_notifications_on_success | default(true)) }}'
     sequence:
-    - variables:
-        _final_missing2: "{% set ns = namespace(bad=[]) %}\n{% for e in _lights | default([]) %}\n  {% if states(e) in ['unavailable','unknown','']\
-          \ %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %}\n{{ ns.bad }}"
-        _final_still2: "{% set ns = namespace(bad=[]) %}\n{% for e in _lights | default([]) %}\n  {% if states(e) not in ['unavailable','unknown','']\
-          \ and states(e) != 'on' %}\n    {% set ns.bad = ns.bad + [e] %}\n  {% endif %}\n{% endfor %}\n{{ ns.bad }}"
     - choose:
       - conditions:
         - condition: template
-          value_template: '{{ (_final_missing2 | length == 0) and (_final_still2 | length == 0) }}'
+          value_template: '{{ (_final_missing | length == 0) and (_final_still_on | length == 0) }}'
         sequence:
         - action: persistent_notification.dismiss
           data:
             notification_id: '{{ _notify_id_status }}'
+          continue_on_error: true
+        - action: persistent_notification.dismiss
+          data:
+            notification_id: '{{ _notify_id_power }}'
+          continue_on_error: true
+        - action: persistent_notification.dismiss
+          data:
+            notification_id: '{{ _notify_id_device }}'
           continue_on_error: true
       default: []
   default: []

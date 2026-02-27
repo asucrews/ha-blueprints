@@ -10,6 +10,11 @@ This folder contains implementation-focused documentation for the active bluepri
 | `witb_plus_actions_lights_fan.yaml` | automation | `v2.2.0` | `2026.2.0` | `witb_plus_actions_lights_fan_v1.md` |
 | `bathroom_fan_from_humidity_delta.yaml` | automation | `v1.0.1` | `2026.2.0` | `bathroom_fan_from_humidity_delta_v1.md` |
 | `vacuum_job_manager.yaml` | automation | `v1.1` | `2026.2.0` | `vacuum_job_manager_v1.md` |
+| `witb_transit_room.yaml` | automation | `v1` | `2026.2.0` | `witb_transit_room_v1.md` |
+| `witb_plus_bed_force_occupied.yaml` | automation | `v1.0.0` | `2026.2.0` | `witb_plus_bed_force_occupied_v1.md` |
+| `witb_plus_actions_lights_fan_v2.2.0.yaml` | automation | `v2.2.0` | `2026.2.0` | `witb_plus_actions_lights_fan_v1.md` |
+| `witb_lights_on_hook_vzw31sn.yaml` | script | `v2.1` | `2024.6.0` | `witb_lights_on_hook_vzw31_sn_v1_7.md` |
+| `witb_lights_off_hook_vzw31sn.yaml` | script | `v2.1` | `2024.6.0` | `witb_lights_off_hook_vzw31_sn_v1_7.md` |
 | `final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml` | script | `v2.1` | `2024.6.0` | `witb_lights_on_hook_vzw31_sn_v1_7.md` |
 | `final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml` | script | `v2.1` | `2024.6.0` | `witb_lights_off_hook_vzw31_sn_v1_7.md` |
 
@@ -31,6 +36,13 @@ This folder contains implementation-focused documentation for the active bluepri
    - Source: `blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`
    - Companion helpers package: `blueprints/automation/vacuum_job_manager/v1/vacuum_job_helpers.yaml`
 
+5. [WITB Transit Room Driver v1](./witb_transit_room_v1.md)
+   - Source: `blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`
+   - Companion helpers template: `blueprints/automation/witb_transit_room/v1/transit_helpers_package_template.yaml`
+
+6. [WITB+ Bed → Force Occupied v1](./witb_plus_bed_force_occupied_v1.md)
+   - Source: `blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml`
+
 ## Script Blueprints
 
 1. [WITB Lights ON Hook (VZW31-SN)](./witb_lights_on_hook_vzw31_sn_v1_7.md)
@@ -49,5 +61,7 @@ This folder contains implementation-focused documentation for the active bluepri
 - `Bathroom Fan From Humidity Delta` handles humidity-driven fan control with hysteresis and runtime limits.
 - `Vacuum Job Manager` can enable WITB `automation_override` booleans during a cleaning job, then disable them at job end.
 - `Vacuum Job Manager` can keep vacuum-job lighting on while cleaning and only turn it off when configured occupancy entities are clear.
+- `WITB Transit Room Driver` provides a PIR-only occupancy signal for hallways/stairs using hold-timer decay; its `occupied_effective` output is consumed by `WITB+ Actions` exactly like the door-based WITB+ v4 signal.
+- `WITB+ Bed → Force Occupied` extends WITB+ v4 bedroom occupancy during sleep by driving `force_occupied` — it never initiates occupancy, only holds it while the room is already occupied.
 - `WITB Lights Hook Scripts` are optional hook implementations for resilient VZW31-SN smart-bulb control.
 - `WITB Lights Hook Scripts` are typically called by ON/OFF hook points in WITB actions flows.
