@@ -5,9 +5,9 @@ This folder contains the WITB occupancy blueprint and the templated package gene
 ## Files
 
 - `witb_plus.yaml`: occupancy blueprint (automation domain).
-- `generate_witb_packages_templated.py`: helper/template package generator.
-- `witb_plus_package.template.yaml`: template used by the generator.
+- `witb_plus_package_template.yaml`: template used by the generator.
 - `packages/`: output location for generated room package files.
+- Generator: `blueprints/generate_witb_packages_templated.py` (run from repo root).
 
 ## What the Blueprint Does
 
@@ -44,18 +44,11 @@ Typical entities include:
 
 ## Generator Usage
 
-```bash
-python generate_witb_packages_templated.py \
-  --rooms "Office" "Master Bathroom Toilet" \
-  --template witb_plus_package.template.yaml \
-  --out ./packages
-```
-
-Or run from repo root:
+Run from repo root:
 
 ```bash
-python blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py \
+python blueprints/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --template blueprints/automation/witb_plus/v4/witb_plus_package.template.yaml \
+  --template blueprints/automation/witb_plus/v4/witb_plus_package_template.yaml \
   --out blueprints/automation/witb_plus/v4/packages
 ```

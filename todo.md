@@ -8,6 +8,8 @@
 - [x] Add docs QA validation script + CI workflow:
   - `tools/check_blueprint_docs.py`
   - `.github/workflows/docs-blueprint-check.yml`
+- [x] Add YAML syntax validation CI workflow:
+  - `.github/workflows/yaml-lint.yml`
 - [x] Make key README navigation links clickable:
   - `README.md`
   - `references/README.md`

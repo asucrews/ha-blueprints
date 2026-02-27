@@ -28,8 +28,8 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v2/README.md`](blueprints/automation/witb_plus_actions_lights_fan/v2/README.md)
    - Purpose: occupancy-driven light/fan actions with safety tags, run-on, and optional humidity/lux tuning.
 
-3. [`blueprints/automation/bathroom_fan_from_humidity/bathroom_fan_from_humidity_delta.yaml`](blueprints/automation/bathroom_fan_from_humidity/bathroom_fan_from_humidity_delta.yaml)
-   - Docs: [`blueprints/automation/bathroom_fan_from_humidity/README.md`](blueprints/automation/bathroom_fan_from_humidity/README.md)
+3. [`blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml`](blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml)
+   - Docs: [`blueprints/automation/bathroom_fan_from_humidity/v1/README.md`](blueprints/automation/bathroom_fan_from_humidity/v1/README.md)
    - Purpose: humidity-delta-based bathroom fan control with hysteresis and runtime safety limits.
 
 4. [`blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`](blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml)
@@ -44,11 +44,11 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/witb_plus_bed_sensor/v1/README.md`](blueprints/automation/witb_plus_bed_sensor/v1/README.md)
    - Purpose: bedroom sleep guard — drives `force_occupied` to prevent WITB+ from clearing occupancy while someone is in bed.
 
-7. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml)
+7. [`blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_vzw31sn.yaml`](blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_vzw31sn.yaml)
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
    - Purpose: resilient ON hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
-8. [`blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`](blueprints/script/witb_switch_light_profiles/v1/final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml)
+8. [`blueprints/script/witb_switch_light_profiles/v1/witb_lights_off_hook_vzw31sn.yaml`](blueprints/script/witb_switch_light_profiles/v1/witb_lights_off_hook_vzw31sn.yaml)
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README.md`](blueprints/script/witb_switch_light_profiles/v1/README.md)
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
@@ -59,16 +59,16 @@ Run from repo root.
 1. Generate occupancy helpers/templates:
 
 ```bash
-python blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py \
+python blueprints/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --template blueprints/automation/witb_plus/v4/witb_plus_package.template.yaml \
+  --template blueprints/automation/witb_plus/v4/witb_plus_package_template.yaml \
   --out blueprints/automation/witb_plus/v4/packages
 ```
 
 2. Generate actions helpers:
 
 ```bash
-python blueprints/automation/witb_plus_actions_lights_fan/v2/generate_witb_plus_actions_packages_templated.py \
+python blueprints/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
   --template blueprints/automation/witb_plus_actions_lights_fan/v2/room_witb_actions_package_template.yaml \
   --out blueprints/automation/witb_plus_actions_lights_fan/v2/packages
@@ -77,10 +77,10 @@ python blueprints/automation/witb_plus_actions_lights_fan/v2/generate_witb_plus_
 3. Generate bathroom humidity helper packages:
 
 ```bash
-python blueprints/automation/bathroom_fan_from_humidity/generate_humidity_packages_templated.py \
+python blueprints/generate_witb_packages_templated.py \
   --rooms "Half Bathroom" \
-  --template blueprints/automation/bathroom_fan_from_humidity/room_humidity_baseline_delta_package.template.yaml \
-  --out blueprints/automation/bathroom_fan_from_humidity/packages
+  --template blueprints/automation/bathroom_fan_from_humidity/v1/room_humidity_baseline_delta_package_template.yaml \
+  --out blueprints/automation/bathroom_fan_from_humidity/v1/packages
 ```
 
 Generated files are helper/package YAML files. Automations are created in the Home Assistant UI from blueprints.

@@ -4,10 +4,9 @@ This folder contains script blueprints used as ON/OFF hook implementations for W
 
 ## Files
 
-- `final_updated_witb_hook_on_vzw31sn_no_value_source_cleaned_final.yaml`
-- `final_updated_witb_hook_off_vzw31sn_no_value_source_cleaned_final.yaml`
+- `witb_lights_on_hook_vzw31sn.yaml`
+- `witb_lights_off_hook_vzw31sn.yaml`
 - `package_room_witb_profile_with_sbm_helpers.yaml` (optional helper package template)
-- `witb_hook_on_vzw31sn.yaml.txt` / `witb_hook_off_vzw31sn.yaml.txt` (text copies)
 
 ## Purpose
 
