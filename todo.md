@@ -31,6 +31,11 @@
 - [x] Rename version-level READMEs to `README_<blueprint_slug>_v<N>.md`:
   - All 7 version-level READMEs renamed; all references updated
   - `tools/check_blueprint_docs.py` updated to accept `README*.md`
+- [x] Remove version suffixes from docs page filenames:
+  - All 9 `docs/blueprints/` pages renamed (e.g. `witb_plus_v3.md` → `witb_plus.md`)
+  - `docs/blueprints/README.md` rewritten with new filenames
+  - `NAMING.md` Docs Pages rule updated — no version in filename, tracked in compatibility matrix
+  - All cross-references updated in blueprint READMEs and `todo.md`
 
 ---
 
@@ -45,21 +50,21 @@
 
 1. Troubleshooting sections
    - Add `Troubleshooting` sections with concrete checks and expected states to:
-     - `docs/blueprints/witb_plus_actions_lights_fan_v1.md`
-     - `docs/blueprints/vacuum_job_manager_v1.md`
-     - `docs/blueprints/witb_lights_on_hook_vzw31_sn_v1_7.md`
-     - `docs/blueprints/witb_lights_off_hook_vzw31_sn_v1_7.md`
+     - `docs/blueprints/witb_plus_actions_lights_fan.md`
+     - `docs/blueprints/vacuum_job_manager.md`
+     - `docs/blueprints/witb_lights_on_hook_vzw31_sn.md`
+     - `docs/blueprints/witb_lights_off_hook_vzw31_sn.md`
    - Suggested coverage:
      - common misbindings
      - helper state mismatches
      - timer/cooldown edge cases
      - unavailable entity handling
 
-3. Migration notes for versioned docs
+2. Migration notes for versioned docs
    - Add `Migration Notes` sections with:
      - behavior changes by version
      - renamed/added inputs
      - safe rollout sequence for existing automations
    - Priority targets:
-     - `docs/blueprints/witb_plus_actions_lights_fan_v1.md`
-     - `docs/blueprints/witb_lights_hooks_v1_7.md`
+     - `docs/blueprints/witb_plus_actions_lights_fan.md`
+     - `docs/blueprints/witb_lights_hooks.md`

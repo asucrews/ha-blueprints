@@ -1,0 +1,17 @@
+name: Blueprint Version Check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check blueprint versions against compatibility matrix
+        run: python tools/check_blueprint_versions.py

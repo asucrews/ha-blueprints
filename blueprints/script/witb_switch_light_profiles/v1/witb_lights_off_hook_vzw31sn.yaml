@@ -1,6 +1,8 @@
 blueprint:
   name: 'WITB Lights OFF Hook (Profile: VZW31-SN Switch + Bulb) v2.1.1'
-  description: >
+  description: |
+    Version: 2.1.1 — see CHANGELOG.md for full version history.
+
     Hook script called by WITB / WITB+ Actions to turn smart bulbs OFF when they sit behind an
     Inovelli VZW31-SN Z-Wave dimmer running in Smart Bulb Mode (Parameter 52). The switch passes
     power through at all times so bulbs are controlled directly — this script handles everything

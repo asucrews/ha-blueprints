@@ -31,4 +31,4 @@ This folder contains a Home Assistant automation blueprint that manages vacuum r
    - iRobot mission counters
    - Optional schedule/notify/lighting/WITB override/occupancy entities
 
-Detailed input documentation is in `docs/blueprints/vacuum_job_manager_v1.md`.
+Detailed input documentation is in `docs/blueprints/vacuum_job_manager.md`.

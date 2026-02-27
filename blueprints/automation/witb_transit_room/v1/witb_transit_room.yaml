@@ -12,7 +12,9 @@
 
 blueprint:
   name: WITB Transit Room Driver v1
-  description: >
+  description: |
+    Version: 1 — see CHANGELOG.md for full version history.
+
     Occupancy driver for transit areas (hallways/stairs/open connectors) using PIR-only decay logic.
     Outputs a WITB-compatible occupancy signal (input_boolean.*_occupied_effective) that your Actions 2.2
     automation consumes.

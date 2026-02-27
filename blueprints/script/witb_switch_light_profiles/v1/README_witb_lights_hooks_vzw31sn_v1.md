@@ -27,6 +27,6 @@ Create script instances from these script blueprints, then call those scripts fr
 - optional context: `is_night`, `lux_value`, `lux_threshold`, `reason`
 
 Detailed field documentation is in:
-- `docs/blueprints/witb_lights_on_hook_vzw31_sn_v1_7.md`
-- `docs/blueprints/witb_lights_off_hook_vzw31_sn_v1_7.md`
-- `docs/blueprints/witb_lights_hooks_v1_7.md` (combined overview)
+- `docs/blueprints/witb_lights_on_hook_vzw31_sn.md`
+- `docs/blueprints/witb_lights_off_hook_vzw31_sn.md`
+- `docs/blueprints/witb_lights_hooks.md` (combined overview)

@@ -1,6 +1,8 @@
 blueprint:
   name: Bathroom Fan From Humidity Delta v1.0.2
-  description: >
+  description: |
+    Version: 1.0.2 — see CHANGELOG.md for full version history.
+
     Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
     and OFF when it falls below a lower threshold for a while (hysteresis),
     with optional minimum runtime and a failsafe max runtime.

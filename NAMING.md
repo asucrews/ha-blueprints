@@ -48,7 +48,7 @@ Examples:
 
 - Version **directories** use `v<major>` only (e.g., `v1`, `v2`, `v4`). Minor versions are tracked in the blueprint metadata and changelog, not in the directory name.
 - Create a new version directory only for breaking changes or major rewrites. Minor and patch changes stay in the existing version directory.
-- Docs page filenames include minor version when finer granularity is needed: `_v<major>_<minor>` (e.g., `_v1_7`).
+- Docs page filenames do **not** include version numbers — the compatibility matrix in `docs/blueprints/README.md` tracks the current version for each doc page.
 
 ### Paired Files
 
@@ -169,19 +169,18 @@ Examples:
 ## Docs Pages
 
 ```
-docs/blueprints/<blueprint_slug>_v<major>[_<minor>].md
+docs/blueprints/<blueprint_slug>.md
 ```
 
-- Version suffix uses `_v` followed by the major version number.
-- Minor version appended with another underscore when needed (e.g., `_v1_7`).
+- No version suffix in the filename. The current version is tracked in the compatibility matrix in `docs/blueprints/README.md`.
 - One doc page per blueprint (or logical grouping like ON+OFF hooks).
 
 Examples:
-- `docs/blueprints/witb_plus_v3.md`
-- `docs/blueprints/witb_plus_actions_lights_fan_v1.md`
-- `docs/blueprints/bathroom_fan_from_humidity_delta_v1.md`
-- `docs/blueprints/vacuum_job_manager_v1.md`
-- `docs/blueprints/witb_lights_hooks_v1_7.md`
+- `docs/blueprints/witb_plus.md`
+- `docs/blueprints/witb_plus_actions_lights_fan.md`
+- `docs/blueprints/bathroom_fan_from_humidity_delta.md`
+- `docs/blueprints/vacuum_job_manager.md`
+- `docs/blueprints/witb_lights_hooks.md`
 
 ---
 
@@ -269,7 +268,7 @@ blueprints/
 docs/
   blueprints/
     README.md                                # compatibility matrix + links
-    <blueprint_slug>_v<N>.md                 # per-blueprint implementation docs
+    <blueprint_slug>.md                      # per-blueprint implementation docs
 
 examples/
   <blueprint_short_name>/

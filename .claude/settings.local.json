@@ -3,7 +3,9 @@
     "allow": [
       "Bash(python tools/check_blueprint_docs.py)",
       "Bash(python3:*)",
-      "Bash(git mv:*)"
+      "Bash(git mv:*)",
+      "Bash(grep:*)",
+      "Bash(python:*)"
     ]
   }
 }
