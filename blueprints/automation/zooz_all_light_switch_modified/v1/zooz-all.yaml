@@ -1,0 +1,210 @@
+blueprint:
+  name: Z-Wave Plus 700/800 Series S2 ZEN 71/72/76/77 Switches
+  description: Create automations for the Z-Wave Plus 700/800 Series S2 Switches Zen71/Zen72/Zen76/Zen77
+  domain: automation
+  input:
+    zooz-switch:
+      name: Zen71/72/76/77 Switch/Dimmer
+      description: List of applicable Zen switches/dimmers.
+      selector:
+        device:
+          multiple: true
+          filter:
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN77
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN76
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN77 800LR
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN76 800LR
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN71 800LR
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN72 800LR
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN71
+          - integration: zwave_js
+            manufacturer: Zooz
+            model: ZEN72
+
+    hook_scripts:
+      name: Profile Hook Scripts (optional)
+      icon: mdi:script-outline
+      collapsed: true
+      input:
+        on_hook_script:
+          name: ON Hook Script
+          description: >
+            Optional. A script instance created from the WITB Lights ON Hook blueprint.
+            When set, Up/On 1x press will call this script instead of the Button A action below.
+            The script is fully self-contained — lights, VZW31 device, and recovery settings are
+            all configured inside the script instance itself.
+          default: []
+          selector:
+            entity:
+              domain: script
+              multiple: false
+
+        off_hook_script:
+          name: OFF Hook Script
+          description: >
+            Optional. A script instance created from the WITB Lights OFF Hook blueprint.
+            When set, Down/Off 1x press will call this script instead of the Button B action below.
+            The script is fully self-contained — lights, VZW31 device, and recovery settings are
+            all configured inside the script instance itself.
+          default: []
+          selector:
+            entity:
+              domain: script
+              multiple: false
+
+    button_a:
+      name: Button A - Up/On press 1x
+      description: Action to run when the button is pressed one time. Ignored if ON Hook Script is set.
+      default: []
+      selector:
+        action: {}
+    button_a2:
+      name: Button A - Up/On press 2x
+      description: Action to run when the button is pressed two times.
+      default: []
+      selector:
+        action: {}
+    button_a3:
+      name: Button A - Up/On press 3x
+      description: Action to run when the button is pressed three times.
+      default: []
+      selector:
+        action: {}
+    button_a4:
+      name: Button A - Up/On press 4x
+      description: Action to run when the button is pressed four times.
+      default: []
+      selector:
+        action: {}
+    button_a5:
+      name: Button A - Up/On press 5x
+      description: Action to run when the button is pressed five times.
+      default: []
+      selector:
+        action: {}
+    button_a_held:
+      name: Button A - Up/On held down
+      description: Action to run when the button is held down.
+      default: []
+      selector:
+        action: {}
+    button_b:
+      name: Button B - Down/Off press 1x
+      description: Action to run when the button is pressed one time. Ignored if OFF Hook Script is set.
+      default: []
+      selector:
+        action: {}
+    button_b2:
+      name: Button B - Down/Off press 2x
+      description: Action to run when the button is pressed two times.
+      default: []
+      selector:
+        action: {}
+    button_b3:
+      name: Button B - Down/Off press 3x
+      description: Action to run when the button is pressed three times.
+      default: []
+      selector:
+        action: {}
+    button_b4:
+      name: Button B - Down/Off press 4x
+      description: Action to run when the button is pressed four times.
+      default: []
+      selector:
+        action: {}
+    button_b5:
+      name: Button B - Down/Off press 5x
+      description: Action to run when the button is pressed five times.
+      default: []
+      selector:
+        action: {}
+    button_b_held:
+      name: Button B - Down/Off held down
+      description: Action to run when the button is held down.
+      default: []
+      selector:
+        action: {}
+
+  source_url: https://github.com/quincarter/home-assistant-blueprints/blob/main/zooz-all.yaml
+
+mode: single
+max_exceeded: silent
+
+variables:
+  device_id: !input zooz-switch
+  on_hook_script: !input on_hook_script
+  off_hook_script: !input off_hook_script
+
+trigger:
+- platform: event
+  event_type: zwave_js_value_notification
+
+condition: '{{ trigger.event.data.device_id in device_id }}'
+
+action:
+- variables:
+    button_id: '{{ trigger.event.data.property_key_name }}'
+    press_count: '{{ trigger.event.data.value }}'
+
+- choose:
+  - conditions: '{{ button_id == "001" and press_count == "KeyPressed" }}'
+    sequence:
+      - if: '{{ on_hook_script is not none and on_hook_script | length > 0 }}'
+        then:
+          - action: script.turn_on
+            target:
+              entity_id: '{{ on_hook_script }}'
+        else: !input button_a
+
+  - conditions: '{{ button_id == "001" and press_count == "KeyPressed2x" }}'
+    sequence: !input button_a2
+
+  - conditions: '{{ button_id == "001" and press_count == "KeyPressed3x" }}'
+    sequence: !input button_a3
+
+  - conditions: '{{ button_id == "001" and press_count == "KeyPressed4x" }}'
+    sequence: !input button_a4
+
+  - conditions: '{{ button_id == "001" and press_count == "KeyPressed5x" }}'
+    sequence: !input button_a5
+
+  - conditions: '{{ button_id == "001" and press_count == "KeyHeldDown" }}'
+    sequence: !input button_a_held
+
+  - conditions: '{{ button_id == "002" and press_count == "KeyPressed" }}'
+    sequence:
+      - if: '{{ off_hook_script is not none and off_hook_script | length > 0 }}'
+        then:
+          - action: script.turn_on
+            target:
+              entity_id: '{{ off_hook_script }}'
+        else: !input button_b
+
+  - conditions: '{{ button_id == "002" and press_count == "KeyPressed2x" }}'
+    sequence: !input button_b2
+
+  - conditions: '{{ button_id == "002" and press_count == "KeyPressed3x" }}'
+    sequence: !input button_b3
+
+  - conditions: '{{ button_id == "002" and press_count == "KeyPressed4x" }}'
+    sequence: !input button_b4
+
+  - conditions: '{{ button_id == "002" and press_count == "KeyPressed5x" }}'
+    sequence: !input button_b5
+
+  - conditions: '{{ button_id == "002" and press_count == "KeyHeldDown" }}'
+    sequence: !input button_b_held

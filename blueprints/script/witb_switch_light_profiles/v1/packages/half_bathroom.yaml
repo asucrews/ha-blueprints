@@ -1,0 +1,90 @@
+---
+half_bathroom_witb_profile:
+  input_number:
+    half_bathroom_sbm_cooldown_seconds:
+      name: "Half Bathroom SBM cooldown (s)"
+      icon: mdi:timer-sand
+      unit_of_measurement: s
+      min: 0
+      max: 86400
+      step: 1
+      mode: box
+      initial: 600
+
+  template:
+    # --------------------------------------------------------------------------
+    # (A) Last SBM Reset Tracker (timestamp sensor)
+    # From blueprint: "WITB Switch Light Profiles — Last SBM Reset Tracker"
+    # Event fired by the hook script whenever an SBM reset runs. No switch_entity
+    # filter here — any SBM reset event for this package updates the sensor, which
+    # is correct since each room gets its own package and unique_id.
+    # --------------------------------------------------------------------------
+    - trigger:
+        - platform: event
+          event_type: witb_switch_light_profile_sbm_reset
+      sensor:
+        - name: "Half Bathroom VZW31 Last SBM Reset"
+          unique_id: half_bathroom_vzw31_last_sbm_reset
+          device_class: timestamp
+          icon: mdi:clock-outline
+          state: "{{ now().isoformat() }}"
+
+    # --------------------------------------------------------------------------
+    # (B) SBM Cooldown Active (binary_sensor)
+    # From blueprint: "WITB Switch Light Profiles — SBM Cooldown Active"
+    # --------------------------------------------------------------------------
+    - trigger:
+        - platform: state
+          entity_id: sensor.half_bathroom_vzw31_last_sbm_reset
+        - platform: time_pattern
+          minutes: "/1"
+      binary_sensor:
+        - name: "Half Bathroom VZW31 SBM Cooldown Active"
+          unique_id: half_bathroom_vzw31_sbm_cooldown_active
+          icon: mdi:timer-sand
+          state: >-
+            {% set s = states('sensor.half_bathroom_vzw31_last_sbm_reset') %}
+            {% set cd = states('input_number.half_bathroom_sbm_cooldown_seconds') | int(0) %}
+            {% if cd <= 0 %}
+              false
+            {% elif s in ['unknown','unavailable',''] %}
+              false
+            {% else %}
+              {% set dt = as_datetime(s) %}
+              {% if dt is none %}
+                false
+              {% else %}
+                {{ (as_timestamp(now()) - as_timestamp(dt)) < cd }}
+              {% endif %}
+            {% endif %}
+
+    # --------------------------------------------------------------------------
+    # (C) SBM Cooldown Remaining (sensor, seconds)
+    # From blueprint: "WITB Switch Light Profiles — SBM Cooldown Remaining"
+    # --------------------------------------------------------------------------
+    - trigger:
+        - platform: state
+          entity_id: sensor.half_bathroom_vzw31_last_sbm_reset
+        - platform: time_pattern
+          minutes: "/1"
+      sensor:
+        - name: "Half Bathroom VZW31 SBM Cooldown Remaining"
+          unique_id: half_bathroom_vzw31_sbm_cooldown_remaining
+          icon: mdi:timer-sand
+          unit_of_measurement: s
+          state: >-
+            {% set s = states('sensor.half_bathroom_vzw31_last_sbm_reset') %}
+            {% set cd = states('input_number.half_bathroom_sbm_cooldown_seconds') | int(0) %}
+            {% if cd <= 0 %}
+              0
+            {% elif s in ['unknown','unavailable',''] %}
+              0
+            {% else %}
+              {% set dt = as_datetime(s) %}
+              {% if dt is none %}
+                0
+              {% else %}
+                {% set elapsed = (as_timestamp(now()) - as_timestamp(dt)) | int(0) %}
+                {{ [0, (cd - elapsed)] | max }}
+              {% endif %}
+            {% endif %}

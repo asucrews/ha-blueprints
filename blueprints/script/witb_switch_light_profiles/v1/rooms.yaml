@@ -1,0 +1,6 @@
+template: witb_profile_package_template.yaml
+out: ./packages
+key_suffix: _witb_profile
+rooms:
+  - name: "Half Bathroom"
+  - name: "Master Bedroom Closet"
