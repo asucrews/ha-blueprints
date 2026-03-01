@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.2.1
+  name: WITB+ Actions - Lights + Fan v2.2.2
   description: |
-    Version: 2.2.1 — see CHANGELOG.md for full version history.
+    Version: 2.2.2 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -1032,6 +1032,16 @@ actions:
                 sequence:
                   - variables:
                       _lights_off_retries: "{{ lights_off_verify_retries | int(0) }}"
+                      # FIX: Capture whether any lights were ON right now, before we attempt
+                      # to turn them off. Used below to guard auto-tag clearing — if lights
+                      # were already off at vacancy time (manual-off hold), we must NOT clear
+                      # auto_tag_lights, so the hold survives the vacancy/re-occupy cycle.
+                      _lights_on_at_vacancy: >-
+                        {% if lights | length > 0 %}
+                          {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
+                        {% else %}
+                          false
+                        {% endif %}
 
                   # Soft-Off Warning (Dim to 10% for 15s before full off)
                   - choose:
@@ -1121,10 +1131,15 @@ actions:
                                 - delay: !input lights_off_verify_retry_interval
 
                   # Clear auto-tag
+                  # FIX: Only clear auto_tag_lights if lights were actually ON when vacancy
+                  # triggered (_lights_on_at_vacancy). If they were already off — because the
+                  # user manually turned them off while occupied (manual_off_hold case) — we
+                  # preserve the tag so the hold survives this vacancy and blocks re-assertion
+                  # from continued/new occupancy (e.g. second person still in the room/bed).
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ auto_tag_lights != '' }}"
+                            value_template: "{{ auto_tag_lights != '' and _lights_on_at_vacancy }}"
                         sequence:
                           - variables:
                               _lights_still_on: >-

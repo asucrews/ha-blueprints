@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.2.0
+  name: WITB+ v4.2.1
   description: |
-    Version: 4.2.0 — see CHANGELOG.md for full version history.
+    Version: 4.2.1 — see CHANGELOG.md for full version history.
 
     Occupancy inference for a single room using doors, PIR motion, and optional
     mmWave presence. Drives an input_boolean occupancy helper that downstream
@@ -958,6 +958,19 @@ action:
           - action: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
+          # FIX #3: Cancel fs_timer immediately after clearing occupancy.
+          # With mode:restart, any new trigger arriving between here and the old
+          # position at the end of the sequence would kill this run before the
+          # cancel executed, leaving the failsafe timer orphaned and running.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
           - choose:
               - conditions:
                   - condition: template
@@ -977,15 +990,6 @@ action:
                       entity_id: "{{ last_exit }}"
                     data:
                       timestamp: 0
-            default: []
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
-                sequence:
-                  - action: timer.cancel
-                    target:
-                      entity_id: "{{ fs_timer }}"
             default: []
     default: []
 
@@ -1009,6 +1013,19 @@ action:
           - action: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
+          # FIX #3: Cancel fs_timer immediately after clearing occupancy.
+          # With mode:restart, any new trigger arriving between here and the old
+          # position at the end of the sequence would kill this run before the
+          # cancel executed, leaving the failsafe timer orphaned and running.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
           - choose:
               - conditions:
                   - condition: template
@@ -1028,15 +1045,6 @@ action:
                       entity_id: "{{ last_exit }}"
                     data:
                       timestamp: 0
-            default: []
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
-                sequence:
-                  - action: timer.cancel
-                    target:
-                      entity_id: "{{ fs_timer }}"
             default: []
           # Also cancel a pending exit eval if motion-off-for clears first
           - action: timer.cancel
@@ -1066,6 +1074,19 @@ action:
           - action: input_boolean.turn_off
             target:
               entity_id: "{{ occ }}"
+          # FIX #3: Cancel fs_timer immediately after clearing occupancy.
+          # With mode:restart, any new trigger arriving between here and the old
+          # position at the end of the sequence would kill this run before the
+          # cancel executed, leaving the failsafe timer orphaned and running.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
           - choose:
               - conditions:
                   - condition: template
@@ -1085,15 +1106,6 @@ action:
                       entity_id: "{{ last_exit }}"
                     data:
                       timestamp: 0
-            default: []
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
-                sequence:
-                  - action: timer.cancel
-                    target:
-                      entity_id: "{{ fs_timer }}"
             default: []
           - action: timer.cancel
             target:
