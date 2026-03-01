@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.2.1
+  name: WITB+ v4.2.3
   description: |
-    Version: 4.2.1 — see CHANGELOG.md for full version history.
+    Version: 4.2.3 — see CHANGELOG.md for full version history.
 
     Occupancy inference for a single room using doors, PIR motion, and optional
     mmWave presence. Drives an input_boolean occupancy helper that downstream
@@ -16,7 +16,11 @@ blueprint:
       • Optional mmWave ON → can assert occupied (disabled by default; only enable
         if your sensor has clean room isolation).
       • Force Occupied ON → pins occupancy ON, blocks all clearing paths.
+        Supports multiple helpers — any one ON is sufficient to pin the room.
       • Manual Occupied ON → asserts occupied but still allows exit-based clearing.
+        Supports multiple helpers — useful for bedrooms with adjoining bathroom,
+        hallway, or closet where occupancy in any connected room should keep the
+        parent room occupied.
 
     OCCUPANCY CLEARING
       • Transition door OPEN + motion off for exit_timeout_seconds → starts exit
@@ -42,7 +46,9 @@ blueprint:
     CONTROLS (priority order)
       1. Automation Override ON → automation does nothing (full manual handoff).
       2. Force Occupied ON → pins ON, blocks all clearing including deadlock break.
+         Multiple entities supported — any one ON is sufficient.
       3. Manual Occupied ON → asserts ON, allows normal exit-based clearing.
+         Multiple entities supported — any one ON is sufficient.
 
     REQUIRED HELPERS (create one set per room)
       • input_boolean  — occupancy_helper
@@ -281,19 +287,29 @@ blueprint:
 
         force_occupied:
           name: Force Occupied (optional)
-          description: If ON, pins occupancy ON and blocks clearing.
+          description: >
+            If ON, pins occupancy ON and blocks clearing. Supports multiple helpers —
+            useful when multiple physical switches or virtual helpers (e.g. a wall switch
+            AND a guest mode boolean) should each independently be able to force the room
+            occupied. Any one ON is sufficient to pin.
           default: []
           selector:
             entity:
               domain: input_boolean
+              multiple: true
 
         manual_occupied:
           name: Manual Occupied (optional)
-          description: If ON, asserts occupancy ON but still allows normal exit-based clearing.
+          description: >
+            If ON, asserts occupancy ON but still allows normal exit-based clearing.
+            Supports multiple helpers — useful for rooms with adjoining spaces (e.g. bedroom
+            with an ensuite bathroom, hallway, or closet). Occupancy is asserted if ANY
+            of the selected helpers are ON.
           default: []
           selector:
             entity:
               domain: input_boolean
+              multiple: true
 
     entry_gating:
       name: Entry gating (optional)
@@ -452,15 +468,39 @@ variables:
     {% else %}
       false
     {% endif %}
+  # v4.2.3: force_occupied now supports multiple helpers (list or single string).
+  # Any one of the selected helpers being ON is sufficient to pin occupancy ON
+  # and block all clearing paths including the deadlock break.
   force_on: >-
     {% if force is string and force|length > 0 %}
       {{ is_state(force, 'on') }}
+    {% elif force is iterable and force|length > 0 %}
+      {% set ns = namespace(any_on=false) %}
+      {% for f in force %}
+        {% if is_state(f, 'on') %}
+          {% set ns.any_on = true %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.any_on }}
     {% else %}
       false
     {% endif %}
+
+  # v4.2.2: manual_occupied now supports multiple helpers (list or single string).
+  # Any one of the selected helpers being ON is sufficient to assert occupancy.
+  # Typical use: wire adjoining room occupancy helpers here so a bedroom stays
+  # occupied while someone is in the ensuite bathroom, hallway, or closet.
   manual_on: >-
     {% if manual is string and manual|length > 0 %}
       {{ is_state(manual, 'on') }}
+    {% elif manual is iterable and manual|length > 0 %}
+      {% set ns = namespace(any_on=false) %}
+      {% for m in manual %}
+        {% if is_state(m, 'on') %}
+          {% set ns.any_on = true %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.any_on }}
     {% else %}
       false
     {% endif %}
@@ -570,6 +610,8 @@ trigger:
     entity_id: !input automation_override
     to: "off"
 
+  # v4.2.3: force_occupied now supports multiple entities. HA automatically
+  # watches all entities in the list when a list is passed to entity_id.
   - id: force_on
     platform: state
     entity_id: !input force_occupied
@@ -580,6 +622,8 @@ trigger:
     entity_id: !input force_occupied
     to: "off"
 
+  # v4.2.2: manual_occupied now supports multiple entities. HA automatically
+  # watches all entities in the list when a list is passed to entity_id.
   - id: manual_on
     platform: state
     entity_id: !input manual_occupied
@@ -710,7 +754,8 @@ action:
     default: []
 
   # ---------------------------------------------------------------------------
-  # 3) Manual Occupied: assert ON (soft); normal exit-based clearing still applies
+  # 3) Manual Occupied: assert ON (soft); normal exit-based clearing still applies.
+  #    v4.2.2: manual_on now true if ANY of the configured helpers is ON.
   # ---------------------------------------------------------------------------
   - choose:
       - conditions:
@@ -943,10 +988,48 @@ action:
                 {% else %}
                   false
                 {% endif %}
+              # v4.2.3: Recompute force_on at runtime so a still-active force helper
+              # blocks clearing even after the timer delay.
+              force_on_rt: >-
+                {% if force is string and force|length > 0 %}
+                  {{ is_state(force, 'on') }}
+                {% elif force is iterable and force|length > 0 %}
+                  {% set ns = namespace(any_on=false) %}
+                  {% for f in force %}
+                    {% if is_state(f, 'on') %}
+                      {% set ns.any_on = true %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.any_on }}
+                {% else %}
+                  false
+                {% endif %}
+              # v4.2.2: Recompute manual_on at runtime so a still-active adjoining
+              # room occupancy helper blocks clearing even after the timer delay.
+              manual_on_rt: >-
+                {% if manual is string and manual|length > 0 %}
+                  {{ is_state(manual, 'on') }}
+                {% elif manual is iterable and manual|length > 0 %}
+                  {% set ns = namespace(any_on=false) %}
+                  {% for m in manual %}
+                    {% if is_state(m, 'on') %}
+                      {% set ns.any_on = true %}
+                    {% endif %}
+                  {% endfor %}
+                  {{ ns.any_on }}
+                {% else %}
+                  false
+                {% endif %}
 
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
+          # v4.2.3: Do not clear if any force_occupied helper is still ON.
+          - condition: template
+            value_template: "{{ not force_on_rt }}"
+          # v4.2.2: Do not clear if any manual_occupied helper is still ON.
+          - condition: template
+            value_template: "{{ not manual_on_rt }}"
           - condition: template
             value_template: "{{ any_transition_open_rt or exit_recent_rt }}"
           - condition: template
@@ -1004,6 +1087,9 @@ action:
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
+          # v4.2.2: Do not clear if any manual_occupied helper is still ON.
+          - condition: template
+            value_template: "{{ not manual_on }}"
           - condition: template
             value_template: "{{ any_transition_open or exit_recent }}"
           - condition: template
@@ -1063,6 +1149,9 @@ action:
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
+          # v4.2.2: Do not clear if any manual_occupied helper is still ON.
+          - condition: template
+            value_template: "{{ not manual_on }}"
           - condition: template
             value_template: "{{ any_transition_open or exit_recent }}"
           - condition: template
@@ -1152,10 +1241,14 @@ action:
           - choose:
               # --- CONDITION A: Standard "Safe" Clear ---
               # Clear if: door is open (or recently exited) AND motion is off AND mmWave clear
+              # v4.2.2: Also blocked if any manual_occupied helper is still ON.
+              # v4.2.3: Also blocked if any force_occupied helper is still ON.
               - conditions:
                   - condition: state
                     entity_id: !input occupancy_helper
                     state: "on"
+                  - condition: template
+                    value_template: "{{ not manual_on }}"
                   - condition: template
                     value_template: "{{ (not sealed_now) or exit_recent }}"
                   - condition: template
@@ -1179,9 +1272,13 @@ action:
               # Handles "I left through the window" / unmonitored exit scenarios.
               # FIX #4: Guard against force_on — a forced-occupied room must not be
               # cleared by this deadlock break.
+              # v4.2.2: Also guarded against manual_on (adjoining room still occupied).
+              # v4.2.3: force_on now true if ANY force_occupied helper is ON.
               - conditions:
                   - condition: template
                     value_template: "{{ not force_on }}"
+                  - condition: template
+                    value_template: "{{ not manual_on }}"
                   - condition: template
                     value_template: >
                       {% set last_m = states(last_motion) %}
