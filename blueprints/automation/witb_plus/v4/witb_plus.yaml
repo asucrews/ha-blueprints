@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ v4.2.3
+  name: WITB+ v4.2.4
   description: |
-    Version: 4.2.3 — see CHANGELOG.md for full version history.
+    Version: 4.2.4 — see CHANGELOG.md for full version history.
 
     Occupancy inference for a single room using doors, PIR motion, and optional
     mmWave presence. Drives an input_boolean occupancy helper that downstream
@@ -28,9 +28,12 @@ blueprint:
         Motion returning before the timer fires cancels it immediately.
       • Seal door CLOSED → blocks all clearing (protects sleeping/still occupants).
         Failsafe restarts instead of clearing when sealed.
+        NOTE: exit_recent (door-closes-behind-you) does NOT override the seal door
+        guard. A closed seal door always blocks clearing — period.
       • mmWave ON → blocks clearing while ON (recommended mode).
       • "Door closes behind you" path (optional): supports bedroom/garage-style
-        exits where the door closes after you leave.
+        exits where the door closes after you leave. Only valid when seal door is
+        OPEN at time of clear evaluation.
 
     FAILSAFE
       • Long-running timer prevents permanently stuck occupied states.
@@ -185,6 +188,9 @@ blueprint:
       description: >
         Optional helper + window to support rooms where you can leave and then the door closes behind you
         (bedroom/garage style): open -> close -> motion stops still counts as exit for a short window.
+        NOTE: exit_recent only permits clearing when the seal door is OPEN. A closed seal door
+        always blocks clearing regardless of exit_recent — this protects sleeping/still occupants
+        from being disturbed when a second person leaves the room.
       input:
         last_exit_door_helper:
           name: Last Exit Door Helper (optional, input_datetime)
@@ -960,6 +966,9 @@ action:
   # FIX #3: All state variables are computed fresh here (not from stale top-level
   # variables frozen at the original trigger time). exit_recent_rt in particular
   # is recalculated so an expired exit window is never treated as still-recent.
+  # FIX #11 (v4.2.4): exit_recent_rt no longer overrides the sealed door guard.
+  # A closed seal door always blocks clearing. exit_recent only substitutes for
+  # a currently-open transition door, not for the sealed-door protection.
   # ---------------------------------------------------------------------------
   - choose:
       - conditions:
@@ -1030,10 +1039,14 @@ action:
           # v4.2.2: Do not clear if any manual_occupied helper is still ON.
           - condition: template
             value_template: "{{ not manual_on_rt }}"
+          # exit_recent can substitute for a currently-open door, but NOT for a closed seal door.
           - condition: template
             value_template: "{{ any_transition_open_rt or exit_recent_rt }}"
+          # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
+          # exit_recent must NOT override this — a sleeping occupant must be protected
+          # even when a second person leaves and the door closes behind them.
           - condition: template
-            value_template: "{{ (not sealed_now_rt) or exit_recent_rt }}"
+            value_template: "{{ not sealed_now_rt }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
@@ -1078,6 +1091,7 @@ action:
 
   # ---------------------------------------------------------------------------
   # 6) Motion OFF for exit timeout: attempt clear (only if door is open)
+  # FIX #11 (v4.2.4): exit_recent no longer overrides the sealed door guard.
   # ---------------------------------------------------------------------------
   - choose:
       - conditions:
@@ -1090,10 +1104,13 @@ action:
           # v4.2.2: Do not clear if any manual_occupied helper is still ON.
           - condition: template
             value_template: "{{ not manual_on }}"
+          # exit_recent can substitute for a currently-open door, but NOT for a closed seal door.
           - condition: template
             value_template: "{{ any_transition_open or exit_recent }}"
+          # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
+          # exit_recent must NOT override this guard.
           - condition: template
-            value_template: "{{ (not sealed_now) or exit_recent }}"
+            value_template: "{{ not sealed_now }}"
           - condition: template
             value_template: "{{ mm_clear_ok }}"
           - action: input_boolean.turn_off
@@ -1140,6 +1157,7 @@ action:
 
   # ---------------------------------------------------------------------------
   # 6b) mmWave OFF for exit timeout: attempt clear (requires PIR off too)
+  # FIX #11 (v4.2.4): exit_recent no longer overrides the sealed door guard.
   # ---------------------------------------------------------------------------
   - choose:
       - conditions:
@@ -1152,10 +1170,13 @@ action:
           # v4.2.2: Do not clear if any manual_occupied helper is still ON.
           - condition: template
             value_template: "{{ not manual_on }}"
+          # exit_recent can substitute for a currently-open door, but NOT for a closed seal door.
           - condition: template
             value_template: "{{ any_transition_open or exit_recent }}"
+          # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
+          # exit_recent must NOT override this guard.
           - condition: template
-            value_template: "{{ (not sealed_now) or exit_recent }}"
+            value_template: "{{ not sealed_now }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
@@ -1230,6 +1251,8 @@ action:
   # ---------------------------------------------------------------------------
   # 8) SAFE failsafe: only clears when exit is possible and motion is off.
   #    Hard deadlock break if motion has been off for 1.5x the failsafe duration.
+  # FIX #11 (v4.2.4): exit_recent no longer overrides the sealed door guard
+  # in Condition A. A closed seal door always causes a timer restart (Condition C).
   # ---------------------------------------------------------------------------
   - choose:
       - conditions:
@@ -1240,17 +1263,24 @@ action:
         sequence:
           - choose:
               # --- CONDITION A: Standard "Safe" Clear ---
-              # Clear if: door is open (or recently exited) AND motion is off AND mmWave clear
+              # Clear if: door is open (or recently exited) AND seal door is OPEN
+              # AND motion is off AND mmWave clear.
               # v4.2.2: Also blocked if any manual_occupied helper is still ON.
               # v4.2.3: Also blocked if any force_occupied helper is still ON.
+              # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks — exit_recent
+              # removed from the sealed guard. Both conditions must be true independently.
               - conditions:
                   - condition: state
                     entity_id: !input occupancy_helper
                     state: "on"
                   - condition: template
                     value_template: "{{ not manual_on }}"
+                  # exit_recent can substitute for a currently-open door only.
                   - condition: template
                     value_template: "{{ (not sealed_now) or exit_recent }}"
+                  # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
+                  - condition: template
+                    value_template: "{{ not sealed_now }}"
                   - condition: template
                     value_template: "{{ is_state(motion, 'off') }}"
                   - condition: template

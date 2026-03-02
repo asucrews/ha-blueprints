@@ -146,4 +146,44 @@ room_witb:
           state: >-
             {{ is_state('input_boolean.room_slug_automation_override', 'on')
               or is_state('input_boolean.room_slug_force_occupied', 'on') }}
+
+        # Troubleshooting: human-readable reason occupancy is not clearing.
+        # Values: force | manual | sealed | evaluating | no_exit | none
+        #   force      — force_occupied is ON (pinned, all clearing blocked)
+        #   manual     — manual_occupied is ON (soft pin from adjoining room)
+        #   sealed     — seal door is closed while occupied (latched)
+        #   evaluating — exit_eval timer is actively running (deciding to clear)
+        #   no_exit    — occupied but no door open and no exit_recent window
+        #   none       — not occupied or no block present
+        - name: "Room Friendly Name Clear Blocked Reason"
+          unique_id: "room_slug_clear_blocked_reason"
+          icon: mdi:comment-alert-outline
+          state: >-
+            {% if is_state('input_boolean.room_slug_force_occupied', 'on') %}
+              force
+            {% elif is_state('input_boolean.room_slug_manual_occupied', 'on') %}
+              manual
+            {% elif is_state('input_boolean.room_slug_latched', 'on') %}
+              sealed
+            {% elif is_state('timer.room_slug_exit_eval', 'active') %}
+              evaluating
+            {% elif is_state('input_boolean.room_slug_occupied', 'on') %}
+              no_exit
+            {% else %}
+              none
+            {% endif %}
+
+        # Troubleshooting: boolean problem sensor — ON when occupied but
+        # a hard block (force, manual, or sealed) is preventing clearing.
+        # Use state_color: true on the dashboard to light this up red when stuck.
+        - name: "Room Friendly Name Clear Blocked"
+          unique_id: "room_slug_clear_blocked"
+          device_class: problem
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on')
+               and (
+                 is_state('input_boolean.room_slug_force_occupied', 'on')
+                 or is_state('input_boolean.room_slug_manual_occupied', 'on')
+                 or is_state('input_boolean.room_slug_latched', 'on')
+               ) }}
   # --- END helpers ---
