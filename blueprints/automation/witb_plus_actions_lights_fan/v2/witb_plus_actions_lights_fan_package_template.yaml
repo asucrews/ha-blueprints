@@ -2,34 +2,20 @@ room_witb_actions:
   # WITB+ Actions Package Template
   # Tokens: room_slug, Room Friendly Name
   #
-  # This template covers ONLY the helpers consumed by the WITB+ Actions
-  # (lights + fan) blueprint. It does NOT include core occupancy helpers —
-  # those live in the separate witb_plus_package_template.yaml.
+  # Covers helpers consumed by the WITB+ Actions (lights + fan) blueprint only.
+  # Core occupancy helpers live in witb_plus_package_template.yaml.
   #
-  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  # Feature blocks (controlled by --no-X flags or per-room no_X: true in config):
   #   lights    - auto_lights_on, keep_on (input_boolean) + brightness day/night
-  #               (input_number) + actions_cooldown (timer)
+  #               (input_number) + actions_cooldown (timer) + cooldown_active sensor
   #   fan       - auto_fan_on (input_boolean) + fan_pct_day/night, fan_runon_minutes,
-  #               fan_on_delay (input_number) + fan_runon (timer)
+  #               fan_on_delay (input_number) + fan_runon (timer) + fan_runon_active sensor
   #   lux       - lux_threshold (input_number)
   #   humidity  - humidity_high/low (input_number)
-  #   night     - night_start/end (input_datetime)
-  #
-  # CHANGELOG:
-  #   - Added # --- BEGIN/END --- markers to ALL optional sections so feature
-  #     flags (--no-X / no_X: true) actually work. Previously no markers existed
-  #     so all feature flags were silently doing nothing against this template.
-  #   - Added restore_value: true to all input_number entries (without it, every
-  #     HA restart resets numbers back to `initial`, wiping user-set values)
-  #   - Renamed room_slug_fan_runon -> room_slug_actions_fan_runon for naming
-  #     consistency (update automations referencing the old entity id)
-  #   - Differentiated humidity icons: high=mdi:water-percent-alert, low=mdi:water-percent
-  #   - Added icons and restore: false explicitly on all timers
-  #   - Removed timer.room_slug_exit_eval — that belongs in witb_plus template
+  #   night     - night_start/end (input_datetime) + in_night_window sensor
 
   input_boolean:
-    # NOTE: `initial` only sets the value on FIRST creation in the DB.
-    # After that, HA restores the last known state from the recorder.
+    # input_boolean always restores last known state from recorder on restart.
 
     # --- BEGIN lights ---
     room_slug_auto_lights_on:
@@ -48,7 +34,8 @@ room_witb_actions:
     # --- END fan ---
 
   input_datetime:
-    # input_datetime always restores last value from recorder — no restore_value needed.
+    # input_datetime always restores last value from recorder on restart.
+
     # --- BEGIN night ---
     room_slug_actions_night_start:
       name: "Room Friendly Name night start"
@@ -64,8 +51,9 @@ room_witb_actions:
     # --- END night ---
 
   input_number:
-    # IMPORTANT: restore_value: true on all input_number helpers.
-    # Without it, HA resets to `initial` on every restart, wiping user-set values.
+    # input_number restores last known value from recorder on restart
+    # as long as `initial` is NOT set. Never set `initial` — it resets
+    # the value on every HA restart, wiping user-set values.
 
     # --- BEGIN lights ---
     room_slug_actions_brightness_day_pct:
@@ -114,7 +102,7 @@ room_witb_actions:
       max: 60
       step: 1
       mode: box
-      # NOTE: Keep in sync with timer.room_slug_actions_fan_runon duration below.
+      # Keep in sync with timer.room_slug_actions_fan_runon duration below.
 
     room_slug_actions_fan_on_delay_seconds:
       name: "Room Friendly Name fan ON delay (sec)"
@@ -167,12 +155,60 @@ room_witb_actions:
     # --- END lights ---
 
     # --- BEGIN fan ---
-    # Renamed from room_slug_fan_runon -> room_slug_actions_fan_runon for
-    # consistency. Update any automations referencing the old entity id:
-    #   timer.room_slug_fan_runon  ->  timer.room_slug_actions_fan_runon
     room_slug_actions_fan_runon:
       name: "Room Friendly Name fan run-on"
       icon: mdi:fan-clock
       duration: "00:05:00"
       restore: true
     # --- END fan ---
+
+  template:
+    - binary_sensor:
+        # --- BEGIN lights ---
+        # ON when the actions cooldown timer is actively running.
+        # Prevents rapid ON re-triggering. Useful for dashboard diagnostics.
+        - name: "Room Friendly Name Actions Cooldown Active"
+          unique_id: "room_slug_actions_cooldown_active"
+          icon: mdi:timer-pause-outline
+          state: >-
+            {{ is_state('timer.room_slug_actions_cooldown', 'active') }}
+        # --- END lights ---
+
+        # --- BEGIN fan ---
+        # ON when the fan run-on timer is actively running after vacancy.
+        - name: "Room Friendly Name Fan Runon Active"
+          unique_id: "room_slug_actions_fan_runon_active"
+          icon: mdi:fan-clock
+          state: >-
+            {{ is_state('timer.room_slug_actions_fan_runon', 'active') }}
+        # --- END fan ---
+
+        # --- BEGIN night ---
+        # ON when the current time falls within the configured night window.
+        # Handles midnight-spanning windows (e.g. 22:00 → 06:00) correctly.
+        - name: "Room Friendly Name In Night Window"
+          unique_id: "room_slug_actions_in_night_window"
+          icon: mdi:weather-night
+          state: >-
+            {% set sh = state_attr('input_datetime.office_actions_night_start','hour') | int(-1) %}
+            {% set sm = state_attr('input_datetime.office_actions_night_start','minute') | int(0) %}
+            {% set ss = state_attr('input_datetime.office_actions_night_start','second') | int(0) %}
+            {% set eh = state_attr('input_datetime.office_actions_night_end','hour') | int(-1) %}
+            {% set em = state_attr('input_datetime.office_actions_night_end','minute') | int(0) %}
+            {% set es = state_attr('input_datetime.office_actions_night_end','second') | int(0) %}
+
+            {% if sh < 0 or eh < 0 %}
+              false
+            {% else %}
+              {% set start_ts = sh*3600 + sm*60 + ss %}
+              {% set end_ts   = eh*3600 + em*60 + es %}
+              {% set n = now() %}
+              {% set cur_ts = n.hour*3600 + n.minute*60 + n.second %}
+
+              {% if start_ts <= end_ts %}
+                {{ start_ts <= cur_ts < end_ts }}
+              {% else %}
+                {{ cur_ts >= start_ts or cur_ts < end_ts }}
+              {% endif %}
+            {% endif %}
+        # --- END night ---

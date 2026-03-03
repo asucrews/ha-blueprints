@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.2.2
+  name: WITB+ Actions - Lights + Fan v2.2.4
   description: |
-    Version: 2.2.2 — see CHANGELOG.md for full version history.
+    Version: 2.2.4 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -51,7 +51,6 @@ blueprint:
         automation_override:
           name: Automation override (optional)
           description: If set and ON, the blueprint performs no actions.
-          # FIX #6: Standardized to '' for single-entity optionals
           default: ''
           selector:
             entity:
@@ -314,7 +313,6 @@ blueprint:
 
         night_start_helper:
           name: Night start helper
-          # FIX #6: Standardized to '' for single-entity optionals
           default: ''
           selector:
             entity:
@@ -377,7 +375,6 @@ blueprint:
           default: []
           selector:
             entity:
-              # FIX #5: Corrected indentation from 1 space to 2 spaces (valid YAML)
               domain:
                 - switch
                 - light
@@ -593,11 +590,6 @@ triggers:
     id: vacancy_began
 
   # FIX #1: Scoped to fan_runon_timer only via event_data filter.
-  # Previously this had no filter and fired on EVERY timer.finished event in
-  # the entire HA instance — exit_eval timers, failsafe timers, cooldown timers
-  # from every other room — causing the automation to run needlessly for all of
-  # them. The action guard (trigger.event.data.entity_id == fan_runon_t) caught
-  # it eventually, but not before evaluating all variables for every run.
   - trigger: event
     event_type: timer.finished
     event_data:
@@ -692,10 +684,6 @@ variables:
   lights_off_verify_retry_interval: !input lights_off_verify_retry_interval
   lights_off_keep_tag_on_failure: !input lights_off_keep_tag_on_failure
 
-  # NOTE: override_ok and force_ok are kept as top-level variables for use in
-  # simple single-shot conditions (occupied_on, lights_off, vacancy_began).
-  # For any blocking while-loops (humidity hold, lights retry), these are
-  # intentionally NOT used — see FIX #2 inline comments below.
   override_ok: >-
     {{ override_b == '' or is_state(override_b, 'off') }}
 
@@ -733,13 +721,7 @@ variables:
       {{ lux_threshold_static | float }}
     {% endif %}
 
-  # FIX #3: Apply the 10% hysteresis buffer that was advertised in the v2.1.1
-  # changelog but never implemented. The original check was strict
-  # `lux_value < lux_threshold` with no buffer, causing dusk flicker when lux
-  # hovered near the threshold. Now: lights turn ON if lux < threshold * 1.1,
-  # giving a 10% tolerance band above the configured threshold.
-  # FIX #7: Removed the stale comment block that contradicted this fix
-  # ("Actually, simple gate... If you want hysteresis...").
+  # FIX #3: Apply the 10% hysteresis buffer.
   lights_ok_to_turn_on: >-
     {% if lux_entity != '' and use_lux_gate %}
       {{ lux_value < (lux_threshold * 1.1) }}
@@ -796,7 +778,6 @@ variables:
   any_light_on: >-
     {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
 
-  # ADD #3 (v2.2.1): Safe in-bed check. Handles none and '' input gracefully.
   bed_occupied_entity: !input bed_occupied
   suppress_lights_on_when_in_bed: !input suppress_lights_on_when_in_bed
 
@@ -808,8 +789,8 @@ variables:
   # ADD #4 (v2.2.1): Manual-off hold.
   # True when: automation tagged the lights as turned-on (auto_tag_lights is ON)
   # but the lights are now all off — meaning the user manually turned them off.
-  # Holds until vacancy clears auto_tag_lights.
-  # Falls back to false when auto_tag_lights is not configured (fully backward compatible).
+  # This hold only applies DURING occupancy. At vacancy, auto_tag_lights is
+  # always cleared (FIX #9 v2.2.3) so the hold resets for the next occupancy.
   manual_off_hold: >-
     {% if auto_tag_lights != '' and states(auto_tag_lights) not in ['unknown', 'unavailable'] %}
       {{ is_state(auto_tag_lights, 'on') and (not any_light_on) }}
@@ -886,13 +867,9 @@ actions:
                   - condition: template
                     value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
                   # ADD #5a (v2.2.1): manual-off hold guard.
-                  # If the automation previously turned lights on but they are now off,
-                  # the user manually turned them off — don't bring them back.
                   - condition: template
                     value_template: "{{ not manual_off_hold }}"
                   # ADD #5b (v2.2.1): in-bed suppress guard.
-                  # If someone is in bed and lights are currently off, don't turn them
-                  # on due to occupancy re-assertion (e.g. midnight bathroom return).
                   - condition: template
                     value_template: "{{ not (suppress_lights_on_when_in_bed and in_bed and (not any_light_on)) }}"
                 sequence:
@@ -1032,16 +1009,6 @@ actions:
                 sequence:
                   - variables:
                       _lights_off_retries: "{{ lights_off_verify_retries | int(0) }}"
-                      # FIX: Capture whether any lights were ON right now, before we attempt
-                      # to turn them off. Used below to guard auto-tag clearing — if lights
-                      # were already off at vacancy time (manual-off hold), we must NOT clear
-                      # auto_tag_lights, so the hold survives the vacancy/re-occupy cycle.
-                      _lights_on_at_vacancy: >-
-                        {% if lights | length > 0 %}
-                          {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
-                        {% else %}
-                          false
-                        {% endif %}
 
                   # Soft-Off Warning (Dim to 10% for 15s before full off)
                   - choose:
@@ -1056,8 +1023,6 @@ actions:
                               brightness_pct: 10
                               transition: 2
                           - delay: 00:00:15
-                          # If room became occupied again during soft-off delay, mode:restart
-                          # will have cancelled this run already — no explicit check needed.
 
                   # First OFF attempt
                   - choose:
@@ -1078,80 +1043,143 @@ actions:
                             data:
                               transition: !input transition_off
 
-                  # Verify + retry OFF (optional)
+                  # FIX #9 (v2.2.4): Verify, retry, and clear tag as early as possible.
+                  #
+                  # Previous approach deferred the tag clear to the very end of the sequence.
+                  # This meant a mode:restart (room re-occupied mid-retry) would kill the run
+                  # before the tag clear ever executed, leaving auto_tag_lights permanently ON.
+                  # That caused manual_off_hold to activate on the next vacancy even with no
+                  # manual interaction — lights appeared stuck off forever.
+                  #
+                  # New approach:
+                  #   1. After first OFF attempt, do the initial verify delay.
+                  #   2. Check if lights are already off → clear tag immediately if so.
+                  #   3. Only enter retry loop if lights are still on.
+                  #   4. On each retry, clear tag as soon as lights confirmed off.
+                  #   5. After retries exhausted, respect lights_off_keep_tag_on_failure.
+                  #
+                  # A mid-retry restart now always leaves the tag reflecting reality:
+                  #   - Lights off → tag already cleared before restart ✓
+                  #   - Lights still on → tag still ON (correct, we own those lights) ✓
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ lights_off_verify_enabled and ((_lights_off_retries | int(0)) > 0) }}"
+                            value_template: "{{ lights_off_verify_enabled }}"
                         sequence:
                           - delay: !input lights_off_verify_delay
-                          - repeat:
-                              count: "{{ _lights_off_retries | int(0) }}"
-                              sequence:
-                                # FIX #2: Inline live check instead of frozen override_ok/force_ok
-                                # variables. The retry loop runs over multiple delay cycles — if
-                                # override or a blocking entity is turned on mid-retry, this now
-                                # catches it immediately.
-                                - condition: template
-                                  value_template: >-
-                                    {{ is_state(occ, 'off')
-                                       and (override_b == '' or is_state(override_b, 'off'))
-                                       and (expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0) }}
-                                # Check for lights that are ON or UNAVAILABLE/UNKNOWN (safety)
-                                - choose:
-                                    - conditions:
-                                        - condition: template
-                                          value_template: >-
-                                            {{ (lights | length > 0) and (expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0) }}
-                                      sequence:
-                                        - choose:
-                                            - conditions:
-                                                - condition: template
-                                                  value_template: "{{ lights_off_script != '' }}"
-                                              sequence:
-                                                - action: script.turn_on
-                                                  target:
-                                                    entity_id: "{{ lights_off_script }}"
-                                            - conditions:
-                                                - condition: template
-                                                  value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
-                                              sequence:
-                                                - action: light.turn_off
-                                                  target:
-                                                    entity_id: !input lights
-                                                  data:
-                                                    transition: !input transition_off
-                                    - conditions:
-                                        - condition: template
-                                          value_template: "{{ (lights | length == 0) and (lights_off_script != '') }}"
-                                      sequence:
-                                        - action: script.turn_on
-                                          target:
-                                            entity_id: "{{ lights_off_script }}"
-                                - delay: !input lights_off_verify_retry_interval
 
-                  # Clear auto-tag
-                  # FIX: Only clear auto_tag_lights if lights were actually ON when vacancy
-                  # triggered (_lights_on_at_vacancy). If they were already off — because the
-                  # user manually turned them off while occupied (manual_off_hold case) — we
-                  # preserve the tag so the hold survives this vacancy and blocks re-assertion
-                  # from continued/new occupancy (e.g. second person still in the room/bed).
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ auto_tag_lights != '' and _lights_on_at_vacancy }}"
-                        sequence:
+                          # Check after initial delay — clear tag immediately if already off
                           - variables:
-                              _lights_still_on: >-
+                              _lights_still_on_initial: >-
                                 {% if lights | length > 0 %}
-                                  {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
+                                  {{ expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0 }}
                                 {% else %}
-                                  {{ lights_off_keep_tag_on_failure }}
+                                  false
                                 {% endif %}
+
                           - choose:
                               - conditions:
                                   - condition: template
-                                    value_template: "{{ (not _lights_still_on) or (not lights_off_keep_tag_on_failure) }}"
+                                    value_template: "{{ not _lights_still_on_initial }}"
+                                sequence:
+                                  # Lights confirmed off after first attempt — clear tag now,
+                                  # before any retry delays that could be interrupted by restart.
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ auto_tag_lights != '' }}"
+                                        sequence:
+                                          - action: input_boolean.turn_off
+                                            target:
+                                              entity_id: "{{ auto_tag_lights }}"
+
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ _lights_still_on_initial and (_lights_off_retries | int(0)) > 0 }}"
+                                sequence:
+                                  # Lights still on — enter retry loop
+                                  - repeat:
+                                      count: "{{ _lights_off_retries | int(0) }}"
+                                      sequence:
+                                        # FIX #2: Inline live override/blocking checks
+                                        - condition: template
+                                          value_template: >-
+                                            {{ is_state(occ, 'off')
+                                               and (override_b == '' or is_state(override_b, 'off'))
+                                               and (expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0) }}
+                                        - variables:
+                                            _lights_still_on_retry: >-
+                                              {% if lights | length > 0 %}
+                                                {{ expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0 }}
+                                              {% else %}
+                                                false
+                                              {% endif %}
+                                        - choose:
+                                            - conditions:
+                                                - condition: template
+                                                  value_template: "{{ _lights_still_on_retry }}"
+                                              sequence:
+                                                # Still on — retry the off command
+                                                - choose:
+                                                    - conditions:
+                                                        - condition: template
+                                                          value_template: "{{ lights_off_script != '' }}"
+                                                      sequence:
+                                                        - action: script.turn_on
+                                                          target:
+                                                            entity_id: "{{ lights_off_script }}"
+                                                    - conditions:
+                                                        - condition: template
+                                                          value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                                                      sequence:
+                                                        - action: light.turn_off
+                                                          target:
+                                                            entity_id: !input lights
+                                                          data:
+                                                            transition: !input transition_off
+                                                - delay: !input lights_off_verify_retry_interval
+                                            - conditions:
+                                                - condition: template
+                                                  value_template: "{{ not _lights_still_on_retry }}"
+                                              sequence:
+                                                # Lights confirmed off mid-retry — clear tag immediately
+                                                - choose:
+                                                    - conditions:
+                                                        - condition: template
+                                                          value_template: "{{ auto_tag_lights != '' }}"
+                                                      sequence:
+                                                        - action: input_boolean.turn_off
+                                                          target:
+                                                            entity_id: "{{ auto_tag_lights }}"
+                                                # Stop retrying — lights are off
+                                                - stop: "Lights confirmed off, tag cleared"
+
+                                  # Retries exhausted — check final state and respect keep_tag_on_failure
+                                  - variables:
+                                      _lights_still_on_final: >-
+                                        {% if lights | length > 0 %}
+                                          {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
+                                        {% else %}
+                                          {{ lights_off_keep_tag_on_failure }}
+                                        {% endif %}
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ (not _lights_still_on_final) or (not lights_off_keep_tag_on_failure) }}"
+                                        sequence:
+                                          - action: input_boolean.turn_off
+                                            target:
+                                              entity_id: "{{ auto_tag_lights }}"
+
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ not lights_off_verify_enabled }}"
+                        sequence:
+                          # Verify disabled — clear tag immediately
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ auto_tag_lights != '' }}"
                                 sequence:
                                   - action: input_boolean.turn_off
                                     target:
@@ -1187,10 +1215,6 @@ actions:
                           - repeat:
                               while:
                                 # FIX #2: Inline live override/force/blocking checks.
-                                # This loop can block for up to humidity_hold_max (default 1h).
-                                # Using the frozen top-level override_ok/force_ok here meant
-                                # turning override ON mid-loop had zero effect. Now re-evaluated
-                                # every iteration against current entity state.
                                 - condition: template
                                   value_template: >-
                                     {{ is_state(occ, 'off')
@@ -1253,8 +1277,7 @@ actions:
       - conditions:
           - condition: trigger
             id: timer_finished
-          # FIX #1: The event_data filter on the trigger already ensures this only
-          # fires for fan_runon_timer. This condition is kept as a safety belt.
+          # FIX #1: Safety belt — event_data filter on trigger already scopes this.
           - condition: template
             value_template: "{{ fan_runon_t != '' and trigger.event.data.entity_id == fan_runon_t }}"
           - condition: template
@@ -1275,8 +1298,7 @@ actions:
                 sequence:
                   - repeat:
                       while:
-                        # FIX #2: Same inline live check as the humidity hold above.
-                        # Fan run-on done can also block here for up to humidity_hold_max.
+                        # FIX #2: Inline live check.
                         - condition: template
                           value_template: >-
                             {{ is_state(occ, 'off')
@@ -1322,9 +1344,7 @@ actions:
         sequence:
           - delay: !input startup_cleanup_delay
 
-          # FIX #8: Use inline live override/force checks rather than the frozen
-          # top-level variables. After startup_cleanup_delay + 15s double-tap,
-          # the cached values may be stale.
+          # FIX #8: Inline live override/force checks after delay.
           - condition: template
             value_template: >-
               {{ override_b == '' or is_state(override_b, 'off') }}
@@ -1351,8 +1371,7 @@ actions:
                       {{ auto_tag_lights != '' and is_state(auto_tag_lights,'on')
                          and (lights_off_script != '' or lights | length > 0) }}
                 sequence:
-                  # FIX #4: Re-evaluate any_light_on inline — top-level variable was
-                  # frozen at ha_start time and is stale after the cleanup delay.
+                  # FIX #4: Re-evaluate any_light_on inline — top-level variable stale after delay.
                   - variables:
                       _any_light_on_now: >-
                         {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
@@ -1380,8 +1399,7 @@ actions:
           - choose:
               - conditions:
                   - condition: template
-                    # FIX #4: Re-evaluate fan_runon_active inline — frozen top-level
-                    # variable was computed at ha_start, before timers had settled.
+                    # FIX #4: Re-evaluate fan_runon_active inline.
                     value_template: >-
                       {{ auto_tag_fan != '' and is_state(auto_tag_fan,'on')
                          and fan_currently_on
