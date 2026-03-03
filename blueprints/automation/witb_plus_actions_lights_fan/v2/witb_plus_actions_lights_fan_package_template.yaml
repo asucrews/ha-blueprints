@@ -2,21 +2,18 @@ room_witb_actions:
   # WITB+ Actions Package Template
   # Tokens: room_slug, Room Friendly Name
   #
-  # Covers helpers consumed by the WITB+ Actions (lights + fan) blueprint only.
-  # Core occupancy helpers live in witb_plus_package_template.yaml.
+  # v2.3.0: Removed lux and humidity feature blocks. Those helpers now belong
+  # to dedicated light-gating and fan-vacancy-gate automations respectively.
+  # The Actions blueprint consumes a single binary sensor for each concern.
   #
-  # Feature blocks (controlled by --no-X flags or per-room no_X: true in config):
+  # Feature blocks:
   #   lights    - auto_lights_on, keep_on (input_boolean) + brightness day/night
   #               (input_number) + actions_cooldown (timer) + cooldown_active sensor
   #   fan       - auto_fan_on (input_boolean) + fan_pct_day/night, fan_runon_minutes,
   #               fan_on_delay (input_number) + fan_runon (timer) + fan_runon_active sensor
-  #   lux       - lux_threshold (input_number)
-  #   humidity  - humidity_high/low (input_number)
   #   night     - night_start/end (input_datetime) + in_night_window sensor
 
   input_boolean:
-    # input_boolean always restores last known state from recorder on restart.
-
     # --- BEGIN lights ---
     room_slug_auto_lights_on:
       name: "Room Friendly Name auto lights on (tag)"
@@ -34,8 +31,6 @@ room_witb_actions:
     # --- END fan ---
 
   input_datetime:
-    # input_datetime always restores last value from recorder on restart.
-
     # --- BEGIN night ---
     room_slug_actions_night_start:
       name: "Room Friendly Name night start"
@@ -51,9 +46,7 @@ room_witb_actions:
     # --- END night ---
 
   input_number:
-    # input_number restores last known value from recorder on restart
-    # as long as `initial` is NOT set. Never set `initial` — it resets
-    # the value on every HA restart, wiping user-set values.
+    # input_number: never set initial — omit it so HA restores prior state on restart.
 
     # --- BEGIN lights ---
     room_slug_actions_brightness_day_pct:
@@ -114,37 +107,6 @@ room_witb_actions:
       mode: box
     # --- END fan ---
 
-    # --- BEGIN lux ---
-    room_slug_actions_lux_threshold:
-      name: "Room Friendly Name lux threshold"
-      icon: mdi:weather-sunny-alert
-      unit_of_measurement: "lx"
-      min: 0
-      max: 5000
-      step: 1
-      mode: box
-    # --- END lux ---
-
-    # --- BEGIN humidity ---
-    room_slug_actions_humidity_high:
-      name: "Room Friendly Name humidity high %"
-      icon: mdi:water-percent-alert
-      unit_of_measurement: "%"
-      min: 30
-      max: 100
-      step: 1
-      mode: box
-
-    room_slug_actions_humidity_low:
-      name: "Room Friendly Name humidity low %"
-      icon: mdi:water-percent
-      unit_of_measurement: "%"
-      min: 30
-      max: 100
-      step: 1
-      mode: box
-    # --- END humidity ---
-
   timer:
     # --- BEGIN lights ---
     room_slug_actions_cooldown:
@@ -165,38 +127,34 @@ room_witb_actions:
   template:
     - binary_sensor:
         # --- BEGIN lights ---
-        # ON when the actions cooldown timer is actively running.
-        # Prevents rapid ON re-triggering. Useful for dashboard diagnostics.
         - name: "Room Friendly Name Actions Cooldown Active"
           unique_id: "room_slug_actions_cooldown_active"
           icon: mdi:timer-pause-outline
           state: >-
-            {{ is_state('timer.room_slug_actions_cooldown', 'active') }}
+            {{ is_state('"timer.room_slug_actions_cooldown"', '"active"') }}
         # --- END lights ---
 
         # --- BEGIN fan ---
-        # ON when the fan run-on timer is actively running after vacancy.
         - name: "Room Friendly Name Fan Runon Active"
           unique_id: "room_slug_actions_fan_runon_active"
           icon: mdi:fan-clock
           state: >-
-            {{ is_state('timer.room_slug_actions_fan_runon', 'active') }}
+            {{ is_state('"timer.room_slug_actions_fan_runon"', '"active"') }}
         # --- END fan ---
 
         # --- BEGIN night ---
-        # ON when the current time falls within the configured night window.
-        # Handles midnight-spanning windows (e.g. 22:00 → 06:00) correctly.
+        # Uses timestamp arithmetic (seconds-since-midnight) to avoid the
+        # today_at()/now() timezone-aware mismatch that prevents entity registration.
         - name: "Room Friendly Name In Night Window"
           unique_id: "room_slug_actions_in_night_window"
           icon: mdi:weather-night
           state: >-
-            {% set sh = state_attr('input_datetime.office_actions_night_start','hour') | int(-1) %}
-            {% set sm = state_attr('input_datetime.office_actions_night_start','minute') | int(0) %}
-            {% set ss = state_attr('input_datetime.office_actions_night_start','second') | int(0) %}
-            {% set eh = state_attr('input_datetime.office_actions_night_end','hour') | int(-1) %}
-            {% set em = state_attr('input_datetime.office_actions_night_end','minute') | int(0) %}
-            {% set es = state_attr('input_datetime.office_actions_night_end','second') | int(0) %}
-
+            {% set sh = state_attr('"input_datetime.room_slug_actions_night_start"','"hour"') | int(-1) %}
+            {% set sm = state_attr('"input_datetime.room_slug_actions_night_start"','"minute"') | int(0) %}
+            {% set ss = state_attr('"input_datetime.room_slug_actions_night_start"','"second"') | int(0) %}
+            {% set eh = state_attr('"input_datetime.room_slug_actions_night_end"','"hour"') | int(-1) %}
+            {% set em = state_attr('"input_datetime.room_slug_actions_night_end"','"minute"') | int(0) %}
+            {% set es = state_attr('"input_datetime.room_slug_actions_night_end"','"second"') | int(0) %}
             {% if sh < 0 or eh < 0 %}
               false
             {% else %}
@@ -204,7 +162,6 @@ room_witb_actions:
               {% set end_ts   = eh*3600 + em*60 + es %}
               {% set n = now() %}
               {% set cur_ts = n.hour*3600 + n.minute*60 + n.second %}
-
               {% if start_ts <= end_ts %}
                 {{ start_ts <= cur_ts < end_ts }}
               {% else %}
