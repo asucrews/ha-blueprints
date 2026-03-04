@@ -5,6 +5,37 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [3.0.1] — 2026-03-03 — Fix fan_gate_cleared trigger crash
+
+### Fixed
+- **FIX — CRITICAL: Blueprint generates invalid automation for any room that does
+  not configure `fan_vacancy_gate_entity`.** The `fan_gate_cleared` trigger uses
+  `entity_id: !input fan_vacancy_gate_entity`. When the input is not provided, HA
+  resolves the default `''` to `None` for the trigger's `entity_id` field and rejects
+  the entire automation with "Entity is neither a valid entity ID nor a valid UUID".
+  Every room without a vacancy gate — i.e. most rooms — was affected.
+
+  Fix: changed `fan_vacancy_gate_entity` input `default` from `''` to `[]`. HA
+  2024.4+ silently skips state triggers whose `entity_id` is an empty list, so the
+  trigger is omitted entirely for unconfigured rooms. Added `fan_gate_enabled`
+  variable (`fan_vacancy_gate_entity is string and fan_vacancy_gate_entity | length > 0`)
+  and updated `fan_ok_to_turn_off` and the `fan_gate_cleared` condition guard to use
+  it instead of `== ''` comparisons.
+
+  This is the same pattern used in WITB+ v4.2 for all optional trigger entities
+  (FIX #7 in that CHANGELOG).
+
+---
+
+## [2.3.2] — 2026-03-03 — Fix fan_gate_cleared trigger crash
+
+### Fixed
+- **FIX — CRITICAL: Same as v3.0.1 above.** `fan_vacancy_gate_entity` default
+  changed from `''` to `[]`. Added `fan_gate_enabled` variable. Updated
+  `fan_ok_to_turn_off` and condition guard. See v3.0.1 entry for full rationale.
+
+---
+
 ## [3.0.0] — 2026-03-03 — Fully Event-Driven
 
 ### Summary
