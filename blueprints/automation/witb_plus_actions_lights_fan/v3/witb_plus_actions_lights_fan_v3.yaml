@@ -2,49 +2,51 @@ blueprint:
   homeassistant:
     min_version: 2026.2.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.3.1
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
+  name: WITB+ Actions - Lights + Fan v3.0.0
   description: |
-    Version: 2.3.1 — see CHANGELOG.md for full version history.
+    Version: 3.0.0 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
 
+    FULLY EVENT-DRIVEN (v3.0.0)
+      All blocking delay: steps have been replaced with dedicated timers.
+      Every automation run completes in milliseconds. mode:restart is safe
+      across all paths — no run can be killed mid-sequence while waiting.
+      The companion tag-cleanup blueprint (witb_plus_actions_cleanup) is
+      still recommended as belt-and-suspenders but is no longer the primary
+      safety net.
+
     LIGHTS
       • Turns lights ON when the room becomes occupied (gated by light_gating_entity).
       • Day and night brightness profiles with configurable transition speeds.
-      • Soft-Off warning: dims to 10% for 15s before full off.
-      • Turns lights OFF after a configurable vacancy delay, with retry/verify logic.
+      • Soft-Off warning: dims to 10% then starts soft_off_timer before full off.
+      • Verify: starts lights_verify_timer after turn-off; retries up to N times.
       • Manual-off hold: if you turn lights off while occupied, they stay off until
         the room goes vacant — no re-assertion from continued motion.
       • Bed suppress: if a bed sensor is configured and someone is in bed, lights
-        will not auto-turn ON from occupancy re-assertion (e.g. midnight bathroom
-        return, rolling over in bed).
+        will not auto-turn ON from occupancy re-assertion.
 
     FAN
-      • Turns fan ON on occupancy (optional delay, night-disable mode).
+      • Turns fan ON on occupancy via fan_on_delay_timer (no blocking delay).
       • Turns fan OFF on vacancy with configurable run-on timer.
       • Day and night speed/preset profiles.
-      • Vacancy gate: delays fan-off while fan_vacancy_gate_entity is OFF (e.g.
-        humidity still high). Fan turns off automatically when the gate clears.
+      • Vacancy gate: delays fan-off while fan_vacancy_gate_entity is OFF.
 
     GATING
       • light_gating_entity: external binary sensor controlling whether lights
-        may turn ON. Compute lux, sun, curtains, season etc. externally — this
-        blueprint just consumes the result.
+        may turn ON. Compute lux, sun, curtains, season etc. externally.
       • fan_vacancy_gate_entity: external binary sensor controlling whether the
-        fan may turn OFF on vacancy. Compute humidity, dew point etc. externally.
-        When the gate transitions ON the fan turns off automatically (if room
-        still vacant and fan still running).
+        fan may turn OFF on vacancy.
 
-    SAFETY / RELIABILITY
-      • Automation override and blocking entity inputs halt all actions.
-      • Cooldown timer prevents rapid ON re-triggering.
-      • Hardened startup cleanup with double-tap validation after HA restart.
-      • Auto-tag helpers (input_boolean) track automation-driven state for safe
-        off-only-what-we-turned-on behavior.
+    NEW REQUIRED HELPERS vs v2 (one set per room)
+      • timer — soft_off_timer        (replaces 15 s soft-off delay)
+      • timer — lights_verify_timer   (replaces verify/retry delays)
+      • timer — fan_on_delay_timer    (replaces blocking fan on-delay)
+      • input_number — lights_verify_attempts_helper  (retry counter)
 
-    See CHANGELOG.md for full version history and fix details.
+    See CHANGELOG.md for full version history and migration notes.
 
   input:
     core:
@@ -70,7 +72,7 @@ blueprint:
 
         blocking_entities:
           name: Blocking entities (optional)
-          description: Select one or more input_booleans. If ANY of these are ON, vacancy actions (OFF) are blocked.
+          description: Select one or more input_booleans. If ANY are ON, vacancy actions (OFF) are blocked.
           default: []
           selector:
             entity:
@@ -140,9 +142,7 @@ blueprint:
           name: 'Lights: gating entity (optional)'
           description: >
             External binary sensor that must be ON for lights to turn ON.
-            Use a dedicated automation to compute this from lux, sun elevation,
-            curtain state, season offsets, etc. Leave empty to always allow
-            lights ON (no gating).
+            Leave empty to always allow lights ON (no gating).
           default: ''
           selector:
             entity:
@@ -151,8 +151,8 @@ blueprint:
         bed_occupied:
           name: 'Lights: bed sensor (optional)'
           description: >
-            Binary sensor that is ON when someone is in bed (e.g. Bed Occupied Either Fast).
-            Used by suppress_lights_on_when_in_bed. Leave empty to disable bed awareness.
+            Binary sensor that is ON when someone is in bed.
+            Used by suppress_lights_on_when_in_bed.
           default: ''
           selector:
             entity:
@@ -162,9 +162,7 @@ blueprint:
           name: 'Lights: suppress auto-ON when in bed'
           description: >
             When ON: if the bed sensor is ON and lights are currently OFF,
-            occupied_on will NOT turn lights on. Prevents motion re-assertion
-            (e.g. midnight bathroom return) from waking lights.
-            Requires bed_occupied to be set. Has no effect if bed_occupied is empty.
+            occupied_on will NOT turn lights on.
           default: true
           selector:
             boolean: null
@@ -212,10 +210,22 @@ blueprint:
 
         lights_soft_off_enabled:
           name: 'Lights: Soft-Off Warning'
-          description: If true, lights dim to 10% for 15s before turning off completely.
+          description: >
+            If true, dims lights to 10% and starts soft_off_timer (15 s) before
+            turning off completely. Requires soft_off_timer to be configured.
           default: false
           selector:
             boolean: null
+
+        soft_off_timer:
+          name: 'Lights: Soft-Off timer (required if Soft-Off enabled)'
+          description: >
+            timer.<slug>_actions_soft_off. Drives the 15 s dim-before-off warning.
+            Required when lights_soft_off_enabled is true.
+          default: ''
+          selector:
+            entity:
+              domain: timer
 
         skip_on_if_any_light_on:
           name: 'Lights: skip turning ON if already ON'
@@ -232,7 +242,9 @@ blueprint:
     lights_off_verification:
       name: Lights off verification
       icon: mdi:timer-refresh
-      description: Retry / verify logic.
+      description: >
+        Event-driven verify/retry. Requires lights_verify_timer and
+        lights_verify_attempts_helper to be configured for retry support.
       collapsed: true
       input:
         lights_off_verify_enabled:
@@ -241,8 +253,30 @@ blueprint:
           selector:
             boolean: null
 
+        lights_verify_timer:
+          name: 'Lights: verify timer (required if verify enabled)'
+          description: >
+            timer.<slug>_actions_lights_verify. Drives the post-off verification
+            wait and retry intervals. Required when lights_off_verify_enabled is true.
+          default: ''
+          selector:
+            entity:
+              domain: timer
+
+        lights_verify_attempts_helper:
+          name: 'Lights: verify attempts counter (required for retries)'
+          description: >
+            input_number.<slug>_actions_verify_attempts. Tracks retry count
+            across timer-fired runs. Required when lights_off_verify_retries > 0.
+            If not configured, only a single verify check is performed.
+          default: ''
+          selector:
+            entity:
+              domain: input_number
+
         lights_off_verify_delay:
           name: 'Lights: initial verify delay'
+          description: How long to wait after the first turn-off before checking lights state.
           default: 00:00:05
           selector:
             duration: null
@@ -258,12 +292,16 @@ blueprint:
 
         lights_off_verify_retry_interval:
           name: 'Lights: retry interval'
+          description: How long to wait between retry turn-off attempts.
           default: 00:00:05
           selector:
             duration: null
 
         lights_off_keep_tag_on_failure:
           name: 'Lights: keep auto-tag ON on failure'
+          description: >
+            If true and retries are exhausted, keep auto_tag_lights ON
+            (cleanup blueprint will clear it). If false, clear tag regardless.
           default: true
           selector:
             boolean: null
@@ -371,10 +409,7 @@ blueprint:
           name: 'Fan: vacancy gate entity (optional)'
           description: >
             External binary sensor that must be ON before the fan may turn OFF
-            on vacancy. Use a dedicated automation to compute this from humidity,
-            dew point, etc. When this gate transitions ON the fan turns off
-            automatically (if the room is still vacant). Leave empty to always
-            allow fan OFF with no hold.
+            on vacancy. Leave empty to always allow fan OFF with no hold.
           default: ''
           selector:
             entity:
@@ -409,6 +444,18 @@ blueprint:
       icon: mdi:timer-outline
       collapsed: true
       input:
+        fan_on_delay_timer:
+          name: 'Fan: ON delay timer (required for non-zero delay)'
+          description: >
+            timer.<slug>_actions_fan_on_delay. Drives the fan on-delay without
+            blocking the automation run. Required when fan_on_delay > 0.
+            If not configured and delay > 0, the delay is skipped and fan turns
+            on immediately.
+          default: ''
+          selector:
+            entity:
+              domain: timer
+
         fan_on_delay:
           name: 'Fan: ON delay after occupancy (static)'
           default: 00:00:00
@@ -417,6 +464,7 @@ blueprint:
 
         fan_on_delay_seconds_helper:
           name: 'Fan: ON delay helper'
+          description: Optional input_number. Overrides the static delay above.
           default: ''
           selector:
             entity:
@@ -438,7 +486,7 @@ blueprint:
 
         fan_runon_minutes_helper:
           name: 'Fan: run-on duration helper (input_number minutes)'
-          description: Optional. Overrides static duration. Matches dashboard slider.
+          description: Optional. Overrides static duration.
           default: ''
           selector:
             entity:
@@ -509,32 +557,55 @@ mode: restart
 max_exceeded: silent
 
 triggers:
+  # Occupancy ON (with optional debounce — HA-native, non-blocking).
   - trigger: state
     entity_id: !input occupied_effective
     to: "on"
     for: !input on_debounce
     id: occupied_on
 
+  # Occupancy OFF held for lights_off_delay — HA-native, non-blocking.
   - trigger: state
     entity_id: !input occupied_effective
     to: "off"
     for: !input lights_off_delay
     id: lights_off
 
+  # Occupancy OFF immediate — for instant fan run-on start and timer cancels.
   - trigger: state
     entity_id: !input occupied_effective
     to: "off"
     id: vacancy_began
 
-  # Scoped to fan_runon_timer only via event_data filter.
+  # Fan on-delay timer done — turn fan on (replaces blocking delay). See CHANGELOG v3.0.0.
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input fan_on_delay_timer
+    id: fan_on_delay_done
+
+  # Soft-off timer done — send full lights off. See CHANGELOG v3.0.0.
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input soft_off_timer
+    id: soft_off_done
+
+  # Lights verify timer done — check lights state, retry if needed. See CHANGELOG v3.0.0.
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input lights_verify_timer
+    id: lights_verify_done
+
+  # Fan run-on timer done — turn fan off. Scoped to this room's timer only.
   - trigger: event
     event_type: timer.finished
     event_data:
       entity_id: !input fan_runon_timer
-    id: timer_finished
+    id: fan_runon_done
 
-  # Fan vacancy gate cleared — turn fan off if room still vacant and fan running.
-  # Only fires when fan_vacancy_gate_entity is configured; harmlessly ignored otherwise.
+  # Fan vacancy gate cleared — turn fan off if room still vacant. See CHANGELOG v2.3.0.
   - trigger: state
     entity_id: !input fan_vacancy_gate_entity
     to: "on"
@@ -566,10 +637,8 @@ variables:
 
   cooldown_t: !input cooldown_timer
 
-  # Empty = no gate = always allow lights ON. See CHANGELOG v2.3.0.
+  # External gate inputs. See CHANGELOG v2.3.0.
   light_gating_entity: !input light_gating_entity
-
-  # OFF = hold fan on; ON = ok to turn fan off. Empty = always ok. See CHANGELOG v2.3.0.
   fan_vacancy_gate_entity: !input fan_vacancy_gate_entity
 
   use_night_profile: !input use_night_profile
@@ -611,10 +680,14 @@ variables:
   skip_on_if_any_light_on: !input skip_on_if_any_light_on
 
   lights_off_verify_enabled: !input lights_off_verify_enabled
-  lights_off_verify_delay: !input lights_off_verify_delay
   lights_off_verify_retries: !input lights_off_verify_retries
-  lights_off_verify_retry_interval: !input lights_off_verify_retry_interval
   lights_off_keep_tag_on_failure: !input lights_off_keep_tag_on_failure
+
+  # v3.0.0 event-driven timer handles.
+  soft_off_t: !input soft_off_timer
+  lights_verify_t: !input lights_verify_timer
+  lights_verify_attempts: !input lights_verify_attempts_helper
+  fan_on_delay_t: !input fan_on_delay_timer
 
   override_ok: >-
     {{ override_b == '' or is_state(override_b, 'off') }}
@@ -636,11 +709,11 @@ variables:
       {{ now() >= start or now() < end }}
     {% endif %}
 
-  # See CHANGELOG v2.3.0.
+  # Empty = no gate = always allow. See CHANGELOG v2.3.0.
   lights_ok_to_turn_on: >-
     {{ light_gating_entity == '' or is_state(light_gating_entity, 'on') }}
 
-  # See CHANGELOG v2.3.0.
+  # OFF = hold fan on; ON = ok to turn off. Empty = always ok. See CHANGELOG v2.3.0.
   fan_ok_to_turn_off: >-
     {{ fan_vacancy_gate_entity == '' or is_state(fan_vacancy_gate_entity, 'on') }}
 
@@ -728,7 +801,11 @@ variables:
 
 actions:
   - choose:
-      # ================= OCCUPIED -> ON =================
+      # ==========================================================================
+      # OCCUPIED -> ON
+      # Cancels all pending vacancy timers, turns lights on, starts fan on-delay
+      # timer (or turns fan on immediately if no delay configured).
+      # ==========================================================================
       - conditions:
           - condition: trigger
             id: occupied_on
@@ -737,7 +814,7 @@ actions:
           - condition: template
             value_template: "{{ not cooldown_active }}"
         sequence:
-          # Cancel fan run-on timer if present (room is occupied again)
+          # Cancel all vacancy-side timers — room is occupied again.
           - choose:
               - conditions:
                   - condition: template
@@ -746,6 +823,46 @@ actions:
                   - action: timer.cancel
                     target:
                       entity_id: "{{ fan_runon_t }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ fan_on_delay_t != '' }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fan_on_delay_t }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ soft_off_t != '' }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ soft_off_t }}"
+            default: []
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights_verify_t != '' }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ lights_verify_t }}"
+            default: []
+          # Reset verify attempts counter.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights_verify_attempts != '' }}"
+                sequence:
+                  - action: input_number.set_value
+                    target:
+                      entity_id: "{{ lights_verify_attempts }}"
+                    data:
+                      value: 0
+            default: []
 
           # ---- Lights ON ----
           - choose:
@@ -796,7 +913,10 @@ actions:
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
 
-          # ---- Fan ON (with optional delay) ----
+          # ---- Fan ON (event-driven via fan_on_delay_timer) ----
+          # If a delay timer is configured and delay > 0, start the timer.
+          # fan_on_delay_done will fire the actual turn-on.
+          # If no timer or zero delay, turn fan on immediately. See CHANGELOG v3.0.0.
           - choose:
               - conditions:
                   - condition: template
@@ -805,68 +925,75 @@ actions:
                     value_template: "{{ (not fan_disable_during_night) or (not is_night) }}"
                 sequence:
                   - choose:
+                      # Delay path — start timer, actual ON in fan_on_delay_done.
                       - conditions:
                           - condition: template
-                            value_template: "{{ fan_on_delay_seconds | float(0) > 0 }}"
+                            value_template: "{{ fan_on_delay_t != '' and fan_on_delay_seconds | float(0) > 0 }}"
                         sequence:
-                          - delay:
-                              seconds: "{{ fan_on_delay_seconds | int(0) }}"
-                          - condition: template
-                            value_template: "{{ is_state(occ, 'on') and override_ok }}"
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ fan_entity != '' }}"
-                          - condition: template
-                            value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
-                        sequence:
-                          - action: fan.turn_on
+                          - action: timer.start
                             target:
-                              entity_id: "{{ fan_entity }}"
-                          - choose:
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ fan_pct | int > 0 }}"
-                                sequence:
-                                  - action: fan.set_percentage
-                                    target:
-                                      entity_id: "{{ fan_entity }}"
-                                    data:
-                                      percentage: "{{ fan_pct | int }}"
-                          - choose:
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ fan_preset is string and fan_preset | length > 0 }}"
-                                sequence:
-                                  - action: fan.set_preset_mode
-                                    target:
-                                      entity_id: "{{ fan_entity }}"
-                                    data:
-                                      preset_mode: "{{ fan_preset }}"
-                          - choose:
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ auto_tag_fan != '' }}"
-                                sequence:
-                                  - action: input_boolean.turn_on
-                                    target:
-                                      entity_id: "{{ auto_tag_fan }}"
+                              entity_id: "{{ fan_on_delay_t }}"
+                            data:
+                              duration: "{{ fan_on_delay_seconds | int }}"
 
+                      # No-delay path — turn fan on immediately.
                       - conditions:
                           - condition: template
-                            value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                            value_template: "{{ fan_on_delay_seconds | float(0) == 0 or fan_on_delay_t == '' }}"
                         sequence:
-                          - action: switch.turn_on
-                            target:
-                              entity_id: !input fan_switches
                           - choose:
                               - conditions:
                                   - condition: template
-                                    value_template: "{{ auto_tag_fan != '' }}"
+                                    value_template: "{{ fan_entity != '' }}"
+                                  - condition: template
+                                    value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
                                 sequence:
-                                  - action: input_boolean.turn_on
+                                  - action: fan.turn_on
                                     target:
-                                      entity_id: "{{ auto_tag_fan }}"
+                                      entity_id: "{{ fan_entity }}"
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ fan_pct | int > 0 }}"
+                                        sequence:
+                                          - action: fan.set_percentage
+                                            target:
+                                              entity_id: "{{ fan_entity }}"
+                                            data:
+                                              percentage: "{{ fan_pct | int }}"
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ fan_preset is string and fan_preset | length > 0 }}"
+                                        sequence:
+                                          - action: fan.set_preset_mode
+                                            target:
+                                              entity_id: "{{ fan_entity }}"
+                                            data:
+                                              preset_mode: "{{ fan_preset }}"
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ auto_tag_fan != '' }}"
+                                        sequence:
+                                          - action: input_boolean.turn_on
+                                            target:
+                                              entity_id: "{{ auto_tag_fan }}"
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                                sequence:
+                                  - action: switch.turn_on
+                                    target:
+                                      entity_id: !input fan_switches
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ auto_tag_fan != '' }}"
+                                        sequence:
+                                          - action: input_boolean.turn_on
+                                            target:
+                                              entity_id: "{{ auto_tag_fan }}"
 
           # ---- Cooldown timer ----
           - choose:
@@ -880,7 +1007,122 @@ actions:
                     data:
                       duration: !input cooldown_duration
 
-      # ================= VACANT -> LIGHTS OFF =================
+      # ==========================================================================
+      # FAN ON DELAY DONE -> FAN ON
+      # Fires when fan_on_delay_timer expires. Guards room still occupied.
+      # Replaces the blocking delay: in the occupied_on sequence. See CHANGELOG v3.0.0.
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id: fan_on_delay_done
+          - condition: template
+            value_template: "{{ fan_on_delay_t != '' and trigger.event.data.entity_id == fan_on_delay_t }}"
+          - condition: template
+            value_template: "{{ override_ok }}"
+          - condition: template
+            value_template: "{{ is_state(occ, 'on') }}"
+          - condition: template
+            value_template: "{{ fan_turn_on_on_occupy }}"
+          - condition: template
+            value_template: "{{ (not fan_disable_during_night) or (not is_night) }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ fan_entity != '' }}"
+                  - condition: template
+                    value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
+                sequence:
+                  - action: fan.turn_on
+                    target:
+                      entity_id: "{{ fan_entity }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_pct | int > 0 }}"
+                        sequence:
+                          - action: fan.set_percentage
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                            data:
+                              percentage: "{{ fan_pct | int }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_preset is string and fan_preset | length > 0 }}"
+                        sequence:
+                          - action: fan.set_preset_mode
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                            data:
+                              preset_mode: "{{ fan_preset }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_fan != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ auto_tag_fan }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                sequence:
+                  - action: switch.turn_on
+                    target:
+                      entity_id: !input fan_switches
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_fan != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ auto_tag_fan }}"
+
+      # ==========================================================================
+      # VACANT -> IMMEDIATE VACANCY ACTIONS
+      # Fires the moment the room goes vacant.
+      # • Cancels fan_on_delay_timer — prevents fan turning on after vacancy.
+      # • Starts immediate fan run-on if fan_runon_after_lights is false.
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id: vacancy_began
+        sequence:
+          # Always cancel fan on-delay timer — room is now vacant.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ fan_on_delay_t != '' }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fan_on_delay_t }}"
+            default: []
+
+          # Immediate fan run-on (when not waiting for lights to turn off first).
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ override_ok and fan_turn_off_on_vacant
+                         and fan_runon_t != '' and not fan_runon_after_lights
+                         and tag_fan_ok_to_off and fan_currently_on
+                         and fan_ok_to_turn_off }}
+                sequence:
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fan_runon_t }}"
+                    data:
+                      duration: "{{ fan_runon_actual_seconds }}"
+            default: []
+
+      # ==========================================================================
+      # VACANT -> LIGHTS OFF
+      # Fires after lights_off_delay. Starts soft-off dim+timer, OR turns lights
+      # off directly and starts the verify timer. No blocking delays. See CHANGELOG v3.0.0.
+      # ==========================================================================
       - conditions:
           - condition: trigger
             id: lights_off
@@ -889,20 +1131,17 @@ actions:
           - condition: template
             value_template: "{{ force_ok }}"
         sequence:
-          # Lights OFF sequence
+          # ---- Lights OFF sequence ----
           - choose:
               - conditions:
                   - condition: template
                     value_template: "{{ lights_control_enabled and tag_lights_ok_to_off }}"
                 sequence:
-                  - variables:
-                      _lights_off_retries: "{{ lights_off_verify_retries | int(0) }}"
-
-                  # Soft-Off Warning (Dim to 10% for 15s before full off)
                   - choose:
+                      # --- Soft-off path: dim then start soft_off_timer ---
                       - conditions:
                           - condition: template
-                            value_template: "{{ lights_soft_off_enabled and (lights | length > 0) }}"
+                            value_template: "{{ lights_soft_off_enabled and (lights | length > 0) and soft_off_t != '' }}"
                         sequence:
                           - action: light.turn_on
                             target:
@@ -910,64 +1149,78 @@ actions:
                             data:
                               brightness_pct: 10
                               transition: 2
-                          - delay: 00:00:15
-
-                  # First OFF attempt
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ lights_off_script != '' }}"
-                        sequence:
-                          - action: script.turn_on
-                            target:
-                              entity_id: "{{ lights_off_script }}"
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
-                        sequence:
-                          - action: light.turn_off
-                            target:
-                              entity_id: !input lights
-                            data:
-                              transition: !input transition_off
-
-                  # Fan run-on started HERE, before verify/retry. See CHANGELOG v2.3.1.
-                  - choose:
-                      - conditions:
-                          - condition: template
-                            value_template: >-
-                              {{ fan_turn_off_on_vacant and fan_runon_t != ''
-                                 and fan_runon_after_lights
-                                 and tag_fan_ok_to_off and fan_currently_on
-                                 and fan_ok_to_turn_off }}
-                        sequence:
+                          # soft_off_done will send full off, start verify, and start fan run-on.
                           - action: timer.start
                             target:
-                              entity_id: "{{ fan_runon_t }}"
+                              entity_id: "{{ soft_off_t }}"
                             data:
-                              duration: "{{ fan_runon_actual_seconds }}"
+                              duration: "00:00:15"
 
-                  # Verify, retry, and clear tag as early as possible.
-                  # See v2.2.4 comment for full rationale on early tag clearing.
-                  - choose:
+                      # --- Direct-off path: turn off now, start verify or clear tag ---
                       - conditions:
                           - condition: template
-                            value_template: "{{ lights_off_verify_enabled }}"
+                            value_template: "{{ true }}"
                         sequence:
-                          - delay: !input lights_off_verify_delay
-
-                          - variables:
-                              _lights_still_on_initial: >-
-                                {% if lights | length > 0 %}
-                                  {{ expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0 }}
-                                {% else %}
-                                  false
-                                {% endif %}
-
                           - choose:
                               - conditions:
                                   - condition: template
-                                    value_template: "{{ not _lights_still_on_initial }}"
+                                    value_template: "{{ lights_off_script != '' }}"
+                                sequence:
+                                  - action: script.turn_on
+                                    target:
+                                      entity_id: "{{ lights_off_script }}"
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                                sequence:
+                                  - action: light.turn_off
+                                    target:
+                                      entity_id: !input lights
+                                    data:
+                                      transition: !input transition_off
+
+                          # Fan run-on started BEFORE verify — immune to any restart. See CHANGELOG v2.3.1.
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: >-
+                                      {{ fan_turn_off_on_vacant and fan_runon_t != ''
+                                         and fan_runon_after_lights
+                                         and tag_fan_ok_to_off and fan_currently_on
+                                         and fan_ok_to_turn_off }}
+                                sequence:
+                                  - action: timer.start
+                                    target:
+                                      entity_id: "{{ fan_runon_t }}"
+                                    data:
+                                      duration: "{{ fan_runon_actual_seconds }}"
+                            default: []
+
+                          # Start verify timer or clear tag immediately.
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ lights_off_verify_enabled and lights_verify_t != '' }}"
+                                sequence:
+                                  - choose:
+                                      - conditions:
+                                          - condition: template
+                                            value_template: "{{ lights_verify_attempts != '' }}"
+                                        sequence:
+                                          - action: input_number.set_value
+                                            target:
+                                              entity_id: "{{ lights_verify_attempts }}"
+                                            data:
+                                              value: 0
+                                    default: []
+                                  - action: timer.start
+                                    target:
+                                      entity_id: "{{ lights_verify_t }}"
+                                    data:
+                                      duration: !input lights_off_verify_delay
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ not lights_off_verify_enabled or lights_verify_t == '' }}"
                                 sequence:
                                   - choose:
                                       - conditions:
@@ -977,93 +1230,9 @@ actions:
                                           - action: input_boolean.turn_off
                                             target:
                                               entity_id: "{{ auto_tag_lights }}"
+            default: []
 
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ _lights_still_on_initial and (_lights_off_retries | int(0)) > 0 }}"
-                                sequence:
-                                  - repeat:
-                                      count: "{{ _lights_off_retries | int(0) }}"
-                                      sequence:
-                                        - condition: template
-                                          value_template: >-
-                                            {{ is_state(occ, 'off')
-                                               and (override_b == '' or is_state(override_b, 'off'))
-                                               and (expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0) }}
-                                        - variables:
-                                            _lights_still_on_retry: >-
-                                              {% if lights | length > 0 %}
-                                                {{ expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0 }}
-                                              {% else %}
-                                                false
-                                              {% endif %}
-                                        - choose:
-                                            - conditions:
-                                                - condition: template
-                                                  value_template: "{{ _lights_still_on_retry }}"
-                                              sequence:
-                                                - choose:
-                                                    - conditions:
-                                                        - condition: template
-                                                          value_template: "{{ lights_off_script != '' }}"
-                                                      sequence:
-                                                        - action: script.turn_on
-                                                          target:
-                                                            entity_id: "{{ lights_off_script }}"
-                                                    - conditions:
-                                                        - condition: template
-                                                          value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
-                                                      sequence:
-                                                        - action: light.turn_off
-                                                          target:
-                                                            entity_id: !input lights
-                                                          data:
-                                                            transition: !input transition_off
-                                                - delay: !input lights_off_verify_retry_interval
-                                            - conditions:
-                                                - condition: template
-                                                  value_template: "{{ not _lights_still_on_retry }}"
-                                              sequence:
-                                                - choose:
-                                                    - conditions:
-                                                        - condition: template
-                                                          value_template: "{{ auto_tag_lights != '' }}"
-                                                      sequence:
-                                                        - action: input_boolean.turn_off
-                                                          target:
-                                                            entity_id: "{{ auto_tag_lights }}"
-                                                - stop: "Lights confirmed off, tag cleared"
-
-                                  - variables:
-                                      _lights_still_on_final: >-
-                                        {% if lights | length > 0 %}
-                                          {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
-                                        {% else %}
-                                          {{ lights_off_keep_tag_on_failure }}
-                                        {% endif %}
-                                  - choose:
-                                      - conditions:
-                                          - condition: template
-                                            value_template: "{{ (not _lights_still_on_final) or (not lights_off_keep_tag_on_failure) }}"
-                                        sequence:
-                                          - action: input_boolean.turn_off
-                                            target:
-                                              entity_id: "{{ auto_tag_lights }}"
-
-                      - conditions:
-                          - condition: template
-                            value_template: "{{ not lights_off_verify_enabled }}"
-                        sequence:
-                          - choose:
-                              - conditions:
-                                  - condition: template
-                                    value_template: "{{ auto_tag_lights != '' }}"
-                                sequence:
-                                  - action: input_boolean.turn_off
-                                    target:
-                                      entity_id: "{{ auto_tag_lights }}"
-
-          # No run-on timer — turn fan off directly. Gate OFF defers to fan_gate_cleared.
+          # ---- Fan fallback — no run-on timer, turn off directly ----
           - choose:
               - conditions:
                   - condition: template
@@ -1094,37 +1263,235 @@ actions:
                           - action: input_boolean.turn_off
                             target:
                               entity_id: "{{ auto_tag_fan }}"
+            default: []
 
-      # ================= VACANT -> START FAN RUN-ON (immediate) =================
+      # ==========================================================================
+      # SOFT-OFF DONE -> FULL LIGHTS OFF
+      # Fires 15 s after the dim warning. Sends actual turn-off, then starts the
+      # verify timer (or clears tag) and fan run-on. See CHANGELOG v3.0.0.
+      # ==========================================================================
       - conditions:
           - condition: trigger
-            id: vacancy_began
+            id: soft_off_done
+          - condition: template
+            value_template: "{{ soft_off_t != '' and trigger.event.data.entity_id == soft_off_t }}"
           - condition: template
             value_template: "{{ override_ok }}"
           - condition: template
-            value_template: "{{ fan_turn_off_on_vacant }}"
+            value_template: "{{ force_ok }}"
           - condition: template
-            value_template: "{{ fan_runon_t != '' }}"
+            value_template: "{{ tag_lights_ok_to_off }}"
+          # Re-confirm still vacant — room may have re-occupied since soft-off started.
           - condition: template
-            value_template: "{{ not fan_runon_after_lights }}"
-          - condition: template
-            value_template: "{{ tag_fan_ok_to_off }}"
-          - condition: template
-            value_template: "{{ fan_currently_on }}"
-          # Gate OFF defers to fan_gate_cleared. See CHANGELOG v2.3.0.
-          - condition: template
-            value_template: "{{ fan_ok_to_turn_off }}"
+            value_template: "{{ is_state(occ, 'off') }}"
         sequence:
-          - action: timer.start
-            target:
-              entity_id: "{{ fan_runon_t }}"
-            data:
-              duration: "{{ fan_runon_actual_seconds }}"
+          # Full lights off.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights_off_script != '' }}"
+                sequence:
+                  - action: script.turn_on
+                    target:
+                      entity_id: "{{ lights_off_script }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                sequence:
+                  - action: light.turn_off
+                    target:
+                      entity_id: !input lights
+                    data:
+                      transition: !input transition_off
 
-      # ================= FAN RUN-ON DONE -> FAN OFF =================
+          # Fan run-on BEFORE verify — immune to any restart. See CHANGELOG v2.3.1.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ fan_turn_off_on_vacant and fan_runon_t != ''
+                         and fan_runon_after_lights
+                         and tag_fan_ok_to_off and fan_currently_on
+                         and fan_ok_to_turn_off }}
+                sequence:
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fan_runon_t }}"
+                    data:
+                      duration: "{{ fan_runon_actual_seconds }}"
+            default: []
+
+          # Start verify timer or clear tag immediately.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ lights_off_verify_enabled and lights_verify_t != '' }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_verify_attempts != '' }}"
+                        sequence:
+                          - action: input_number.set_value
+                            target:
+                              entity_id: "{{ lights_verify_attempts }}"
+                            data:
+                              value: 0
+                    default: []
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ lights_verify_t }}"
+                    data:
+                      duration: !input lights_off_verify_delay
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not lights_off_verify_enabled or lights_verify_t == '' }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_lights != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ auto_tag_lights }}"
+            default: []
+
+      # ==========================================================================
+      # LIGHTS VERIFY DONE -> CHECK / RETRY / EXHAUST
+      # Replaces the inline repeat loop. Reads attempt counter, decides whether
+      # to clear tag, retry, or exhaust. See CHANGELOG v3.0.0.
+      # ==========================================================================
       - conditions:
           - condition: trigger
-            id: timer_finished
+            id: lights_verify_done
+          - condition: template
+            value_template: "{{ lights_verify_t != '' and trigger.event.data.entity_id == lights_verify_t }}"
+          - condition: template
+            value_template: "{{ override_ok }}"
+          - condition: template
+            value_template: "{{ force_ok }}"
+          # Re-confirm still vacant.
+          - condition: template
+            value_template: "{{ is_state(occ, 'off') }}"
+        sequence:
+          - variables:
+              _attempts_now: >-
+                {% if lights_verify_attempts != '' %}
+                  {{ states(lights_verify_attempts) | int(0) }}
+                {% else %}
+                  0
+                {% endif %}
+              _max: "{{ lights_off_verify_retries | int(0) }}"
+              _lights_still_on: >-
+                {% if lights | length > 0 %}
+                  {{ expand(lights) | selectattr('state', 'in', ['on', 'unavailable', 'unknown']) | list | count > 0 }}
+                {% else %}
+                  false
+                {% endif %}
+
+          - choose:
+              # --- PASS: lights confirmed off — clear tag and reset counter ---
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not _lights_still_on }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_lights != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ auto_tag_lights }}"
+                    default: []
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_verify_attempts != '' }}"
+                        sequence:
+                          - action: input_number.set_value
+                            target:
+                              entity_id: "{{ lights_verify_attempts }}"
+                            data:
+                              value: 0
+                    default: []
+
+              # --- RETRY: lights still on and retries remaining ---
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _lights_still_on and _attempts_now < _max }}"
+                sequence:
+                  # Increment counter.
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_verify_attempts != '' }}"
+                        sequence:
+                          - action: input_number.set_value
+                            target:
+                              entity_id: "{{ lights_verify_attempts }}"
+                            data:
+                              value: "{{ _attempts_now + 1 }}"
+                    default: []
+                  # Retry turn-off.
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_off_script != '' }}"
+                        sequence:
+                          - action: script.turn_on
+                            target:
+                              entity_id: "{{ lights_off_script }}"
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                        sequence:
+                          - action: light.turn_off
+                            target:
+                              entity_id: !input lights
+                            data:
+                              transition: !input transition_off
+                  # Restart verify timer with retry interval.
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ lights_verify_t }}"
+                    data:
+                      duration: !input lights_off_verify_retry_interval
+
+              # --- EXHAUSTED: retries used up, lights still on ---
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _lights_still_on and _attempts_now >= _max }}"
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (not lights_off_keep_tag_on_failure) and auto_tag_lights != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_off
+                            target:
+                              entity_id: "{{ auto_tag_lights }}"
+                    default: []
+                  # Reset counter regardless so next vacancy starts clean.
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_verify_attempts != '' }}"
+                        sequence:
+                          - action: input_number.set_value
+                            target:
+                              entity_id: "{{ lights_verify_attempts }}"
+                            data:
+                              value: 0
+                    default: []
+
+      # ==========================================================================
+      # FAN RUN-ON DONE -> FAN OFF
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id: fan_runon_done
           - condition: template
             value_template: "{{ fan_runon_t != '' and trigger.event.data.entity_id == fan_runon_t }}"
           - condition: template
@@ -1163,10 +1530,13 @@ actions:
                     target:
                       entity_id: "{{ auto_tag_fan }}"
 
-      # ================= FAN VACANCY GATE CLEARED -> FAN OFF =================
+      # ==========================================================================
+      # FAN VACANCY GATE CLEARED -> FAN OFF
       # Fires when fan_vacancy_gate_entity transitions ON (e.g. humidity dropped).
       # Guarded: room still vacant, fan still running, run-on timer not active.
-      # Run-on takes precedence — timer_finished handles fan-off when it expires.
+      # Run-on takes precedence — fan_runon_done handles fan-off when it expires.
+      # See CHANGELOG v2.3.0.
+      # ==========================================================================
       - conditions:
           - condition: trigger
             id: fan_gate_cleared
@@ -1182,7 +1552,7 @@ actions:
             value_template: "{{ is_state(occ, 'off') }}"
           - condition: template
             value_template: "{{ fan_currently_on }}"
-          # Run-on active — timer_finished owns fan-off; don't cut it short.
+          # Run-on active — fan_runon_done owns fan-off; don't cut it short.
           - condition: template
             value_template: "{{ not fan_runon_active }}"
         sequence:
@@ -1210,7 +1580,11 @@ actions:
                     target:
                       entity_id: "{{ auto_tag_fan }}"
 
-      # ================= STARTUP CLEANUP (HARDENED) =================
+      # ==========================================================================
+      # STARTUP CLEANUP (HARDENED)
+      # startup_cleanup_delay and the 15 s double-tap remain as blocking delays
+      # here. ha_start runs once per restart; stuck-state risk is negligible.
+      # ==========================================================================
       - conditions:
           - condition: trigger
             id: ha_start
@@ -1225,12 +1599,11 @@ actions:
           - condition: template
             value_template: >-
               {{ expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0 }}
-
           - condition: template
             value_template: >-
               {{ has_value(occ) and is_state(occ, 'off') }}
 
-          # Double-tap validation: wait 15s then re-check
+          # Double-tap validation: re-check after 15 s.
           - delay: 00:00:15
 
           - condition: template
@@ -1244,9 +1617,6 @@ actions:
                       {{ auto_tag_lights != '' and is_state(auto_tag_lights,'on')
                          and (lights_off_script != '' or lights | length > 0) }}
                 sequence:
-                  - variables:
-                      _any_light_on_now: >-
-                        {{ expand(lights) | selectattr('state','eq','on') | list | count > 0 }}
                   - choose:
                       - conditions:
                           - condition: template
