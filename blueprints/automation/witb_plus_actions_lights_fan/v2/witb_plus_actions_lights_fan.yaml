@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v2.3.2
+  name: WITB+ Actions - Lights + Fan v2.3.3
   description: |
-    Version: 2.3.2 — see CHANGELOG.md for full version history.
+    Version: 2.3.3 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -803,6 +803,10 @@ actions:
                                       entity_id: "{{ auto_tag_lights }}"
 
           # ---- Fan ON (with optional delay) ----
+          # FIX v2.3.3: The post-delay occupancy check must live at the outer sequence
+          # level so a failed condition actually halts execution and prevents the fan
+          # turn-on choose block from running. A condition: inside an inner choose
+          # sequence only stops that branch — it does not propagate upward.
           - choose:
               - conditions:
                   - condition: template
@@ -817,8 +821,10 @@ actions:
                         sequence:
                           - delay:
                               seconds: "{{ fan_on_delay_seconds | int(0) }}"
-                          - condition: template
-                            value_template: "{{ is_state(occ, 'on') and override_ok }}"
+                  # Guard at outer sequence level — aborts fan turn-on if room
+                  # went vacant during the delay. See CHANGELOG v2.3.3.
+                  - condition: template
+                    value_template: "{{ is_state(occ, 'on') and override_ok }}"
                   - choose:
                       - conditions:
                           - condition: template
@@ -954,7 +960,6 @@ actions:
                               duration: "{{ fan_runon_actual_seconds }}"
 
                   # Verify, retry, and clear tag as early as possible.
-                  # See v2.2.4 comment for full rationale on early tag clearing.
                   - choose:
                       - conditions:
                           - condition: template

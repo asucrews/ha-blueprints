@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.2.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
-  name: WITB+ Actions - Lights + Fan v3.0.1
+  name: WITB+ Actions - Lights + Fan v3.0.2
   description: |
-    Version: 3.0.1 — see CHANGELOG.md for full version history.
+    Version: 3.0.2 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -921,9 +921,12 @@ actions:
                                       entity_id: "{{ auto_tag_lights }}"
 
           # ---- Fan ON (event-driven via fan_on_delay_timer) ----
-          # If a delay timer is configured and delay > 0, start the timer.
-          # fan_on_delay_done will fire the actual turn-on.
-          # If no timer or zero delay, turn fan on immediately. See CHANGELOG v3.0.0.
+          # FIX v3.0.2: The no-delay path previously used `fan_on_delay_seconds == 0
+          # OR fan_on_delay_t == ''`. The OR clause caused the fan to turn on
+          # immediately whenever the timer entity was not wired up, even when
+          # delay seconds > 0. Removed the OR clause — if a delay > 0 is configured
+          # but no timer entity is wired, neither path matches and fan on is skipped
+          # (matching the documented fallback). See CHANGELOG v3.0.2.
           - choose:
               - conditions:
                   - condition: template
@@ -944,9 +947,10 @@ actions:
                               duration: "{{ fan_on_delay_seconds | int }}"
 
                       # No-delay path — turn fan on immediately.
+                      # Only matches when delay is actually zero. See CHANGELOG v3.0.2.
                       - conditions:
                           - condition: template
-                            value_template: "{{ fan_on_delay_seconds | float(0) == 0 or fan_on_delay_t == '' }}"
+                            value_template: "{{ fan_on_delay_seconds | float(0) == 0 }}"
                         sequence:
                           - choose:
                               - conditions:
