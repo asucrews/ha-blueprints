@@ -1,0 +1,173 @@
+blueprint:
+  name: Light Inferred From Lux Delta v1.0.0
+  description: |
+    Version: 1.0.0 — see CHANGELOG.md for full version history.
+
+    Infers whether a light is on or off by comparing a lux delta sensor against
+    configurable thresholds. Designed for lights that cannot be controlled
+    directly by Home Assistant (fan-mounted lights, dumb switches, etc.).
+
+    Updates an input_boolean to keep HA in sync with the physical light state.
+    Also re-evaluates state on Home Assistant restart.
+
+    Requires a lux delta sensor produced by the companion package template
+    (room_lux_baseline_delta_package_template.yaml).
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/lux_light_inferred/v1/lux_light_inferred_from_delta.yaml
+  domain: automation
+  author: asucrews
+  homeassistant:
+    min_version: 2023.4.0
+  input:
+    delta_sensor:
+      name: Lux delta sensor (lx)
+      description: >
+        The sensor representing "lux above ambient baseline". Typically
+        sensor.room_lux_delta produced by the companion package template.
+      selector:
+        entity:
+          domain: sensor
+
+    light_boolean:
+      name: Input boolean — inferred light state
+      description: >
+        The input_boolean that tracks whether the light is inferred on or off.
+        This is the output consumed by other automations (e.g. WITB+ Actions
+        light_gating_entity).
+      selector:
+        entity:
+          domain: input_boolean
+
+    on_threshold:
+      name: Infer ON when delta ≥ (lx)
+      description: >
+        The delta must reach or exceed this value before the light is inferred
+        on. Should be well below the lux contribution of the dimmest light you
+        want to detect, but above typical sensor noise (~5 lx).
+      default: 40
+      selector:
+        number:
+          min: 1
+          max: 500
+          step: 1
+          unit_of_measurement: "lx"
+
+    on_for_seconds:
+      name: Delta must stay high for (seconds)
+      description: >
+        Debounce: the delta must remain above the ON threshold for this many
+        seconds before the light is inferred on. Short values (5–15 s) work
+        well since lux changes from a light switch are near-instantaneous.
+        Prevents brief sensor glitches or reflections from triggering a false
+        positive.
+      default: 10
+      selector:
+        number:
+          min: 0
+          max: 120
+          step: 5
+          unit_of_measurement: seconds
+
+    off_threshold:
+      name: Infer OFF when delta ≤ (lx)
+      description: >
+        The delta must fall to or below this value before the light is inferred
+        off. Set lower than on_threshold to create a hysteresis band and prevent
+        rapid toggling.
+      default: 15
+      selector:
+        number:
+          min: 0
+          max: 500
+          step: 1
+          unit_of_measurement: "lx"
+
+    off_for_seconds:
+      name: Delta must stay low for (seconds)
+      description: >
+        Debounce: the delta must remain below the OFF threshold for this many
+        seconds before the light is inferred off. Prevents the boolean from
+        flipping during brief sensor dips while the light is still on.
+      default: 15
+      selector:
+        number:
+          min: 0
+          max: 300
+          step: 5
+          unit_of_measurement: seconds
+
+mode: restart
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input delta_sensor
+    above: !input on_threshold
+    for:
+      seconds: !input on_for_seconds
+    id: light_on
+
+  - trigger: numeric_state
+    entity_id: !input delta_sensor
+    below: !input off_threshold
+    for:
+      seconds: !input off_for_seconds
+    id: light_off
+
+  - trigger: homeassistant
+    event: start
+    id: ha_start
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: light_on
+          - condition: state
+            entity_id: !input light_boolean
+            state: "off"
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: !input light_boolean
+
+      - conditions:
+          - condition: trigger
+            id: light_off
+          - condition: state
+            entity_id: !input light_boolean
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: !input light_boolean
+
+      - conditions:
+          - condition: trigger
+            id: ha_start
+        sequence:
+          # Re-evaluate after HA restarts so the boolean reaches the correct
+          # state without waiting for the next lux change.
+          - delay:
+              seconds: 30
+          - if:
+              - condition: numeric_state
+                entity_id: !input delta_sensor
+                above: !input on_threshold
+              - condition: state
+                entity_id: !input light_boolean
+                state: "off"
+            then:
+              - action: input_boolean.turn_on
+                target:
+                  entity_id: !input light_boolean
+            else:
+              - if:
+                  - condition: numeric_state
+                    entity_id: !input delta_sensor
+                    below: !input off_threshold
+                  - condition: state
+                    entity_id: !input light_boolean
+                    state: "on"
+                then:
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: !input light_boolean

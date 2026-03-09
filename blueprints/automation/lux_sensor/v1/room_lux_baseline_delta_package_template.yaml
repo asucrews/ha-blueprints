@@ -1,0 +1,159 @@
+# Lux baseline + delta (package template) v1.0
+# Block markers supported:
+#   tuning_helpers — input_boolean + input_number tuning entities
+#                    omit with --no-tuning-helpers in the generator
+
+# --- BEGIN tuning_helpers ---
+input_boolean:
+  room_slug_lux_freeze_while_light_on:
+    name: "Room Friendly Name Freeze lux baseline while light on"
+    icon: mdi:snowflake
+
+input_number:
+  room_slug_lux_big_rise_freeze:
+    name: "Room Friendly Name Lux big rise freeze"
+    min: 0.0
+    max: 500.0
+    step: 1.0
+    unit_of_measurement: "lx"
+
+  room_slug_lux_settle_band:
+    name: "Room Friendly Name Lux small-rise band"
+    min: 0.0
+    max: 100.0
+    step: 1.0
+    unit_of_measurement: "lx"
+
+  room_slug_lux_alpha_up:
+    name: "Room Friendly Name Lux baseline follow-up rate"
+    min: 0.0
+    max: 1.0
+    step: 0.01
+
+  room_slug_lux_alpha_down:
+    name: "Room Friendly Name Lux baseline follow-down rate"
+    min: 0.0
+    max: 1.0
+    step: 0.01
+
+  room_slug_lux_clamp_min:
+    name: "Room Friendly Name Lux clamp min"
+    min: 0
+    max: 10000
+    step: 1
+    unit_of_measurement: "lx"
+
+  room_slug_lux_clamp_max:
+    name: "Room Friendly Name Lux clamp max"
+    min: 0
+    max: 10000
+    step: 1
+    unit_of_measurement: "lx"
+
+  room_slug_lux_delta_floor:
+    name: "Room Friendly Name Lux delta floor"
+    min: 0
+    max: 500
+    step: 1
+    unit_of_measurement: "lx"
+# --- END tuning_helpers ---
+
+binary_sensor:
+  - platform: template
+    sensors:
+      room_slug_lux_baseline:
+        # This is NOT the real baseline sensor — see the trigger-based template
+        # sensor below. This binary_sensor block is a placeholder comment only.
+        # HA packages cannot use the newer `template:` list syntax, so the
+        # trigger-based sensors are defined under `template:` below using the
+        # older platform syntax workaround via a separate automation if needed.
+        # See README for deployment notes.
+        value_template: "{{ false }}"
+        friendly_name: "placeholder - see template block below"
+
+template:
+  # Adaptive lux baseline (trigger-based template sensor)
+  # Freezes when the inferred light is on so the baseline does not drift
+  # upward and erode the delta signal over time.
+  - trigger:
+      - platform: state
+        entity_id: __LUX_SENSOR__
+      - platform: time_pattern
+        minutes: "/5"
+    sensor:
+      - name: "Room Friendly Name Lux Baseline"
+        unique_id: room_slug_lux_baseline
+        unit_of_measurement: "lx"
+        device_class: illuminance
+        state_class: measurement
+        variables:
+          s: __LUX_SENSOR__
+          light: __LIGHT_BOOLEAN__
+        availability: >
+          {{ is_number(states(s)) }}
+        state: >-
+          {% set cur_raw = states(s) | float(none) %}
+          {% if cur_raw is none %}
+            {{ this.state | default('unknown') }}
+          {% else %}
+            {# Pull tuning from helpers with safe defaults #}
+            {% set freeze_state = states('input_boolean.room_slug_lux_freeze_while_light_on') %}
+            {% set freeze_light = (freeze_state == 'on') if freeze_state not in ['unknown','unavailable','none',''] else true %}
+
+            {# big_rise_freeze: lux jump this large or more freezes the baseline.
+               Should be lower than the dimmest light you want to detect. #}
+            {% set big_rise = states('input_number.room_slug_lux_big_rise_freeze') | float(50.0) %}
+
+            {# settle_band: small ambient creep within this band follows alpha_up slowly #}
+            {% set band = states('input_number.room_slug_lux_settle_band') | float(10.0) %}
+
+            {# alpha_up very slow — prevents baseline drifting into light-on territory #}
+            {% set a_up = states('input_number.room_slug_lux_alpha_up') | float(0.01) %}
+
+            {# alpha_down moderate — follows blinds closing / cloud cover reasonably fast #}
+            {% set a_dn = states('input_number.room_slug_lux_alpha_down') | float(0.15) %}
+
+            {% set cmin = states('input_number.room_slug_lux_clamp_min') | float(0) %}
+            {% set cmax = states('input_number.room_slug_lux_clamp_max') | float(10000) %}
+
+            {% set cur = [cmax, [cmin, cur_raw] | max] | min %}
+            {% set prev = this.state | float(cur) %}
+            {% set light_on = (freeze_light and is_state(light, 'on')) %}
+            {% set rise = cur - prev %}
+
+            {% if light_on %}
+              {# Freeze: light is inferred on, do not let baseline chase it #}
+              {% set base = prev %}
+            {% elif rise >= big_rise %}
+              {# Sudden large jump — freeze until we know what caused it #}
+              {% set base = prev %}
+            {% elif cur <= prev %}
+              {# Ambient falling (sunset, blinds closing) — follow at alpha_down #}
+              {% set base = (prev * (1 - a_dn) + cur * a_dn) %}
+            {% elif (cur - prev) < band %}
+              {# Small ambient creep upward — follow very slowly at alpha_up #}
+              {% set base = (prev * (1 - a_up) + cur * a_up) %}
+            {% else %}
+              {# Rise above band but below big_rise — freeze, let it settle #}
+              {% set base = prev %}
+            {% endif %}
+
+            {{ base | round(1) }}
+          {% endif %}
+
+  # Lux delta from baseline (plain template sensor, always current)
+  - sensor:
+      - name: "Room Friendly Name Lux Delta"
+        unique_id: room_slug_lux_delta
+        unit_of_measurement: "lx"
+        state_class: measurement
+        variables:
+          s: __LUX_SENSOR__
+          b: sensor.room_slug_lux_baseline
+        availability: >
+          {{ is_number(states(s)) and is_number(states(b)) }}
+        state: >-
+          {% set floor = states('input_number.room_slug_lux_delta_floor') | float(0) %}
+          {% set cur = states(s) | float(0) %}
+          {% set base = states(b) | float(cur) %}
+          {{ [cur - base, floor] | max | round(1) }}
