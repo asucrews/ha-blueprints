@@ -1,0 +1,228 @@
+blueprint:
+  name: Car Tag (1.2.0)
+  homeassistant:
+    min_version: 2024.6.0
+  description: >
+    Car ESPHome Tag - Opens and Closes Garage Door.
+
+    Uses asymmetric debounce: short delay on open (fast entry) and long delay
+    on close (confirms departure). Both delays are configurable inputs.
+
+    Supports multiple BLE sensors (multiple cars), optional person/device tracker
+    gate, optional time-of-day window, optional notifications, and unavailable
+    state protection.
+
+    Note: A companion automation triggered by the Garage Door Timer Helper is
+    required to actually close the door when the timer fires.
+  domain: automation
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
+  author: Jeremy Crews
+  input:
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        esphome_ble:
+          name: ESPHome BLE Sensor(s)
+          description: >
+            Binary sensor(s) indicating BLE tag presence. Supports multiple
+            sensors for multiple vehicles — any detected tag will trigger.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+              multiple: true
+        garage_door_cover:
+          name: Garage Door Cover
+          description: The cover entity for the garage door
+          selector:
+            entity:
+              filter:
+                - domain: cover
+              multiple: false
+
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      collapsed: true
+      input:
+        garage_door_timer_helper:
+          name: Garage Door Timer Helper
+          description: >
+            Timer used to delay closing after BLE loss. When this fires, a
+            companion automation should close the garage door.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: timer
+              multiple: false
+        person_entity:
+          name: Person / Device Tracker (Confirmation Gate)
+          description: >
+            Optional. When set, the door will only open if this entity is
+            'not_home', and the close timer will only start if this entity
+            is 'home'. Prevents acting on stale BLE state when already inside.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: person
+                - domain: device_tracker
+              multiple: false
+        notify_target:
+          name: Notification Target
+          description: >
+            Optional. Notify service to call on door events, e.g.
+            notify.mobile_app_iphone. Leave blank to disable notifications.
+          default: ""
+          selector:
+            text:
+
+    timing:
+      name: Debounce Timing
+      description: Controls how long BLE state must be sustained before acting
+      collapsed: true
+      input:
+        open_debounce:
+          name: Open Debounce
+          description: >
+            How long BLE must be detected before opening the door. Short (5-15s)
+            filters signal noise without a noticeable delay when arriving.
+          default: "00:00:10"
+          selector:
+            duration:
+        close_debounce:
+          name: Close Debounce
+          description: >
+            How long BLE must be absent before starting the close timer. Longer
+            values (3-5 min) confirm actual departure vs. brief signal loss.
+          default: "00:05:00"
+          selector:
+            duration:
+        open_after:
+          name: Open After (Time Window Start)
+          description: >
+            Earliest time the door will auto-open. Overnight windows are
+            supported (e.g. 22:00 to 06:00). Set both open_after and
+            open_before to 00:00:00 to disable the time restriction entirely.
+          default: "00:00:00"
+          selector:
+            time:
+        open_before:
+          name: Open Before (Time Window End)
+          description: >
+            Latest time the door will auto-open. Set both open_after and
+            open_before to 00:00:00 to disable the time restriction entirely.
+          default: "00:00:00"
+          selector:
+            time:
+
+variables:
+  garage_door_cover: !input garage_door_cover
+  garage_door_timer_helper: !input garage_door_timer_helper
+  person_entity: !input person_entity
+  notify_target: !input notify_target
+  open_after: !input open_after
+  open_before: !input open_before
+
+trigger:
+  - trigger: state
+    entity_id: !input esphome_ble
+    from: "off"
+    to: "on"
+    for: !input open_debounce
+    id: ESPHome BLE Found
+
+  - trigger: state
+    entity_id: !input esphome_ble
+    from: "on"
+    to: "off"
+    for: !input close_debounce
+    id: ESPHome BLE Not Found
+
+action:
+  - choose:
+      # BLE detected (sustained) — open door if currently closed
+      - conditions:
+          - condition: trigger
+            id: ESPHome BLE Found
+          # Guard: cover must not be unavailable
+          - condition: template
+            value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
+          # Guard: door must currently be closed
+          - condition: template
+            value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
+          # Gate: person not home (passes if no person entity configured)
+          - condition: template
+            value_template: >
+              {{ person_entity | length == 0
+                 or is_state(person_entity, 'not_home') }}
+          # Gate: within allowed time window (passes if both times are 00:00:00)
+          - condition: template
+            value_template: >
+              {% if open_after == '00:00:00' and open_before == '00:00:00' %}
+                true
+              {% else %}
+                {% set after = strptime(open_after, '%H:%M:%S').time() %}
+                {% set before = strptime(open_before, '%H:%M:%S').time() %}
+                {% set t = now().time() %}
+                {% if after <= before %}
+                  {{ t >= after and t <= before }}
+                {% else %}
+                  {{ t >= after or t <= before }}
+                {% endif %}
+              {% endif %}
+        sequence:
+          - action: cover.open_cover
+            data: {}
+            target:
+              entity_id: !input garage_door_cover
+          - if:
+              - condition: template
+                value_template: "{{ notify_target | length > 0 }}"
+            then:
+              - action: "{{ notify_target }}"
+                data:
+                  title: "Garage Door"
+                  message: >
+                    Garage door opened — BLE tag detected
+                    ({{ trigger.entity_id }}).
+
+      # BLE lost (sustained) — start close timer if door is open
+      - conditions:
+          - condition: trigger
+            id: ESPHome BLE Not Found
+          # Guard: cover must not be unavailable
+          - condition: template
+            value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
+          # Guard: door must currently be open
+          - condition: template
+            value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
+          # Guard: timer helper must be configured
+          - condition: template
+            value_template: "{{ garage_door_timer_helper | length > 0 }}"
+          # Gate: person home (passes if no person entity configured)
+          - condition: template
+            value_template: >
+              {{ person_entity | length == 0
+                 or is_state(person_entity, 'home') }}
+        sequence:
+          - action: timer.start
+            data: {}
+            target:
+              entity_id: !input garage_door_timer_helper
+          - if:
+              - condition: template
+                value_template: "{{ notify_target | length > 0 }}"
+            then:
+              - action: "{{ notify_target }}"
+                data:
+                  title: "Garage Door"
+                  message: >
+                    Garage door close timer started — BLE tag lost
+                    ({{ trigger.entity_id }}).
+
+mode: single
+max_exceeded: silent
