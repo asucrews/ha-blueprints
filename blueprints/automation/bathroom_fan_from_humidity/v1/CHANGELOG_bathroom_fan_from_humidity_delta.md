@@ -13,7 +13,7 @@
   already implies the current state) and has been removed.
 
 #### Changes
-- **Lowered `min_version` from `2026.2.0` to `2023.4.0`.** The features used
+- **Lowered `min_version` from `2026.3.0` to `2023.4.0`.** The features used
   (trigger `id:`, `choose:`, `numeric_state`, `homeassistant` trigger) have
   been stable since early 2023. The previous value was a future release date
   that blocked installation on all current HA versions.

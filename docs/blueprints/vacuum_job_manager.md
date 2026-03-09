@@ -5,7 +5,7 @@
 - Source blueprint: `blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`
 - Blueprint name: `Vacuum Job Manager (iRobot) v1.1 - WITB Override + Lights`
 - Domain: `automation`
-- Home Assistant minimum: `2026.2.0`
+- Home Assistant minimum: `2026.3.0`
 
 This blueprint manages vacuum job lifecycle and helper state with iRobot mission-counter completion, watchdog handling, and optional WITB/light integration.
 

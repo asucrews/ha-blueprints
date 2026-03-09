@@ -4,7 +4,7 @@
 
 - Source blueprint: `blueprints/automation/bathroom_fan_from_humidity/bathroom_fan_from_humidity_delta.yaml`
 - Blueprint name: `Bathroom Fan From Humidity Delta v1.0.1`
-- Home Assistant minimum: `2026.2.0`
+- Home Assistant minimum: `2026.3.0`
 - Domain: `automation`
 
 This blueprint controls a bathroom fan from a humidity-delta signal:

@@ -60,4 +60,4 @@ Both blueprints can run simultaneously on the same room. They use different sens
 
 ## Minimum HA Version
 
-`2026.2.0`
+`2026.3.0`

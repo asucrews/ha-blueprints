@@ -6,12 +6,12 @@ This folder contains implementation-focused documentation for the active bluepri
 
 | Blueprint | Type | Version | Min HA | Docs |
 | --- | --- | --- | --- | --- |
-| `witb_plus.yaml` | automation | `v4.2.1` | `2026.2.0` | `witb_plus.md` |
-| `witb_plus_actions_lights_fan.yaml` | automation | `v2.2.2` | `2026.2.0` | `witb_plus_actions_lights_fan.md` |
-| `bathroom_fan_from_humidity_delta.yaml` | automation | `v1.0.2` | `2026.2.0` | `bathroom_fan_from_humidity_delta.md` |
-| `vacuum_job_manager.yaml` | automation | `v1.3` | `2026.2.0` | `vacuum_job_manager.md` |
-| `witb_transit_room.yaml` | automation | `v1` | `2026.2.0` | `witb_transit_room.md` |
-| `witb_plus_bed_force_occupied.yaml` | automation | `v1.0.0` | `2026.2.0` | `witb_plus_bed_force_occupied.md` |
+| `witb_plus.yaml` | automation | `v4.2.1` | `2026.3.0` | `witb_plus.md` |
+| `witb_plus_actions_lights_fan.yaml` | automation | `v2.2.2` | `2026.3.0` | `witb_plus_actions_lights_fan.md` |
+| `bathroom_fan_from_humidity_delta.yaml` | automation | `v1.0.2` | `2026.3.0` | `bathroom_fan_from_humidity_delta.md` |
+| `vacuum_job_manager.yaml` | automation | `v1.3` | `2026.3.0` | `vacuum_job_manager.md` |
+| `witb_transit_room.yaml` | automation | `v1` | `2026.3.0` | `witb_transit_room.md` |
+| `witb_plus_bed_force_occupied.yaml` | automation | `v1.0.0` | `2026.3.0` | `witb_plus_bed_force_occupied.md` |
 | `witb_lights_on_hook_vzw31sn.yaml` | script | `v2.1.1` | `2024.6.0` | `witb_lights_on_hook_vzw31_sn.md` |
 | `witb_lights_off_hook_vzw31sn.yaml` | script | `v2.1.1` | `2024.6.0` | `witb_lights_off_hook_vzw31_sn.md` |
 

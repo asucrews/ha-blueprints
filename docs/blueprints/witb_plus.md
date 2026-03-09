@@ -4,7 +4,7 @@
 
 - Source blueprint: `blueprints/automation/witb_plus/v4/witb_plus.yaml`
 - Blueprint name: `WITB+ v4.0.3 (Modernized & Integrated)`
-- Home Assistant minimum: `2026.2.0`
+- Home Assistant minimum: `2026.3.0`
 - Domain: `automation`
 
 This blueprint infers occupancy for one room using door semantics plus motion:

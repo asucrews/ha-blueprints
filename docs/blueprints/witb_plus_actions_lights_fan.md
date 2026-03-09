@@ -5,7 +5,7 @@
 - Source blueprint: `blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`
 - Pinned version copy: `blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan_v2.2.0.yaml`
 - Blueprint name: `WITB+ Actions - Lights + Fan v2.2.0`
-- Home Assistant minimum: `2026.2.0`
+- Home Assistant minimum: `2026.3.0`
 - Domain: `automation`
 
 This blueprint handles room actions (lights and fan) using occupancy from WITB+:

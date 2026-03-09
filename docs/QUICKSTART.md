@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-- Home Assistant 2026.2.0+
+- Home Assistant 2026.3.0+
 - A packages directory configured in `configuration.yaml`:
   ```yaml
   homeassistant:

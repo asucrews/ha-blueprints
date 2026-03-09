@@ -39,7 +39,7 @@ def parse_matrix(text: str) -> dict[str, str]:
     """Return {yaml_filename: version_string} from the compatibility matrix.
 
     Expects rows like:
-      | `witb_plus.yaml` | automation | `v4.2.0` | `2026.2.0` | `witb_plus.md` |
+      | `witb_plus.yaml` | automation | `v4.2.0` | `2026.3.0` | `witb_plus.md` |
 
     Returned version strings are normalized (leading 'v' stripped).
     """

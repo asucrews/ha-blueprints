@@ -84,4 +84,4 @@ homeassistant:
 
 ## Minimum HA Version
 
-`2026.2.0`
+`2026.3.0`

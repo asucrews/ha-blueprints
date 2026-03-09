@@ -31,7 +31,7 @@ They are deliberately separate so you can pair one occupancy source with multipl
 
 ### Home Assistant version
 
-Minimum: **2026.2.0**. Check at **Settings → About**.
+Minimum: **2026.3.0**. Check at **Settings → About**.
 
 ### Packages support
 
