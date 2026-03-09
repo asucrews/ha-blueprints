@@ -1,0 +1,21 @@
+# rooms.yaml
+template: witb_plus_actions_lights_fan_package_template.yaml
+out: ./packages
+key_suffix: _witb_actions
+rooms:
+  - name: "Garage"
+    area: "Garage"
+  - name: "Half Bathroom"
+    area: "Half Bathroom"
+  - name: "Master Bedroom"
+    area: "Master Bedroom"
+  - name: "Master Bedroom Closet"
+    area: "Master Bedroom Closet"
+  - name: "Master Bathroom"
+    area: "Master Bathroom"
+  - name: "Master Bathroom Toilet"
+    area: "Master Bathroom Toilet"
+  - name: "Laundry"
+    area: "Laundry"
+  - name: "Office"
+    area: "Office"

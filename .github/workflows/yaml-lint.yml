@@ -1,0 +1,56 @@
+name: YAML Lint
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  yaml-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PyYAML
+        run: pip install pyyaml
+      - name: Validate blueprint YAML files
+        run: |
+          python3 - <<'EOF'
+          import sys
+          import yaml
+          from pathlib import Path
+
+          # HA blueprint YAML uses custom tags like !input, !secret, !include.
+          # Register a multi-constructor that handles any unknown tag without error.
+          class HALoader(yaml.SafeLoader):
+              pass
+
+          def _handle_unknown_tag(loader, tag_suffix, node):
+              if isinstance(node, yaml.ScalarNode):
+                  return loader.construct_scalar(node)
+              elif isinstance(node, yaml.SequenceNode):
+                  return loader.construct_sequence(node, deep=True)
+              elif isinstance(node, yaml.MappingNode):
+                  return loader.construct_mapping(node, deep=True)
+
+          HALoader.add_multi_constructor("", _handle_unknown_tag)
+
+          files = sorted(Path("blueprints").rglob("*.yaml"))
+          errors = []
+
+          for f in files:
+              try:
+                  yaml.load(f.read_text(encoding="utf-8"), Loader=HALoader)
+              except yaml.YAMLError as e:
+                  errors.append(f"{f}: {e}")
+
+          if errors:
+              print(f"YAML validation failed ({len(errors)} error(s)):")
+              for err in errors:
+                  print(f"  {err}")
+              sys.exit(1)
+
+          print(f"All {len(files)} blueprint YAML files are valid.")
+          EOF

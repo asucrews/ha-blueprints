@@ -1,0 +1,27 @@
+- id: witb_plus_bed_sensor_v1_master_bedroom
+  alias: WITB+ Bed Sensor - Master Bedroom
+  description: >
+    Drives force_occupied while someone is in bed to prevent WITB+ from
+    clearing bedroom occupancy during sleep.
+    Uses the Normal/Slow bed sensor variant; the Fast variant is used separately
+    by the Actions blueprint for instant lights-on suppression.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml
+    input:
+      # Use Normal or Slow variant — not Fast — to avoid jitter from weight shifts.
+      bed_sensor: binary_sensor.master_bedroom_bed_either_normal
+
+      # Safety gate: force_occupied is only set ON if this is already ON.
+      occupied_effective: binary_sensor.master_bedroom_occupied_effective
+
+      # This helper is already defined in the WITB+ v4 occupancy package.
+      force_occupied: input_boolean.master_bedroom_force_occupied
+
+      # How long the bed must be ON before setting force_occupied.
+      # Increase to 60-90s if you get spurious triggers from pets or laundry.
+      bed_on_delay: "00:00:30"
+
+      # How long to wait after bed turns OFF before releasing force_occupied.
+      # Covers a midnight bathroom trip. See ESPHome double-delay warning in README.
+      bathroom_grace: "00:05:00"

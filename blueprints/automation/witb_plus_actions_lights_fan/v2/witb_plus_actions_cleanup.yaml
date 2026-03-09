@@ -1,0 +1,291 @@
+blueprint:
+  homeassistant:
+    min_version: 2026.2.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_cleanup/v1/witb_plus_actions_cleanup.yaml
+  name: WITB+ Actions Tag Cleanup v1.0.0
+  description: |
+    Version: 1.0.0 — see CHANGELOG.md for full version history.
+
+    Belt-and-suspenders cleanup for WITB+ Actions auto_tag_lights and
+    auto_tag_fan helpers that can be left stuck ON when a mode:restart
+    kill interrupts the lights_off or vacancy_began sequence mid-run.
+
+    WHY THIS EXISTS
+      WITB+ Actions uses mode:restart. Any new occupancy trigger while the
+      lights_off sequence is executing (verify delays, retry loops) kills
+      that run. If the kill happens before the tag-clear step the tag stays
+      ON permanently — lying about who owns the lights or fan. The primary
+      fix (v2.3.1) moves fan run-on start before the verify loop, making
+      that the hardest failure immune. This blueprint catches the remaining
+      edge cases (lights tag, rare races) with a time-delayed soak check.
+
+    HOW IT WORKS
+      Two independent timers fire after the room goes vacant:
+
+      lights_cleanup_delay (default 5 min)
+        • Checks auto_tag_lights: if ON but all controlled lights are OFF,
+          the tag is stuck — clear it.
+        • 5 min covers the worst-case verify delay + retries at default settings
+          (verify_delay + retries × retry_interval ≈ 5 + 3×5 = 20 s).
+          Increase if you use long retry intervals.
+
+      fan_cleanup_delay (default 20 min)
+        • Checks auto_tag_fan: if ON but the fan/switches are all OFF AND
+          the run-on timer is not active, the tag is stuck — clear it.
+        • Must be longer than lights_off_delay + max fan_runon_minutes +
+          buffer so we never race with a legitimately running run-on timer.
+          Increase if your fan run-on exceeds ~15 min.
+
+    BOTH checks are guarded by:
+      • Room still vacant at evaluation time (re-confirmed, not stale).
+      • Automation override OFF (if configured).
+      • The specific tag is actually ON (skip if already clean).
+
+    SAFE BEHAVIORS
+      • Never turns anything off — only clears boolean tags.
+      • If the room re-occupies before the delay fires, the trigger resets
+        and the check does not run until the next vacancy.
+      • Fan tag is never cleared while the run-on timer is active.
+        timer_finished in the main automation owns that transition.
+
+  input:
+    core:
+      name: Core
+      icon: mdi:home-automation
+      description: Occupancy sensor and optional override.
+      input:
+        occupied_effective:
+          name: Effective occupancy sensor (WITB+)
+          description: >
+            The room's binary_sensor.<slug>_occupied_effective sensor.
+            Both cleanup timers start counting when this goes OFF.
+          selector:
+            entity:
+              domain: binary_sensor
+
+        automation_override:
+          name: Automation override (optional)
+          description: >
+            Match the override helper wired in your WITB+ Actions instance.
+            If set and ON, cleanup is skipped entirely.
+          default: ''
+          selector:
+            entity:
+              domain: input_boolean
+
+    lights_cleanup:
+      name: Lights tag cleanup
+      icon: mdi:lightbulb-off-outline
+      description: >
+        Clears auto_tag_lights when it is stuck ON after the room has been
+        vacant long enough for any verify/retry loop to have finished.
+      input:
+        auto_tag_lights:
+          name: Auto-tag boolean for lights
+          description: >
+            input_boolean.<slug>_auto_lights_on (or equivalent).
+            Leave empty to skip lights tag cleanup entirely.
+          default: ''
+          selector:
+            entity:
+              domain: input_boolean
+
+        lights:
+          name: Lights controlled by this room
+          description: >
+            Same light entities wired in your WITB+ Actions instance.
+            The cleanup check confirms ALL of these are OFF before clearing
+            the tag. If any are still on the tag is not stuck — skip.
+            Leave empty to clear the tag unconditionally (less safe).
+          default: []
+          selector:
+            entity:
+              domain: light
+              multiple: true
+
+        lights_cleanup_delay:
+          name: Lights tag cleanup delay
+          description: >
+            How long the room must be vacant before checking the lights tag.
+            Must exceed: lights_off_verify_delay + (retries × retry_interval).
+            Default of 5 min covers the defaults (5 s + 3×5 s = 20 s) with
+            ample margin. Increase if you use longer retry intervals.
+          default: 00:05:00
+          selector:
+            duration: null
+
+    fan_cleanup:
+      name: Fan tag cleanup
+      icon: mdi:fan-off
+      description: >
+        Clears auto_tag_fan when it is stuck ON after the room has been
+        vacant long enough for any legitimate fan run-on to have completed.
+      input:
+        auto_tag_fan:
+          name: Auto-tag boolean for fan
+          description: >
+            input_boolean.<slug>_auto_fan_on (or equivalent).
+            Leave empty to skip fan tag cleanup entirely.
+          default: ''
+          selector:
+            entity:
+              domain: input_boolean
+
+        fan_entity:
+          name: Fan entity (optional)
+          description: >
+            The fan.* entity controlled by this room, if any.
+            Used to confirm the fan is actually OFF before clearing the tag.
+          default: ''
+          selector:
+            entity:
+              domain: fan
+
+        fan_switches:
+          name: Fan switches (optional)
+          description: >
+            Switch or light entities used as fan switches, if any.
+            All must be OFF before the tag is considered stuck.
+          default: []
+          selector:
+            entity:
+              domain:
+                - switch
+                - light
+              multiple: true
+
+        fan_runon_timer:
+          name: Fan run-on timer (optional)
+          description: >
+            timer.<slug>_actions_fan_runon (or equivalent).
+            When set, the cleanup check is skipped while this timer is active —
+            the main automation's timer_finished path owns that transition.
+          default: ''
+          selector:
+            entity:
+              domain: timer
+
+        fan_cleanup_delay:
+          name: Fan tag cleanup delay
+          description: >
+            How long the room must be vacant before checking the fan tag.
+            Must exceed: lights_off_delay + max fan_runon_minutes + buffer.
+            Example: 2 min lights_off_delay + 10 min max run-on + 3 min buffer = 15 min.
+            Default of 20 min covers most residential configs safely.
+            Increase if your fan run-on can exceed ~15 min.
+          default: 00:20:00
+          selector:
+            duration: null
+
+mode: single
+max_exceeded: silent
+
+variables:
+  occ: !input occupied_effective
+  override_b: !input automation_override
+  auto_tag_lights: !input auto_tag_lights
+  lights: !input lights
+  auto_tag_fan: !input auto_tag_fan
+  fan_entity: !input fan_entity
+  fan_switches: !input fan_switches
+  fan_runon_t: !input fan_runon_timer
+
+  override_ok: >-
+    {{ override_b == '' or is_state(override_b, 'off') }}
+
+  # True if every controlled light is confirmed OFF (or no lights configured).
+  all_lights_off: >-
+    {% if lights | length == 0 %}
+      true
+    {% else %}
+      {{ expand(lights) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+    {% endif %}
+
+  # True if the fan entity (if any) is OFF.
+  fan_entity_off: >-
+    {{ fan_entity == '' or is_state(fan_entity, 'off') }}
+
+  # True if all fan switches (if any) are OFF.
+  fan_switches_off: >-
+    {% if fan_switches | length == 0 %}
+      true
+    {% else %}
+      {{ expand(fan_switches) | selectattr('state', 'eq', 'on') | list | count == 0 }}
+    {% endif %}
+
+  # True when the run-on timer is actively counting down.
+  # If so, we must not clear the fan tag — timer_finished owns it.
+  fan_runon_active: >-
+    {{ fan_runon_t != '' and is_state(fan_runon_t, 'active') }}
+
+triggers:
+  # Lights tag check: fires after the short soak period.
+  - trigger: state
+    entity_id: !input occupied_effective
+    to: "off"
+    for: !input lights_cleanup_delay
+    id: lights_tag_check
+
+  # Fan tag check: fires after the longer soak period.
+  - trigger: state
+    entity_id: !input occupied_effective
+    to: "off"
+    for: !input fan_cleanup_delay
+    id: fan_tag_check
+
+# Room must still be vacant when the check actually runs.
+# (Re-occupancy resets the trigger; this is belt-and-suspenders.)
+condition:
+  - condition: state
+    entity_id: !input occupied_effective
+    state: "off"
+  - condition: template
+    value_template: "{{ override_ok }}"
+
+actions:
+  # ================= LIGHTS TAG CLEANUP =================
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: lights_tag_check
+          # Skip if no lights tag is configured.
+          - condition: template
+            value_template: "{{ auto_tag_lights != '' }}"
+          # Only act if the tag is actually stuck ON.
+          - condition: state
+            entity_id: !input auto_tag_lights
+            state: "on"
+          # Confirm lights are all off — if any are on the tag is not stuck,
+          # something else turned them on and we should leave the tag alone.
+          - condition: template
+            value_template: "{{ all_lights_off }}"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: "{{ auto_tag_lights }}"
+
+  # ================= FAN TAG CLEANUP =================
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: fan_tag_check
+          # Skip if no fan tag is configured.
+          - condition: template
+            value_template: "{{ auto_tag_fan != '' }}"
+          # Only act if the tag is actually stuck ON.
+          - condition: state
+            entity_id: !input auto_tag_fan
+            state: "on"
+          # CRITICAL: Never clear while run-on timer is active.
+          # timer_finished in the main automation owns that transition.
+          - condition: template
+            value_template: "{{ not fan_runon_active }}"
+          # Confirm both fan entity and switches are off.
+          # If anything is still running the tag is not stuck — skip.
+          - condition: template
+            value_template: "{{ fan_entity_off and fan_switches_off }}"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: "{{ auto_tag_fan }}"

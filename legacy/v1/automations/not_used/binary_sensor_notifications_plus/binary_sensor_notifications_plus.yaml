@@ -1,0 +1,154 @@
+blueprint:
+  name: "Binary Sensor Notification (0.3.0)"
+  description: "Send a notification or trigger a custom action depending on the state switch of a binary_sensor"
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/binary_sensor_notifications_plus/binary_sensor_notifications_plus.yaml
+  domain: automation
+  homeassistant:
+    min_version: 2024.8.0
+  input:
+    required_entities:
+      name: Required Entities
+      description: The required entities for this automation
+      collapsed: false
+      input:
+        sensor_entity:
+          name: "Sensor"
+          description: "Sensor which triggers the notification."
+          selector:
+            entity:
+              domain: binary_sensor
+        notify_group:
+          name: Easy Notify Group - Devices Notified
+          description: >
+            If you've enabled device notifications above, please select the devices to receive the notifications. Enter only entity_id, the part after notify. <br/>
+            This is only for notifications group, see https://www.home-assistant.io/integrations/group/#notify-groups.
+            <br/>Default value: "". Only change if you intend to use notifcations and this input is optional.<br/>
+          default: ""
+        title:
+          name: "Title"
+          description: "Notification title"
+    optional_entities:
+      name: Optional Entities
+      description: The optional entities for this automation
+      collapsed: true
+      input:
+        message_open:
+          name: "Message when entity is on"
+          description: "Message to be sent"
+          default: "None"
+        message_close:
+          name: "Message when entity is off"
+          description: "Message to be sent"
+          default: "None"
+        message_left:
+          name: "Message when entity is on for extended period of time"
+          description: "Message to be sent"
+          default: "None"
+        left_open_timer_helper:
+          name: "Left Open Timer Helper"
+          description: "Left Open Timer Helper"
+          default: timer.none
+          selector:
+            entity:
+              domain: timer
+
+variables:
+  sensor_entity: !input sensor_entity
+  left_open_timer_helper: !input left_open_timer_helper
+  notify_group: !input notify_group
+  title: !input title
+  message_open: !input message_open
+  message_close: !input message_close
+  message_left: !input message_left
+
+trigger:
+  - platform: state
+    entity_id: !input "sensor_entity"
+    to: "off"
+    from: "on"
+    id: Opened
+  - platform: state
+    entity_id: !input "sensor_entity"
+    to: "on"
+    from: "off"
+    id: Closed
+  - platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input left_open_timer_helper
+    id: Timer Finished
+
+action:
+  - choose:
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Opened
+              - condition: template
+                value_template: "{{ message_open  != 'None' }}"
+        sequence:
+          - action: "notify.{{ notify_group }}"
+            data:
+              title: "{{ title }} | {{ states('sensor.time') }}"
+              message: "{{ message_open }}"
+              data:
+                ttl: 0
+                priority: high
+                tag: t"tag-binary-sensor-notification"
+          - action: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input left_open_timer_helper
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Closed
+              - condition: template
+                value_template: "{{ message_close  != 'None' }}"
+        sequence:
+          - action: "notify.{{ notify_group }}"
+            data:
+              title: "{{ title }} | {{ states('sensor.time') }}"
+              message: "{{ message_close }}"
+              data:
+                ttl: 0
+                priority: high
+                tag: "tag-binary-sensor-notification"
+          - action: timer.cancel
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input left_open_timer_helper
+      - conditions:
+          - condition: and
+            conditions:
+              - condition: trigger
+                id:
+                  - Timer Finished
+              - condition: template
+                value_template: "{{ message_left  != 'None' }}"
+              - condition: state
+                entity_id: !input sensor_entity
+                state: "on"
+        sequence:
+          - action: "notify.{{ notify_group }}"
+            data:
+              title: "{{ title }} | {{ states('sensor.time') }}"
+              message: "{{ message_left }}"
+              data:
+                ttl: 0
+                priority: high
+                tag: "tag-binary-sensor-notification"
+          - action: timer.start
+            metadata: {}
+            data: {}
+            target:
+              entity_id: !input left_open_timer_helper
+
+mode: single
+max_exceeded: silent

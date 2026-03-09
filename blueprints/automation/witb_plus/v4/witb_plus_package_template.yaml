@@ -1,0 +1,234 @@
+room_witb:
+  # WITB+ Core Package Template
+  # Tokens: room_slug, Room Friendly Name
+  #
+  # This template covers ONLY the helpers consumed by the WITB+ v4.2 occupancy
+  # blueprint. It does NOT include lights/fan/lux/humidity/night helpers —
+  # those live in the separate room_witb_actions_package_template.yaml.
+  #
+  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  #   helpers      - required core: occupancy (input_boolean) + last_motion,
+  #                  last_door (input_datetime) + exit_eval (timer) +
+  #                  occupied_effective binary_sensor (the glue consumed by
+  #                  the WITB+ Actions blueprint as its trigger sensor)
+  #   controls     - optional: automation_override, force_occupied, manual_occupied (input_boolean)
+  #   latched      - optional: latched debug helper (input_boolean)
+  #   exit_close   - optional: last_exit_door (input_datetime) for "door closes
+  #                  behind you" rooms (bedroom/garage style)
+  #   failsafe     - optional: failsafe timer + failsafe_timeout input_number
+  #   entry_gating - optional: entry_window_seconds input_number
+
+  input_boolean:
+    # input_boolean restores last known state from recorder on restart.
+
+    # --- BEGIN helpers ---
+    room_slug_occupied:
+      name: "Room Friendly Name occupied"
+      icon: mdi:home-account
+    # --- END helpers ---
+
+    # --- BEGIN controls ---
+    room_slug_automation_override:
+      name: "Room Friendly Name automation override"
+      icon: mdi:hand-back-right-outline
+
+    room_slug_force_occupied:
+      name: "Room Friendly Name force occupied"
+      icon: mdi:account-lock
+
+    room_slug_manual_occupied:
+      name: "Room Friendly Name manual occupied"
+      icon: mdi:account-edit
+    # --- END controls ---
+
+    # --- BEGIN latched ---
+    room_slug_latched:
+      name: "Room Friendly Name latched"
+      icon: mdi:door-closed-lock
+    # --- END latched ---
+
+  input_datetime:
+    # input_datetime restores last value from recorder on restart.
+
+    # --- BEGIN helpers ---
+    room_slug_last_motion:
+      name: "Room Friendly Name last motion"
+      icon: mdi:motion-sensor
+      has_date: true
+      has_time: true
+
+    room_slug_last_door:
+      name: "Room Friendly Name last door"
+      icon: mdi:door
+      has_date: true
+      has_time: true
+    # --- END helpers ---
+
+    # --- BEGIN exit_close ---
+    room_slug_last_exit_door:
+      name: "Room Friendly Name last exit door"
+      icon: mdi:door-open
+      has_date: true
+      has_time: true
+    # --- END exit_close ---
+
+  input_number:
+    # input_number restores last value from recorder on restart.
+    # Do NOT set `initial` — it resets the value on every HA restart.
+
+    # --- BEGIN failsafe ---
+    room_slug_failsafe_timeout:
+      name: "Room Friendly Name failsafe timeout (min)"
+      icon: mdi:timer-alert-outline
+      unit_of_measurement: "min"
+      min: 5
+      max: 5940
+      step: 5
+      mode: box
+    # --- END failsafe ---
+
+    # --- BEGIN entry_gating ---
+    room_slug_entry_window_seconds:
+      name: "Room Friendly Name entry window (sec)"
+      icon: mdi:door-closed
+      unit_of_measurement: "s"
+      min: 1
+      max: 60
+      step: 1
+      mode: box
+    # --- END entry_gating ---
+
+  timer:
+    # --- BEGIN helpers ---
+    # Required by WITB+ v4.2. Drives the non-blocking door-open exit path.
+    # When a door opens while occupied, this timer starts for exit_timeout_seconds.
+    # Motion returning cancels it. When it fires, the automation re-evaluates
+    # whether to clear occupancy. Use no_helpers: true to exclude entirely,
+    # or no_exit_eval: true if you need the other helpers but not this timer.
+    room_slug_exit_eval:
+      name: "Room Friendly Name exit eval"
+      icon: mdi:door-open
+      restore: true
+    # --- END helpers ---
+
+    # --- BEGIN failsafe ---
+    room_slug_failsafe:
+      name: "Room Friendly Name failsafe"
+      icon: mdi:timer-alert-outline
+      duration: "03:00:00"
+      restore: true
+    # --- END failsafe ---
+
+# --- BEGIN helpers ---
+  # Modern 'template' integration syntax (Fixes legacy warning)
+  template:
+    - binary_sensor:
+        # Raw occupancy — mirrors input_boolean.room_slug_occupied directly.
+        - name: "Room Friendly Name Occupied"
+          unique_id: "room_slug_occupied_sensor"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on') }}
+
+        # Effective occupancy — consumed by the WITB+ Actions blueprint.
+        # ON when occupied OR force_occupied OR manual_occupied.
+        - name: "Room Friendly Name Occupied Effective"
+          unique_id: "room_slug_occupied_effective"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on')
+               or is_state('input_boolean.room_slug_force_occupied', 'on')
+               or is_state('input_boolean.room_slug_manual_occupied', 'on') }}
+
+        - name: "Room Friendly WITB Override Active"
+          unique_id: "room_slug_witb_override_active"
+          icon: mdi:hand-back-right-outline
+          state: >-
+            {{ is_state('input_boolean.room_slug_automation_override', 'on')
+              or is_state('input_boolean.room_slug_force_occupied', 'on') }}
+
+        # Troubleshooting: boolean problem sensor — ON when occupied and
+        # a hard block (force, manual, sealed) or a true stuck state (no_exit
+        # with eval timer not running and no exit_recent window) is present.
+        # Use state_color: true on the dashboard to light this up red when stuck.
+        #
+        # NOTE: For bedroom rooms the no_exit clause will fire whenever the seal
+        # door is closed and someone is sleeping — this is correct behaviour, not
+        # a problem. Consider disabling the no_exit clause for bedroom instances
+        # or creating a separate bedroom dashboard card that omits it.
+        - name: "Room Friendly Name Clear Blocked"
+          unique_id: "room_slug_clear_blocked"
+          device_class: problem
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on')
+               and (
+                 is_state('input_boolean.room_slug_force_occupied', 'on')
+                 or is_state('input_boolean.room_slug_manual_occupied', 'on')
+                 or is_state('input_boolean.room_slug_latched', 'on')
+                 or (
+                   not is_state('timer.room_slug_exit_eval', 'active')
+                   and states('input_datetime.room_slug_last_exit_door') in ['unknown','unavailable','none','']
+                 )
+               ) }}
+
+        # Failsafe active indicator — ON when the failsafe timer is running.
+        # Useful for dashboards and automations that want to know the failsafe
+        # is running without querying timer state directly.
+        # --- BEGIN failsafe ---
+        - name: "Room Friendly Name Failsafe Active"
+          unique_id: "room_slug_failsafe_active"
+          icon: mdi:timer-alert-outline
+          state: >-
+            {{ is_state('timer.room_slug_failsafe', 'active') }}
+        # --- END failsafe ---
+
+    - sensor:
+        # --- BEGIN helpers ---
+        # IMPORTANT: clear_blocked_reason MUST be a sensor, not a binary_sensor.
+        # binary_sensor coerces any non-on/off value to 'off', so text states
+        # like 'force', 'sealed', 'none' would all silently become 'off'.
+        #
+        # Values: force | manual | sealed | evaluating | exit_window | no_exit | none
+        #   force       — force_occupied is ON (all clearing blocked)
+        #   manual      — manual_occupied is ON (soft pin from adjoining room)
+        #   sealed      — seal door is closed while occupied
+        #   evaluating  — exit_eval timer is running (deciding to clear now)
+        #   exit_window — door closed behind occupant, exit_recent window active
+        #   no_exit     — occupied with no open door and no exit_recent window
+        #   none        — not occupied or no block present
+        - name: "Room Friendly Name Clear Blocked Reason"
+          unique_id: "room_slug_clear_blocked_reason"
+          icon: mdi:comment-alert-outline
+          state: >-
+            {% if is_state('input_boolean.room_slug_force_occupied', 'on') %}
+              force
+            {% elif is_state('input_boolean.room_slug_manual_occupied', 'on') %}
+              manual
+            {% elif is_state('input_boolean.room_slug_latched', 'on') %}
+              sealed
+            {% elif is_state('timer.room_slug_exit_eval', 'active') %}
+              evaluating
+            {% elif is_state('input_boolean.room_slug_occupied', 'on')
+                    and states('input_datetime.room_slug_last_exit_door') not in ['unknown','unavailable','none','']
+                    and (now().timestamp() - as_timestamp(states('input_datetime.room_slug_last_exit_door'), 0)) < 300 %}
+              exit_window
+            {% elif is_state('input_boolean.room_slug_occupied', 'on') %}
+              no_exit
+            {% else %}
+              none
+            {% endif %}
+
+        # Minutes since last motion. Shows 'unknown' if never set.
+        - name: "Room Friendly Name Last Motion Age"
+          unique_id: "room_slug_last_motion_age"
+          icon: mdi:clock-outline
+          unit_of_measurement: "min"
+          state: >-
+            {% set ts = states('input_datetime.room_slug_last_motion') %}
+            {% if ts in ['unknown','unavailable','none',''] %}
+              unknown
+            {% else %}
+              {{ ((now().timestamp() - as_timestamp(ts)) / 60) | round(1) }}
+            {% endif %}
+        # --- END helpers ---
+  # --- END helpers ---

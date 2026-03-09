@@ -1,0 +1,198 @@
+blueprint:
+  name: Bathroom Fan From Humidity Delta v1.0.2
+  description: |
+    Version: 1.0.2 — see CHANGELOG.md for full version history.
+
+    Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
+    and OFF when it falls below a lower threshold for a while (hysteresis),
+    with optional minimum runtime and a failsafe max runtime.
+    Also re-evaluates state on Home Assistant restart.
+  source_url: https://github.com/asucrews/ha-blueprints/edit/main/blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml
+  domain: automation
+  author: asucrews
+  homeassistant:
+    min_version: 2023.4.0
+  input:
+    delta_sensor:
+      name: Humidity delta sensor (%)
+      selector:
+        entity:
+          domain: sensor
+
+    fan_entity:
+      name: Exhaust fan entity (fan or switch)
+      selector:
+        entity:
+          filter:
+            - domain: fan
+            - domain: switch
+            - domain: light
+
+    on_threshold:
+      name: Turn ON when delta ≥ (%)
+      default: 8
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 0.5
+          unit_of_measurement: "%"
+
+    on_for_seconds:
+      name: Delta must stay high for (seconds)
+      description: >
+        Debounce: the delta must remain above the ON threshold for this many
+        seconds before the fan turns on. Prevents brief humidity spikes (e.g.
+        a hot drink nearby) from triggering the fan.
+      default: 120
+      selector:
+        number:
+          min: 0
+          max: 1800
+          step: 10
+          unit_of_measurement: seconds
+
+    off_threshold:
+      name: Turn OFF when delta ≤ (%)
+      default: 3
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.5
+          unit_of_measurement: "%"
+
+    off_for_seconds:
+      name: Delta must stay low for (seconds)
+      description: >
+        Debounce: the delta must remain below the OFF threshold for this many
+        seconds before the fan turns off. Prevents the fan from cycling off
+        prematurely while humidity is still falling.
+      default: 600
+      selector:
+        number:
+          min: 0
+          max: 7200
+          step: 10
+          unit_of_measurement: seconds
+
+    min_run_seconds:
+      name: Minimum fan runtime (seconds)
+      description: >
+        The fan will not turn off until it has been running for at least this
+        long, even if the delta drops quickly. Set to 0 to disable.
+      default: 300
+      selector:
+        number:
+          min: 0
+          max: 7200
+          step: 10
+          unit_of_measurement: seconds
+
+    max_run_seconds:
+      name: Failsafe max runtime (seconds)
+      description: >
+        The fan will always be turned off after this many seconds, regardless
+        of humidity levels. Guards against the sensor going unavailable while
+        the fan is running.
+      default: 5400
+      selector:
+        number:
+          min: 300
+          max: 21600
+          step: 60
+          unit_of_measurement: seconds
+
+mode: restart
+
+triggers:
+  - trigger: numeric_state
+    entity_id: !input delta_sensor
+    above: !input on_threshold
+    for:
+      seconds: !input on_for_seconds
+    id: turn_on
+
+  - trigger: numeric_state
+    entity_id: !input delta_sensor
+    below: !input off_threshold
+    for:
+      seconds: !input off_for_seconds
+    id: turn_off
+
+  - trigger: state
+    entity_id: !input fan_entity
+    to: "on"
+    for:
+      seconds: !input max_run_seconds
+    id: failsafe
+
+  - trigger: homeassistant
+    event: start
+    id: ha_start
+
+actions:
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: turn_on
+          - condition: state
+            entity_id: !input fan_entity
+            state: "off"
+        sequence:
+          - action: homeassistant.turn_on
+            target:
+              entity_id: !input fan_entity
+
+      - conditions:
+          - condition: trigger
+            id: turn_off
+          - condition: state
+            entity_id: !input fan_entity
+            state: "on"
+            for:
+              seconds: !input min_run_seconds
+        sequence:
+          - action: homeassistant.turn_off
+            target:
+              entity_id: !input fan_entity
+
+      - conditions:
+          - condition: trigger
+            id: failsafe
+        sequence:
+          - action: homeassistant.turn_off
+            target:
+              entity_id: !input fan_entity
+
+      - conditions:
+          - condition: trigger
+            id: ha_start
+        sequence:
+          # Re-evaluate conditions after HA restarts so the fan reaches the
+          # correct state without waiting for the next humidity change.
+          - delay:
+              seconds: 30
+          - if:
+              - condition: numeric_state
+                entity_id: !input delta_sensor
+                above: !input on_threshold
+              - condition: state
+                entity_id: !input fan_entity
+                state: "off"
+            then:
+              - action: homeassistant.turn_on
+                target:
+                  entity_id: !input fan_entity
+            else:
+              - if:
+                  - condition: numeric_state
+                    entity_id: !input delta_sensor
+                    below: !input off_threshold
+                  - condition: state
+                    entity_id: !input fan_entity
+                    state: "on"
+                then:
+                  - action: homeassistant.turn_off
+                    target:
+                      entity_id: !input fan_entity

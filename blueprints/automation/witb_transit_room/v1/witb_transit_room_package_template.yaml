@@ -1,0 +1,47 @@
+# transit_helpers_package_template.yaml (rev 2026-02-26)
+#
+# Template package for a transit room (hallway/stairs/open connector).
+#
+# Why the dummy entities exist:
+# Home Assistant frequently requires entity selectors to be non-empty if those selectors are used by state triggers.
+# The dummy helpers provide a safe, per-room placeholder so the Transit Driver blueprint always validates
+# even if you don't want keepalive or instant-off features for that room.
+#
+# Replace:
+#   room_slug      -> hallway, stairs, upstairs_hall, etc.
+#   Friendly Name  -> Hallway, Stairs, Upstairs Hall, etc.
+
+input_boolean:
+  room_slug_occupied_effective:
+    name: "Friendly Name Occupied Effective"
+    icon: mdi:walk
+
+  room_slug_maintenance_override:
+    name: "Friendly Name Maintenance Override"
+    icon: mdi:broom
+
+  # DUMMY keepalive entity (select this in the blueprint if you don't use keepalive)
+  room_slug_keepalive_dummy:
+    name: "Friendly Name Keepalive Dummy"
+    icon: mdi:minus-circle-outline
+
+  # DUMMY instant-off entity (select this in the blueprint if you don't use instant off)
+  room_slug_instant_off_dummy:
+    name: "Friendly Name Instant Off Dummy"
+    icon: mdi:minus-circle-outline
+
+timer:
+  room_slug_transit_hold:
+    name: "Friendly Name Transit Hold"
+    # Default duration is not important; the blueprint starts the timer with a dynamic duration.
+    duration: "00:01:00"
+
+  room_slug_instant_off_suppress:
+    name: "Friendly Name Instant Off Suppress"
+    # Only used if you set instant_off_rearm_timeout_seconds > 0 in the automation.
+    duration: "00:00:30"
+
+input_text:
+  room_slug_last_motion:
+    name: "Friendly Name Last Motion"
+    max: 255

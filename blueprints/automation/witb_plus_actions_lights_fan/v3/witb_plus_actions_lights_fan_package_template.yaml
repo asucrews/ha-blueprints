@@ -1,0 +1,227 @@
+room_witb_actions:
+  # WITB+ Actions Package Template — v3
+  # Tokens: room_slug, Room Friendly Name
+  #
+  # v3.0.0: Added four new helpers required for the fully event-driven blueprint.
+  #   soft_off_timer        — replaces blocking soft-off 15 s delay
+  #   lights_verify_timer   — replaces verify/retry delays
+  #   fan_on_delay_timer    — replaces blocking fan on-delay
+  #   verify_attempts       — retry counter persisted across timer-fired runs
+  #
+  # Feature blocks:
+  #   lights    - auto_lights_on, keep_on (input_boolean) + brightness day/night
+  #               (input_number) + actions_cooldown, soft_off, lights_verify (timer)
+  #               + verify_attempts (input_number) + cooldown/soft_off/verify sensors
+  #   fan       - auto_fan_on (input_boolean) + fan_pct_day/night, fan_runon_minutes,
+  #               fan_on_delay (input_number) + fan_runon, fan_on_delay (timer)
+  #               + fan_runon/fan_on_delay_active sensors
+  #   night     - night_start/end (input_datetime) + in_night_window sensor
+
+  input_boolean:
+    # --- BEGIN lights ---
+    room_slug_auto_lights_on:
+      name: "Room Friendly Name auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+
+    room_slug_keep_on:
+      name: "Room Friendly Name keep on (block off)"
+      icon: mdi:lock-open-variant-outline
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_auto_fan_on:
+      name: "Room Friendly Name auto fan on (tag)"
+      icon: mdi:fan-auto
+    # --- END fan ---
+
+  input_datetime:
+    # --- BEGIN night ---
+    room_slug_actions_night_start:
+      name: "Room Friendly Name night start"
+      icon: mdi:weather-night
+      has_date: false
+      has_time: true
+
+    room_slug_actions_night_end:
+      name: "Room Friendly Name night end"
+      icon: mdi:weather-sunny
+      has_date: false
+      has_time: true
+    # --- END night ---
+
+  input_number:
+    # input_number: never set initial — omit it so HA restores prior state on restart.
+
+    # --- BEGIN lights ---
+    room_slug_actions_brightness_day_pct:
+      name: "Room Friendly Name brightness day %"
+      icon: mdi:brightness-6
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+
+    room_slug_actions_brightness_night_pct:
+      name: "Room Friendly Name brightness night %"
+      icon: mdi:brightness-4
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+
+    # v3.0.0: Tracks retry count across timer-fired verify runs.
+    # Reset to 0 on occupied_on and after each successful/exhausted verify cycle.
+    room_slug_actions_verify_attempts:
+      name: "Room Friendly Name verify attempts"
+      icon: mdi:counter
+      min: 0
+      max: 10
+      step: 1
+      mode: box
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_actions_fan_pct_day:
+      name: "Room Friendly Name fan day %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
+      min: 0
+      max: 100
+      step: 5
+      mode: box
+
+    room_slug_actions_fan_pct_night:
+      name: "Room Friendly Name fan night %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
+      min: 0
+      max: 100
+      step: 5
+      mode: box
+
+    room_slug_actions_fan_runon_minutes:
+      name: "Room Friendly Name fan run-on (minutes)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "min"
+      min: 0
+      max: 60
+      step: 1
+      mode: box
+
+    room_slug_actions_fan_on_delay_seconds:
+      name: "Room Friendly Name fan ON delay (sec)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "s"
+      min: 0
+      max: 180
+      step: 5
+      mode: box
+    # --- END fan ---
+
+  timer:
+    # --- BEGIN lights ---
+    room_slug_actions_cooldown:
+      name: "Room Friendly Name actions cooldown"
+      icon: mdi:timer-pause-outline
+      duration: "00:00:30"
+      restore: true
+
+    # v3.0.0: Drives the soft-off 15 s dim warning before full lights-off.
+    # Required when lights_soft_off_enabled is true.
+    room_slug_actions_soft_off:
+      name: "Room Friendly Name soft off"
+      icon: mdi:lightbulb-off-outline
+      duration: "00:00:15"
+      restore: true
+
+    # v3.0.0: Drives the post-off verify delay and retry intervals.
+    # Required when lights_off_verify_enabled is true.
+    room_slug_actions_lights_verify:
+      name: "Room Friendly Name lights verify"
+      icon: mdi:lightbulb-alert-outline
+      duration: "00:00:05"
+      restore: true
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_actions_fan_runon:
+      name: "Room Friendly Name fan run-on"
+      icon: mdi:fan-clock
+      duration: "00:05:00"
+      restore: true
+
+    # v3.0.0: Drives the fan on-delay without blocking the automation run.
+    # Required when fan_on_delay_seconds > 0.
+    room_slug_actions_fan_on_delay:
+      name: "Room Friendly Name fan on delay"
+      icon: mdi:fan-clock
+      restore: true
+    # --- END fan ---
+
+  template:
+    - binary_sensor:
+        # --- BEGIN lights ---
+        - name: "Room Friendly Name Actions Cooldown Active"
+          unique_id: "room_slug_actions_cooldown_active"
+          icon: mdi:timer-pause-outline
+          state: >-
+            {{ is_state('timer.room_slug_actions_cooldown', 'active') }}
+
+        # v3.0.0: ON while the 15 s soft-off dim warning is running.
+        - name: "Room Friendly Name Soft Off Active"
+          unique_id: "room_slug_actions_soft_off_active"
+          icon: mdi:lightbulb-off-outline
+          state: >-
+            {{ is_state('timer.room_slug_actions_soft_off', 'active') }}
+
+        # v3.0.0: ON while waiting for lights-off verify or retry.
+        - name: "Room Friendly Name Lights Verify Active"
+          unique_id: "room_slug_actions_lights_verify_active"
+          icon: mdi:lightbulb-alert-outline
+          state: >-
+            {{ is_state('timer.room_slug_actions_lights_verify', 'active') }}
+        # --- END lights ---
+
+        # --- BEGIN fan ---
+        - name: "Room Friendly Name Fan Runon Active"
+          unique_id: "room_slug_actions_fan_runon_active"
+          icon: mdi:fan-clock
+          state: >-
+            {{ is_state('timer.room_slug_actions_fan_runon', 'active') }}
+
+        # v3.0.0: ON while waiting for the fan on-delay before turning fan on.
+        - name: "Room Friendly Name Fan On Delay Active"
+          unique_id: "room_slug_actions_fan_on_delay_active"
+          icon: mdi:fan-clock
+          state: >-
+            {{ is_state('timer.room_slug_actions_fan_on_delay', 'active') }}
+        # --- END fan ---
+
+        # --- BEGIN night ---
+        # Uses timestamp arithmetic to avoid today_at()/now() timezone mismatch.
+        - name: "Room Friendly Name In Night Window"
+          unique_id: "room_slug_actions_in_night_window"
+          icon: mdi:weather-night
+          state: >-
+            {% set sh = state_attr('input_datetime.room_slug_actions_night_start','hour') | int(-1) %}
+            {% set sm = state_attr('input_datetime.room_slug_actions_night_start','minute') | int(0) %}
+            {% set ss = state_attr('input_datetime.room_slug_actions_night_start','second') | int(0) %}
+            {% set eh = state_attr('input_datetime.room_slug_actions_night_end','hour') | int(-1) %}
+            {% set em = state_attr('input_datetime.room_slug_actions_night_end','minute') | int(0) %}
+            {% set es = state_attr('input_datetime.room_slug_actions_night_end','second') | int(0) %}
+            {% if sh < 0 or eh < 0 %}
+              false
+            {% else %}
+              {% set start_ts = sh*3600 + sm*60 + ss %}
+              {% set end_ts   = eh*3600 + em*60 + es %}
+              {% set n = now() %}
+              {% set cur_ts = n.hour*3600 + n.minute*60 + n.second %}
+              {% if start_ts <= end_ts %}
+                {{ start_ts <= cur_ts < end_ts }}
+              {% else %}
+                {{ cur_ts >= start_ts or cur_ts < end_ts }}
+              {% endif %}
+            {% endif %}
+        # --- END night ---

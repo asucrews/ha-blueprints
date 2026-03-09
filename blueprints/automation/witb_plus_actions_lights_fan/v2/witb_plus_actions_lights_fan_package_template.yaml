@@ -1,0 +1,171 @@
+room_witb_actions:
+  # WITB+ Actions Package Template
+  # Tokens: room_slug, Room Friendly Name
+  #
+  # v2.3.0: Removed lux and humidity feature blocks. Those helpers now belong
+  # to dedicated light-gating and fan-vacancy-gate automations respectively.
+  # The Actions blueprint consumes a single binary sensor for each concern.
+  #
+  # Feature blocks:
+  #   lights    - auto_lights_on, keep_on (input_boolean) + brightness day/night
+  #               (input_number) + actions_cooldown (timer) + cooldown_active sensor
+  #   fan       - auto_fan_on (input_boolean) + fan_pct_day/night, fan_runon_minutes,
+  #               fan_on_delay (input_number) + fan_runon (timer) + fan_runon_active sensor
+  #   night     - night_start/end (input_datetime) + in_night_window sensor
+
+  input_boolean:
+    # --- BEGIN lights ---
+    room_slug_auto_lights_on:
+      name: "Room Friendly Name auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+
+    room_slug_keep_on:
+      name: "Room Friendly Name keep on (block off)"
+      icon: mdi:lock-open-variant-outline
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_auto_fan_on:
+      name: "Room Friendly Name auto fan on (tag)"
+      icon: mdi:fan-auto
+    # --- END fan ---
+
+  input_datetime:
+    # --- BEGIN night ---
+    room_slug_actions_night_start:
+      name: "Room Friendly Name night start"
+      icon: mdi:weather-night
+      has_date: false
+      has_time: true
+
+    room_slug_actions_night_end:
+      name: "Room Friendly Name night end"
+      icon: mdi:weather-sunny
+      has_date: false
+      has_time: true
+    # --- END night ---
+
+  input_number:
+    # input_number: never set initial — omit it so HA restores prior state on restart.
+
+    # --- BEGIN lights ---
+    room_slug_actions_brightness_day_pct:
+      name: "Room Friendly Name brightness day %"
+      icon: mdi:brightness-6
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+
+    room_slug_actions_brightness_night_pct:
+      name: "Room Friendly Name brightness night %"
+      icon: mdi:brightness-4
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_actions_fan_pct_day:
+      name: "Room Friendly Name fan day %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
+      min: 0
+      max: 100
+      step: 5
+      mode: box
+
+    room_slug_actions_fan_pct_night:
+      name: "Room Friendly Name fan night %"
+      icon: mdi:fan
+      unit_of_measurement: "%"
+      min: 0
+      max: 100
+      step: 5
+      mode: box
+
+    room_slug_actions_fan_runon_minutes:
+      name: "Room Friendly Name fan run-on (minutes)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "min"
+      min: 0
+      max: 60
+      step: 1
+      mode: box
+      # Keep in sync with timer.room_slug_actions_fan_runon duration below.
+
+    room_slug_actions_fan_on_delay_seconds:
+      name: "Room Friendly Name fan ON delay (sec)"
+      icon: mdi:timer-outline
+      unit_of_measurement: "s"
+      min: 0
+      max: 180
+      step: 5
+      mode: box
+    # --- END fan ---
+
+  timer:
+    # --- BEGIN lights ---
+    room_slug_actions_cooldown:
+      name: "Room Friendly Name actions cooldown"
+      icon: mdi:timer-pause-outline
+      duration: "00:00:30"
+      restore: true
+    # --- END lights ---
+
+    # --- BEGIN fan ---
+    room_slug_actions_fan_runon:
+      name: "Room Friendly Name fan run-on"
+      icon: mdi:fan-clock
+      duration: "00:05:00"
+      restore: true
+    # --- END fan ---
+
+  template:
+    - binary_sensor:
+        # --- BEGIN lights ---
+        - name: "Room Friendly Name Actions Cooldown Active"
+          unique_id: "room_slug_actions_cooldown_active"
+          icon: mdi:timer-pause-outline
+          state: >-
+            {{ is_state('"timer.room_slug_actions_cooldown"', '"active"') }}
+        # --- END lights ---
+
+        # --- BEGIN fan ---
+        - name: "Room Friendly Name Fan Runon Active"
+          unique_id: "room_slug_actions_fan_runon_active"
+          icon: mdi:fan-clock
+          state: >-
+            {{ is_state('"timer.room_slug_actions_fan_runon"', '"active"') }}
+        # --- END fan ---
+
+        # --- BEGIN night ---
+        # Uses timestamp arithmetic (seconds-since-midnight) to avoid the
+        # today_at()/now() timezone-aware mismatch that prevents entity registration.
+        - name: "Room Friendly Name In Night Window"
+          unique_id: "room_slug_actions_in_night_window"
+          icon: mdi:weather-night
+          state: >-
+            {% set sh = state_attr('"input_datetime.room_slug_actions_night_start"','"hour"') | int(-1) %}
+            {% set sm = state_attr('"input_datetime.room_slug_actions_night_start"','"minute"') | int(0) %}
+            {% set ss = state_attr('"input_datetime.room_slug_actions_night_start"','"second"') | int(0) %}
+            {% set eh = state_attr('"input_datetime.room_slug_actions_night_end"','"hour"') | int(-1) %}
+            {% set em = state_attr('"input_datetime.room_slug_actions_night_end"','"minute"') | int(0) %}
+            {% set es = state_attr('"input_datetime.room_slug_actions_night_end"','"second"') | int(0) %}
+            {% if sh < 0 or eh < 0 %}
+              false
+            {% else %}
+              {% set start_ts = sh*3600 + sm*60 + ss %}
+              {% set end_ts   = eh*3600 + em*60 + es %}
+              {% set n = now() %}
+              {% set cur_ts = n.hour*3600 + n.minute*60 + n.second %}
+              {% if start_ts <= end_ts %}
+                {{ start_ts <= cur_ts < end_ts }}
+              {% else %}
+                {{ cur_ts >= start_ts or cur_ts < end_ts }}
+              {% endif %}
+            {% endif %}
+        # --- END night ---

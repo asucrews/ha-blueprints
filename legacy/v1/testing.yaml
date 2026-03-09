@@ -1,0 +1,29 @@
+light:
+  - platform: template
+    name: "Family Romm Ceiling Fan Light"
+    optimistic: true
+    on_turn_on:
+      - remote_transmitter.transmit_raw:
+          transmitter_id: RF_TX
+          code:
+    on_turn_off:
+      - remote_transmitter.transmit_raw:
+          transmitter_id: RF_TX
+          code:
+
+fan:
+  - platform: template
+    name: "Family Romm Ceiling Fan"
+    optimistic: true
+    on_turn_on:
+      - remote_transmitter.transmit_raw:
+          transmitter_id: RF_TX
+          code:
+    on_turn_off:
+      - remote_transmitter.transmit_raw:
+          transmitter_id: RF_TX
+          code:
+    on_direction_set:
+      - remote_transmitter.transmit_raw:
+          transmitter_id: RF_TX
+          code:

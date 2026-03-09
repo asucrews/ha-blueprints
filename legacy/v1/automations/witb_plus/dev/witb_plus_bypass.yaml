@@ -1,0 +1,19 @@
+alias: WITB+ Bypass Timeout Auto Reset
+description: Automatically disables bypass after configurable timeout
+trigger:
+  - platform: state
+    entity_id: input_boolean.room_occupancy_bypass
+    to: "on"
+
+condition:
+  - condition: template
+    value_template: "{{ states('input_number.bypass_timeout_minutes') | int > 0 }}"
+
+action:
+  - delay:
+      minutes: "{{ states('input_number.bypass_timeout_minutes') | int }}"
+  - service: input_boolean.turn_off
+    target:
+      entity_id: input_boolean.room_occupancy_bypass
+
+mode: restart

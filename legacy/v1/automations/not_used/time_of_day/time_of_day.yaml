@@ -1,0 +1,32 @@
+blueprint:
+  name: Time of Day Trigger (1.1.0)
+  homeassistant:
+    min_version: 2024.8.0
+  description: Blueprint for triggering actions at a specific time of day
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/time_of_day/time_of_day.yaml
+  input:
+    trigger_time:
+      name: Trigger Time
+      description: Time of day to run the actions
+      selector:
+        time:
+    actions:
+      name: Actions
+      description: Actions to run at the specified time
+      selector:
+        action:
+
+trigger:
+  - platform: time
+    at: !input trigger_time
+
+condition: []
+
+action:
+  - choose:
+      - conditions: []
+        sequence: !input actions
+
+mode: single
+max_exceeded: silent

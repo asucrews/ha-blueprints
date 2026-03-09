@@ -1,0 +1,828 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+r"""
+Template-driven generator for Home Assistant merge_named packages for:
+  WITB Standard Helpers (Occupied, Override, Latched, Failsafe)
+  WITB Actions Helpers  (Lights, Fan, Thresholds, Timers)
+  Room Humidity Baseline + Delta
+  Transit Room Helpers
+  Vacuum Job Helpers
+  … and any future template files.
+
+Supports per-room configuration overrides via config file.
+
+CHANGELOG:
+  v1 → v2 (auto-discovery + multi-template hardening):
+  NEW #1  - Feature blocks are now AUTO-DISCOVERED from the template file at
+            startup by scanning for  # --- BEGIN X ---  markers. The static
+            ALL_FEATURES list is kept as a fallback/documentation artifact but
+            is no longer the sole source of --no-X CLI flags. Any new template
+            block name is picked up automatically without editing this script.
+
+  NEW #2  - apply_tokens() now handles BOTH token styles:
+              "Room Friendly Name"  (witb_plus / witb_actions / humidity templates)
+              "Friendly Name"       (transit template — no "Room" prefix)
+            The first pass replaces "Room Friendly Name" → room.name; the second
+            replaces any remaining bare "Friendly Name" → room.name so transit
+            templates work without modification.
+
+  NEW #3  - remove_empty_section() now covers ALL HA platform section headers,
+            including `input_text` (transit) and `counter` (vacuum) which were
+            previously unhandled, leaving bare section keys in the output.
+
+  NEW #4  - extract_inner_if_single_package() de-indents by the ACTUAL wrapper
+            indentation width instead of hard-coding 2 spaces. Wrapper blocks
+            indented by 4 spaces (or any other depth) now unwrap correctly.
+
+  BUG #1  - input_number missing from remove_empty_section cleanup list. Fixed.
+  BUG #2  - Config emit_X overrode CLI --no-X flags. CLI now wins.
+  BUG #3  - No duplicate slug detection. Added.
+  BUG #4  - slugify() matched Unicode word chars. Fixed with re.ASCII.
+  BUG #5  - Dead-code regex in apply_tokens(). Removed.
+  BUG #6  - No --dry-run mode. Added.
+  BUG #7  - No existence check on --template path. Added.
+  BUG #8  - Redundant dual override syntax. Unified to no_X per-room.
+  BUG #9  - remove_empty_section used DOTALL, ate real content. Fixed.
+
+  v2 → v3 (area assignment support):
+  NEW #5  - Room dataclass now carries `area` (friendly name) and `area_id`
+            (HA slug, auto-derived from area via slugify() if not explicit).
+  NEW #6  - build_room() parses `area:` and optional `area_id:` from per-room
+            config dicts.
+  NEW #7  - --areas-script flag emits a standalone assign_areas.py that calls
+            the HA REST entity registry API to assign areas to all helpers.
+            Entity list per room respects each room's active feature flags so
+            disabled-block entities are never included.
+"""
+
+import argparse
+import json
+import re
+import sys
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+# ---------------------------------------------------------------------------
+# Static feature registry
+# ---------------------------------------------------------------------------
+# This list documents known features and supplies --no-X flags even when
+# invoked WITHOUT a --template (e.g. --help).  It is merged at runtime with
+# features auto-discovered from the actual template file, so new templates
+# never require editing this list.
+#
+# witb_plus_package_template.yaml blocks:
+#   helpers       - occupancy (input_boolean) + last_motion, last_door
+#                   (input_datetime) + exit_eval (timer)
+#   controls      - automation_override, force_occupied, manual_occupied (input_boolean)
+#   latched       - latched debug (input_boolean)
+#   exit_close    - last_exit_door (input_datetime)
+#   failsafe      - failsafe (timer) + failsafe_timeout (input_number)
+#   entry_gating  - entry_window_seconds (input_number)
+#
+# room_witb_actions_package_template.yaml blocks:
+#   lights        - auto_lights_on, keep_on (input_boolean) + brightness helpers
+#                   (input_number) + actions_cooldown (timer)
+#   fan           - auto_fan_on (input_boolean) + fan speed/delay/runon helpers
+#                   (input_number) + fan_runon (timer)
+#   lux           - lux_threshold (input_number)
+#   humidity      - humidity_high/low (input_number)
+#   night         - night_start/end (input_datetime)
+#
+# room_humidity_baseline_delta_package_template.yaml blocks:
+#   tuning_helpers - input_boolean + input_number tuning entities
+#
+# transit_helpers_package_template.yaml blocks:
+#   (no feature blocks — flat template, no # --- BEGIN/END --- markers)
+#
+# vacuum_job_helpers.yaml:
+#   (no feature blocks — flat template, no # --- BEGIN/END --- markers)
+#
+# room_witb_profile_with_sbm_helpers_template.yaml blocks:
+#   sbm           - sbm_cooldown_seconds (input_number) + last_sbm_reset
+#                   (trigger timestamp sensor) + sbm_cooldown_active
+#                   (binary_sensor) + sbm_cooldown_remaining (sensor)
+_STATIC_FEATURES: list[str] = [
+    # witb_plus core template
+    "helpers", "controls", "latched", "exit_close", "failsafe", "entry_gating",
+    # witb_actions template
+    "lights", "fan", "lux", "humidity", "night",
+    # humidity template
+    "tuning_helpers",
+    # witb_profile sbm helpers template
+    "sbm",
+]
+
+# All HA platform section keys that may become empty after block stripping.
+# Extend this list if future templates introduce new HA platform keys.
+_HA_SECTIONS: tuple[str, ...] = (
+    "input_boolean",
+    "input_button",
+    "input_datetime",
+    "input_number",
+    "input_select",
+    "input_text",
+    "timer",
+    "counter",
+    "template",
+    "binary_sensor",
+    "sensor",
+    "automation",
+    "script",
+)
+
+# ---------------------------------------------------------------------------
+# Area assignment entity patterns
+# ---------------------------------------------------------------------------
+# Each entry is (feature_block_or_None, entity_id_pattern).
+# feature_block_or_None: if None, always included; otherwise only included
+# when that feature block is active for the room.
+_AREA_ENTITY_PATTERNS: list[tuple[str | None, str]] = [
+    ("helpers",      "input_boolean.{slug}_occupied"),
+    ("controls",     "input_boolean.{slug}_automation_override"),
+    ("controls",     "input_boolean.{slug}_force_occupied"),
+    ("controls",     "input_boolean.{slug}_manual_occupied"),
+    ("latched",      "input_boolean.{slug}_latched"),
+    ("helpers",      "input_datetime.{slug}_last_motion"),
+    ("helpers",      "input_datetime.{slug}_last_door"),
+    ("exit_close",   "input_datetime.{slug}_last_exit_door"),
+    ("failsafe",     "input_number.{slug}_failsafe_timeout"),
+    ("entry_gating", "input_number.{slug}_entry_window_seconds"),
+    ("helpers",      "timer.{slug}_exit_eval"),
+    ("failsafe",     "timer.{slug}_failsafe"),
+]
+
+
+# ---------------------------------------------------------------------------
+# Utilities
+# ---------------------------------------------------------------------------
+
+def slugify(name: str) -> str:
+    """Convert a room name to a valid HA entity slug (ASCII lowercase + underscore)."""
+    s = name.strip().lower()
+    s = s.replace("&", " and ")
+    # Use re.ASCII so \w only matches [a-zA-Z0-9_], stripping accented and
+    # other non-ASCII characters that would make invalid HA entity IDs.
+    s = re.sub(r"[^\w\s-]", "", s, flags=re.ASCII)
+    s = re.sub(r"[\s-]+", "_", s)
+    s = re.sub(r"_+", "_", s).strip("_")
+    return s
+
+
+def indent(text: str, spaces: int) -> str:
+    """Indent every non-blank line by `spaces` spaces."""
+    pad = " " * spaces
+    return "\n".join((pad + line) if line.strip() else line for line in text.splitlines())
+
+
+def load_config(path: Path) -> dict[str, Any]:
+    """Load a JSON or YAML config file."""
+    if not path.exists():
+        sys.exit(f"Error: Config file not found: {path}")
+    txt = path.read_text(encoding="utf-8")
+    if path.suffix.lower() in [".yaml", ".yml"]:
+        try:
+            import yaml
+            return yaml.safe_load(txt)
+        except ImportError:
+            sys.exit("Error: YAML config requested but PyYAML not installed. Run: pip install pyyaml")
+    return json.loads(txt)
+
+
+def discover_features_from_text(text: str) -> list[str]:
+    """Return all feature names found via # --- BEGIN X --- markers in *text*."""
+    return re.findall(r"# --- BEGIN (\S+) ---", text)
+
+
+def _prescan_template_features() -> list[str]:
+    """
+    Pre-scan sys.argv for --template and extract feature names from that file
+    before argparse is fully configured.  Returns an empty list if --template
+    is absent, the file doesn't exist, or the file has no markers.
+    """
+    for i, arg in enumerate(sys.argv):
+        if arg == "--template" and i + 1 < len(sys.argv):
+            path = Path(sys.argv[i + 1])
+            if path.exists():
+                return discover_features_from_text(path.read_text(encoding="utf-8"))
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Data structures
+# ---------------------------------------------------------------------------
+
+@dataclass
+class Room:
+    name: str
+    slug: str
+    package_key: str
+    # Per-room feature flag overrides (True = include, False = strip)
+    overrides: dict[str, bool] = field(default_factory=dict)
+    # Area assignment fields (NEW #5)
+    area: str = ""      # Friendly area name, e.g. "Master Bathroom"
+    area_id: str = ""   # HA area slug, e.g. "master_bathroom" (auto-derived if absent)
+
+
+def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
+    """Build a Room from either a plain string name or a config dict."""
+    if isinstance(obj, str):
+        name = obj
+        overrides: dict[str, bool] = {}
+        slug = slugify(name)
+        area = ""
+        area_id = ""
+    else:
+        name = str(obj["name"])
+        slug = str(obj.get("slug") or slugify(name))
+
+        # NEW #6: parse area and optional explicit area_id
+        area = str(obj.get("area", ""))
+        area_id = str(obj.get("area_id") or (slugify(area) if area else ""))
+
+        # Per-room overrides use `no_X: true` only.
+        # emit_X is reserved for config root-level global overrides.
+        overrides = {}
+        for k, v in obj.items():
+            if k.startswith("no_"):
+                feature = k[3:]
+                overrides[feature] = not bool(v)
+
+    return Room(
+        name=name,
+        slug=slug,
+        package_key=f"{slug}{key_suffix}",
+        overrides=overrides,
+        area=area,
+        area_id=area_id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Text processing
+# ---------------------------------------------------------------------------
+
+def strip_marked_block(text: str, block: str) -> str:
+    """
+    Remove the block delimited by:
+      # --- BEGIN block ---
+      ...
+      # --- END block ---
+    including the delimiter lines themselves.
+    """
+    start = re.escape(f"# --- BEGIN {block} ---")
+    end = re.escape(f"# --- END {block} ---")
+    pattern = rf"(?ms)^[ \t]*{start}.*?{end}[ \t]*\n?"
+    return re.sub(pattern, "", text)
+
+
+def strip_block_markers(text: str) -> str:
+    """
+    Remove all remaining # --- BEGIN X --- and # --- END X --- comment lines.
+    These are template scaffolding and serve no purpose in generated output.
+    Also collapse 3+ consecutive blank lines down to 2 for clean formatting.
+    """
+    text = re.sub(r"(?m)^[ \t]*# --- (BEGIN|END) [^\n]+ ---[ \t]*\n?", "", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text
+
+
+def remove_empty_section(text: str, section: str) -> str:
+    """
+    Remove a top-level YAML key (e.g. `input_boolean:`) if its body contains
+    only comments and/or blank lines — i.e. all real content was stripped.
+
+    The `s` (DOTALL) flag is intentionally omitted and `.*` replaced with
+    `[^\n]*` so comment matching is strictly single-line (avoids eating real
+    content that follows a comment in the same section).
+    """
+    pat = rf"(?m)^(?P<hdr>{re.escape(section)}:\s*\n)(?P<body>(?:[ \t]*#[^\n]*\n|[ \t]*\n)*)(?=^[A-Za-z0-9_]+:\s*$|\Z)"
+    return re.sub(pat, "", text)
+
+
+def extract_inner_if_single_package(text: str) -> str:
+    """
+    Smart unwrapping: if the template has a single top-level wrapper key
+    (e.g. `room_witb_actions:` or `roomba_vacjob:`), unwrap its content by
+    removing the wrapper line and de-indenting by the wrapper's indent width.
+
+    The de-indent width is detected from the first non-blank/non-comment line
+    *inside* the wrapper, so templates indented by 2, 4, or any other depth
+    all unwrap correctly.
+
+    Header comments above the wrapper key are preserved.
+    If no wrapper key is found, the content is returned as-is.
+    """
+    lines = text.splitlines()
+
+    # Strip leading blank lines and optional YAML document separator
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    if lines and lines[0].strip() == "---":
+        lines.pop(0)
+    while lines and not lines[0].strip():
+        lines.pop(0)
+
+    if not lines:
+        return ""
+
+    # Find the first non-comment, non-blank line and check for a bare top-level key
+    wrapper_index = -1
+    for i, line in enumerate(lines):
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        if re.match(r"^[A-Za-z0-9_]+:\s*$", line):
+            wrapper_index = i
+        break  # Only inspect the very first content line
+
+    if wrapper_index == -1:
+        return "\n".join(lines)
+
+    # Detect actual indentation width from the first substantive child line
+    indent_width = 2  # sensible default
+    for line in lines[wrapper_index + 1:]:
+        if line.strip() and not line.strip().startswith("#"):
+            leading = len(line) - len(line.lstrip())
+            if leading > 0:
+                indent_width = leading
+            break
+
+    # Preserve header comments; de-indent wrapper body
+    result_lines: list[str] = list(lines[:wrapper_index])
+    for line in lines[wrapper_index + 1:]:
+        if line.startswith(" " * indent_width):
+            result_lines.append(line[indent_width:])
+        elif not line.strip():
+            result_lines.append("")
+        else:
+            # Line at column 0 inside a wrapper — unusual, pass through
+            result_lines.append(line)
+
+    return "\n".join(result_lines)
+
+
+def apply_tokens(text: str, room: Room) -> str:
+    """
+    Replace template tokens with room-specific values.
+
+    Two friendly-name token styles are supported:
+      "Room Friendly Name"  — used by witb_plus, witb_actions, humidity templates
+      "Friendly Name"       — used by transit template (no "Room" prefix)
+
+    "room_slug" is shared across all templates.
+
+    Processing order:
+      1. Replace "Room Friendly Name" first (more specific, must come first to
+         avoid the bare "Friendly Name" replacement consuming it partially).
+      2. Replace any remaining "Friendly Name" occurrences (transit compat).
+      3. Replace "room_slug".
+    """
+    text = text.replace("Room Friendly Name", room.name)
+    text = text.replace("Friendly Name", room.name)
+    text = text.replace("room_slug", room.slug)
+    return text
+
+
+# ---------------------------------------------------------------------------
+# Area assignment script generator (NEW #7)
+# ---------------------------------------------------------------------------
+
+def _write_areas_script(
+    path: Path,
+    rooms: list[Room],
+    template_features: list[str],
+    global_defaults: dict[str, bool],
+    dry_run: bool,
+) -> None:
+    """Generate a standalone Python script that assigns HA areas via REST API."""
+
+    # Build the per-room entity lists, respecting enabled features
+    assignment_blocks: list[str] = []
+
+    for room in rooms:
+        if not room.area_id:
+            continue
+
+        # Effective feature flags for this room
+        effective = global_defaults.copy()
+        effective.update({k: v for k, v in room.overrides.items() if k in template_features})
+
+        entity_ids: list[str] = []
+        for feature, pattern in _AREA_ENTITY_PATTERNS:
+            # Include if: feature is None (always present), or feature is active
+            if feature is None or effective.get(feature, False):
+                entity_ids.append(pattern.format(slug=room.slug))
+
+        if not entity_ids:
+            continue
+
+        lines = [f'    # {room.name} → area: {room.area_id}']
+        for eid in entity_ids:
+            lines.append(f'    "{eid}": "{room.area_id}",')
+        assignment_blocks.append("\n".join(lines))
+
+    if not assignment_blocks:
+        print("Note: No area assignments to write (no rooms with area + entities).")
+        return
+
+    assignments_str = "\n\n".join(assignment_blocks)
+
+    script = f'''\
+#!/usr/bin/env python3
+"""
+Auto-generated by generate_witb_packages_templated.py
+Assigns Home Assistant areas to WITB+ helper entities via the REST API.
+
+Run once after loading the generated packages and restarting HA so all
+entities are registered.  Safe to re-run (idempotent PATCH calls).
+
+Credentials are loaded from a .env file in the same directory:
+    HA_URL=http://homeassistant.local:8123
+    HA_TOKEN=your_long_lived_token_here
+
+Usage:
+    pip install requests python-dotenv
+    python assign_areas.py
+
+Requirements:
+    pip install requests python-dotenv
+"""
+
+import os
+import sys
+from pathlib import Path
+
+import requests
+
+# ---------------------------------------------------------------------------
+# Load credentials from .env (never hardcode tokens in scripts)
+# Walks up the directory tree from this script's location to find the
+# nearest .env — one .env at the repo root covers all generated scripts.
+# ---------------------------------------------------------------------------
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    sys.exit(
+        "Error: python-dotenv is not installed.\\n"
+        "Run: pip install python-dotenv"
+    )
+
+def _find_dotenv(start: Path) -> Path | None:
+    """Walk up from *start* until a .env file is found or the root is reached."""
+    for parent in [start, *start.parents]:
+        candidate = parent / ".env"
+        if candidate.is_file():
+            return candidate
+    return None
+
+_env_path = _find_dotenv(Path(__file__).parent)
+if _env_path is None:
+    sys.exit(
+        "Error: No .env file found in this directory or any parent.\\n"
+        "Copy .env.example to .env at the repo root and fill in HA_URL and HA_TOKEN."
+    )
+load_dotenv(_env_path)
+
+HA_URL = os.getenv("HA_URL", "").rstrip("/")
+TOKEN  = os.getenv("HA_TOKEN", "")
+
+if not HA_URL:
+    sys.exit("Error: HA_URL not set in .env  (e.g. HA_URL=http://homeassistant.local:8123)")
+if not TOKEN:
+    sys.exit("Error: HA_TOKEN not set in .env  (e.g. HA_TOKEN=your_long_lived_token_here)")
+
+HEADERS = {{
+    "Authorization": f"Bearer {{TOKEN}}",
+    "Content-Type": "application/json",
+}}
+
+# ---------------------------------------------------------------------------
+# entity_id → area_id
+# ---------------------------------------------------------------------------
+ASSIGNMENTS: dict[str, str] = {{
+{assignments_str}
+}}
+
+
+def get_entity(entity_id: str) -> dict | None:
+    r = requests.get(
+        f"{{HA_URL}}/api/config/entity_registry/entry/{{entity_id}}",
+        headers=HEADERS,
+        timeout=10,
+    )
+    return r.json() if r.ok else None
+
+
+def assign_area(entity_id: str, area_id: str) -> bool:
+    r = requests.patch(
+        f"{{HA_URL}}/api/config/entity_registry/entry/{{entity_id}}",
+        headers=HEADERS,
+        json={{"area_id": area_id}},
+        timeout=10,
+    )
+    return r.ok
+
+
+def main() -> None:
+    ok = fail = skip = 0
+    for entity_id, area_id in ASSIGNMENTS.items():
+        entry = get_entity(entity_id)
+        if entry is None:
+            print(f"  SKIP  {{entity_id}}  (not registered yet)")
+            skip += 1
+            continue
+        if assign_area(entity_id, area_id):
+            print(f"  OK    {{entity_id}}  →  {{area_id}}")
+            ok += 1
+        else:
+            print(f"  FAIL  {{entity_id}}  →  {{area_id}}")
+            fail += 1
+
+    print(f"\\nDone. {{ok}} assigned, {{fail}} failed, {{skip}} skipped.")
+
+
+if __name__ == "__main__":
+    main()
+'''
+
+    if dry_run:
+        print(f"[DRY RUN] Would write area assignment script: {path}")
+        rooms_with_area = sum(1 for r in rooms if r.area_id)
+        print(f"          Rooms with areas: {rooms_with_area}")
+    else:
+        path.write_text(script, encoding="utf-8")
+        print(f"\nArea assignment script written: {path}")
+        print("  Populate .env with HA_URL and HA_TOKEN, then run once after packages load.")
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+def main() -> int:
+    # Auto-discover feature block names from the template before configuring
+    # argparse so that --no-X flags exist for ALL blocks, including those in
+    # templates written after this script was last edited.
+    discovered_features = _prescan_template_features()
+
+    # Merge: static list first (preserves order + supplies flags without
+    # --template), then append any newly discovered names not already listed.
+    all_features: list[str] = list(_STATIC_FEATURES)
+    for f in discovered_features:
+        if f not in all_features:
+            all_features.append(f)
+
+    ap = argparse.ArgumentParser(
+        description="Generate HA merge_named package files from a WITB template.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Generate from a YAML config (recommended):
+  python generate_witb_packages_templated.py \\
+    --template witb_plus_package_template.yaml \\
+    --config rooms.yaml \\
+    --out ./packages/rooms
+
+  # Generate packages AND area assignment script in one pass:
+  python generate_witb_packages_templated.py \\
+    --config rooms.yaml \\
+    --areas-script ./assign_areas.py
+
+  # Quick generation from CLI room names:
+  python generate_witb_packages_templated.py \\
+    --template witb_plus_package_template.yaml \\
+    --rooms "Master Bedroom" "Office" "Bathroom" \\
+    --out ./packages/rooms
+
+  # Dry run to preview without writing files:
+  python generate_witb_packages_templated.py \\
+    --template witb_plus_package_template.yaml \\
+    --rooms "Office" \\
+    --out ./packages/rooms \\
+    --dry-run
+
+  # Transit template (flat, no feature blocks):
+  python generate_witb_packages_templated.py \\
+    --template transit_helpers_package_template.yaml \\
+    --rooms "Hallway" "Stairs" \\
+    --key-suffix _transit \\
+    --out ./packages/transit
+
+Per-room config override example (rooms.yaml):
+  template: witb_plus_package_template.yaml
+  out: ./packages
+  areas_script: ./assign_areas.py   # auto-generate area assignment script
+  rooms:
+    - name: Master Bedroom
+      area: Master Bedroom          # HA area friendly name
+      no_latched: true              # Disable the latched helper for this room
+    - name: Master Bathroom Toilet
+      area: Master Bathroom         # Sub-space shares parent area
+    - name: Office
+      no_exit_eval: true            # Disable exit_eval timer (not using WITB v4.2)
+    - name: Bathroom
+""",
+    )
+    ap.add_argument("--out", type=Path, help="Output directory for generated files (can also be set in config as 'out:')")
+    ap.add_argument("--template", type=Path, help="Template YAML file (can also be set in config as 'template:')")
+    ap.add_argument("--rooms", nargs="+", metavar="ROOM", help="One or more room names (quoted if multi-word)")
+    ap.add_argument("--config", type=Path, help="JSON or YAML config file defining rooms and global options")
+    ap.add_argument("--key-suffix", default="_witb", help="Suffix appended to slug to form the package key (default: _witb)")
+    ap.add_argument("--file-suffix", default=".yaml", help="Output file extension (default: .yaml)")
+    ap.add_argument("--dry-run", action="store_true", help="Print what would be generated without writing any files")
+    # NEW #7: area assignment script output path
+    ap.add_argument(
+        "--areas-script",
+        type=Path,
+        default=None,
+        metavar="PATH",
+        help=(
+            "If set, write a standalone HA REST area-assignment script to this path "
+            "(e.g. assign_areas.py). Only rooms with 'area:' defined are included. "
+            "Edit HA_URL and TOKEN in the script before running it."
+        ),
+    )
+
+    # Global feature disable flags — built from the merged feature list so
+    # new template blocks automatically get a --no-X flag.
+    for f in all_features:
+        flag = f"--no-{f.replace('_', '-')}"
+        ap.add_argument(
+            flag,
+            dest=f"no_{f}",
+            action="store_true",
+            help=f"Disable the '{f}' block globally for all rooms",
+        )
+
+    args = ap.parse_args()
+
+    # Load config early so template/out defined inside it are available
+    # before validation. CLI values always take priority.
+    cfg: dict[str, Any] = {}
+    if args.config:
+        cfg = load_config(args.config)
+        if not cfg:
+            ap.error(f"Config file is empty or contains no valid YAML: {args.config}")
+        args.key_suffix = cfg.get("key_suffix", args.key_suffix)
+        args.file_suffix = cfg.get("file_suffix", args.file_suffix)
+
+        # Pull template and out from config if not supplied on CLI.
+        # Resolved relative to the config file so the project is portable.
+        if args.template is None and "template" in cfg:
+            args.template = args.config.parent / cfg["template"]
+        if args.out is None and "out" in cfg:
+            args.out = args.config.parent / cfg["out"]
+        # NEW #7b: areas_script can be set in config; CLI --areas-script takes priority.
+        if args.areas_script is None and "areas_script" in cfg:
+            args.areas_script = args.config.parent / cfg["areas_script"]
+
+    # Validate required args now that config has had a chance to fill them in.
+    if args.template is None:
+        ap.error("--template is required (or set 'template:' in your config file)")
+    if args.out is None:
+        ap.error("--out is required (or set 'out:' in your config file)")
+
+    # Validate template path exists with a clear error message.
+    if not args.template.exists():
+        ap.error(f"Template file not found: {args.template}")
+
+    # 1. Build global feature defaults from CLI flags (all ON unless --no-X passed)
+    global_defaults: dict[str, bool] = {}
+    for f in all_features:
+        global_defaults[f] = not getattr(args, f"no_{f}", False)
+
+    # 2. Parse rooms from config or CLI
+    rooms: list[Room] = []
+
+    if args.config:
+        # Config-level emit_X overrides apply ONLY if the corresponding CLI
+        # --no-X flag was NOT explicitly passed. CLI takes priority.
+        for f in all_features:
+            cli_flag_key = f"no_{f}"
+            cli_was_set = getattr(args, cli_flag_key, False)
+            config_key = f"emit_{f}"
+            if config_key in cfg and not cli_was_set:
+                global_defaults[f] = bool(cfg[config_key])
+
+        for obj in cfg.get("rooms", []):
+            rooms.append(build_room(obj, args.key_suffix))
+
+    elif args.rooms:
+        for r in args.rooms:
+            rooms.append(build_room(r, args.key_suffix))
+    else:
+        ap.error("Must provide --rooms or --config")
+
+    # Detect duplicate slugs before generating any files.
+    seen_slugs: dict[str, str] = {}
+    duplicates: list[str] = []
+    for room in rooms:
+        if room.slug in seen_slugs:
+            duplicates.append(
+                f"  '{room.name}' and '{seen_slugs[room.slug]}' both slugify to '{room.slug}'"
+            )
+        else:
+            seen_slugs[room.slug] = room.name
+    if duplicates:
+        sys.exit(
+            "Error: Duplicate room slugs detected (would silently overwrite files):\n"
+            + "\n".join(duplicates)
+        )
+
+    # 3. Read and unwrap template once
+    raw_template = args.template.read_text(encoding="utf-8")
+    base_inner = extract_inner_if_single_package(raw_template)
+
+    # Detect which feature blocks are actually present in this template.
+    # Features with no matching # --- BEGIN X --- marker are silently ignored,
+    # so the same script works against any template without false warnings.
+    template_features = [
+        f for f in all_features
+        if re.search(rf"# --- BEGIN {re.escape(f)} ---", base_inner)
+    ]
+
+    # Restrict global_defaults to only features present in this template
+    global_defaults = {f: global_defaults[f] for f in template_features}
+
+    # Create output directory (unless dry run)
+    if not args.dry_run and not args.out.exists():
+        args.out.mkdir(parents=True, exist_ok=True)
+
+    # 4. Generate per room
+    generated_count = 0
+    for room in rooms:
+        # Effective flags scoped to this template's blocks only.
+        # Per-room overrides for blocks not in this template are silently ignored.
+        effective_flags = global_defaults.copy()
+        effective_flags.update({
+            k: v for k, v in room.overrides.items() if k in template_features
+        })
+
+        # Strip disabled blocks from a fresh copy of the template
+        current_text = base_inner
+        for block, enabled in effective_flags.items():
+            if not enabled:
+                current_text = strip_marked_block(current_text, block)
+
+        # Strip all remaining marker comment lines from the output
+        current_text = strip_block_markers(current_text)
+
+        # Clean up any now-empty section headers.
+        # _HA_SECTIONS covers all known platform keys including input_text and
+        # counter (transit / vacuum templates) — extend that tuple for future needs.
+        for sec in _HA_SECTIONS:
+            current_text = remove_empty_section(current_text, sec)
+
+        # Replace tokens with room-specific values
+        current_text = apply_tokens(current_text, room)
+
+        # Wrap in package key
+        final_yaml = f"---\n{room.package_key}:\n{indent(current_text, 2)}\n"
+
+        fname = f"{room.slug}{args.file_suffix}"
+        active_features = [k for k, v in effective_flags.items() if v]
+
+        if args.dry_run:
+            print(f"[DRY RUN] Would write: {args.out / fname}")
+            print(f"          Features:    {', '.join(active_features) or '(none — flat template)'}")
+            print(f"          Package key: {room.package_key}")
+            area_str = f"{room.area} ({room.area_id})" if room.area_id else "(none)"
+            print(f"          Area:        {area_str}")
+            print()
+        else:
+            out_path = args.out / fname
+            out_path.write_text(final_yaml, encoding="utf-8")
+            features_str = ", ".join(active_features) or "(none — flat template)"
+            area_str = f"  [area: {room.area_id}]" if room.area_id else ""
+            print(f"Generated {fname}  [pkg: {room.package_key}]  [features: {features_str}]{area_str}")
+
+        generated_count += 1
+
+    if args.dry_run:
+        print(f"Dry run complete. {generated_count} file(s) would be written to: {args.out}")
+    else:
+        print(f"\nDone. {generated_count} file(s) written to: {args.out}")
+
+    # -------------------------------------------------------------------------
+    # 5. Optionally emit the area-assignment companion script (NEW #7)
+    # -------------------------------------------------------------------------
+    if args.areas_script:
+        rooms_with_areas = [r for r in rooms if r.area_id]
+        if rooms_with_areas:
+            _write_areas_script(
+                args.areas_script,
+                rooms,
+                template_features,
+                global_defaults,
+                args.dry_run,
+            )
+        else:
+            print("Note: --areas-script set but no rooms have 'area:' defined — skipping.")
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

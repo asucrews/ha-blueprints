@@ -1,0 +1,292 @@
+blueprint:
+  name: Smart Vents - Flair v1.0.4
+  homeassistant:
+    min_version: 2025.6.0
+  description: |
+    Version: 1.0.4 — see CHANGELOG.md for full version history.
+
+    Flair smart vent controller for a single room. Translates the WITB+
+    occupied_effective occupancy signal into Flair activity status commands.
+
+    OCCUPANCY → VENT CONTROL
+      • occupied_effective ON  → Flair activity status Active + clear hold.
+      • occupied_effective OFF → Flair activity status Inactive + clear hold.
+      All occupancy debounce and exit evaluation is handled upstream by the
+      WITB+ occupancy blueprint. Do not wire a raw door/motion sensor or the
+      input_boolean occupancy helper here.
+
+    RECONCILIATION
+      • If flair_activity_status changes for any reason and does not match
+        occupied_effective, it is corrected after reconciliation_delay seconds.
+      • Pre-delay mismatch check prevents unnecessary reconciliation cycles when
+        this automation's own service calls trigger the reconciliation path.
+      • unknown/unavailable transitions on HA restart are suppressed and do not
+        trigger reconciliation.
+
+    STARTUP SYNC
+      • On HA restart, waits 30 s for WITB+ and the Flair integration to restore,
+        then reconciles vent state against current occupied_effective. Recovers
+        from drift that occurred while HA was offline.
+
+    REQUIRED ENTITIES (one set per room)
+      • binary_sensor — room_slug_occupied_effective  (WITB+ output)
+      • select        — Flair activity status
+      • button        — Flair clear hold
+
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/flair/flair.yaml
+  author: Jeremy Crews
+  input:
+    required_entities:
+      name: Required Entities
+      icon: mdi:valve
+      description: Required entities for this automation.
+      collapsed: false
+      input:
+        occupied_effective:
+          name: WITB+ Occupied Effective
+          description: >
+            The room's WITB+ effective occupancy sensor
+            (binary_sensor.room_slug_occupied_effective).
+            This is the single source of truth for room occupancy. Do not use
+            the raw input_boolean.room_slug_occupied helper or a door/motion
+            sensor directly — those are evaluated upstream by WITB+.
+          selector:
+            entity:
+              domain:
+                - binary_sensor
+              multiple: false
+        flair_activity_status:
+          name: Flair Activity Status
+          description: >
+            The Flair activity status select entity for this room. Set to
+            Active when occupied and Inactive when unoccupied.
+          selector:
+            entity:
+              domain:
+                - select
+              multiple: false
+        flair_clear_hold:
+          name: Flair Clear Hold Button
+          description: >
+            The Flair clear hold button entity for this room. Pressed after
+            every activity status change to ensure the new state takes effect
+            immediately.
+          selector:
+            entity:
+              domain:
+                - button
+              multiple: false
+    optional_settings:
+      name: Optional Settings
+      icon: mdi:tune
+      description: Optional configuration for reconciliation behavior.
+      collapsed: true
+      input:
+        reconciliation_delay:
+          name: Flair Status Reconciliation Delay
+          description: >
+            How long to wait, in seconds, before correcting a Flair activity
+            status that does not match the current occupancy state. A short
+            delay prevents the automation from fighting intentional manual
+            changes or brief Flair cloud state transitions before they settle.
+            Set to 0 to correct immediately.
+          default: 5
+          selector:
+            number:
+              mode: box
+              min: 0
+              max: 60
+              step: 1
+              unit_of_measurement: seconds
+
+trigger:
+  - platform: state
+    entity_id: !input occupied_effective
+    from: "off"
+    to: "on"
+    id: Room Occupied
+  - platform: state
+    entity_id: !input occupied_effective
+    from: "on"
+    to: "off"
+    id: Room Unoccupied
+  - platform: state
+    entity_id: !input flair_activity_status
+    not_from:
+      - unknown
+      - unavailable
+    not_to:
+      - unknown
+      - unavailable
+    id: Flair Status Changed
+  - platform: homeassistant
+    event: start
+    id: HA Started
+
+action:
+  - choose:
+      # ==========================================================================
+      # OCCUPIED → ACTIVE
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id:
+              - Room Occupied
+        sequence:
+          - action: select.select_option
+            data:
+              option: Active
+            target:
+              entity_id: !input flair_activity_status
+          - action: button.press
+            data: {}
+            target:
+              entity_id: !input flair_clear_hold
+
+      # ==========================================================================
+      # UNOCCUPIED → INACTIVE
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id:
+              - Room Unoccupied
+        sequence:
+          - action: select.select_option
+            data:
+              option: Inactive
+            target:
+              entity_id: !input flair_activity_status
+          - action: button.press
+            data: {}
+            target:
+              entity_id: !input flair_clear_hold
+
+      # ==========================================================================
+      # FLAIR STATUS CHANGED → RECONCILE
+      # Pre-delay mismatch check gates entry: if flair_activity_status already
+      # matches occupied_effective (e.g. our own service call just set it), this
+      # branch exits immediately — no delay, no unnecessary restart cycle.
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id:
+              - Flair Status Changed
+          - condition: or
+            conditions:
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: !input occupied_effective
+                    state: "on"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input flair_activity_status
+                        state: "Active"
+              - condition: and
+                conditions:
+                  - condition: state
+                    entity_id: !input occupied_effective
+                    state: "off"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input flair_activity_status
+                        state: "Inactive"
+        sequence:
+          - delay:
+              seconds: !input reconciliation_delay
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupied_effective
+                    state: "on"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input flair_activity_status
+                        state: "Active"
+                sequence:
+                  - action: select.select_option
+                    data:
+                      option: Active
+                    target:
+                      entity_id: !input flair_activity_status
+                  - action: button.press
+                    data: {}
+                    target:
+                      entity_id: !input flair_clear_hold
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupied_effective
+                    state: "off"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input flair_activity_status
+                        state: "Inactive"
+                sequence:
+                  - action: select.select_option
+                    data:
+                      option: Inactive
+                    target:
+                      entity_id: !input flair_activity_status
+                  - action: button.press
+                    data: {}
+                    target:
+                      entity_id: !input flair_clear_hold
+
+      # ==========================================================================
+      # HA RESTART → STARTUP SYNC
+      # Waits 30 s for WITB+ and the Flair integration to restore before
+      # reconciling. Blocking delay acceptable here — fires once per HA restart.
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id:
+              - HA Started
+        sequence:
+          - delay:
+              seconds: 30
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupied_effective
+                    state: "on"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input flair_activity_status
+                        state: "Active"
+                sequence:
+                  - action: select.select_option
+                    data:
+                      option: Active
+                    target:
+                      entity_id: !input flair_activity_status
+                  - action: button.press
+                    data: {}
+                    target:
+                      entity_id: !input flair_clear_hold
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupied_effective
+                    state: "off"
+                  - condition: not
+                    conditions:
+                      - condition: state
+                        entity_id: !input flair_activity_status
+                        state: "Inactive"
+                sequence:
+                  - action: select.select_option
+                    data:
+                      option: Inactive
+                    target:
+                      entity_id: !input flair_activity_status
+                  - action: button.press
+                    data: {}
+                    target:
+                      entity_id: !input flair_clear_hold
+
+mode: restart

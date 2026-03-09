@@ -1,0 +1,22 @@
+# rooms.yaml
+template: witb_plus_package_template.yaml
+out: ./packages
+areas_script: ./assign_areas.py
+key_suffix: _witb
+rooms:
+  - name: "Garage"
+    area: "Garage"
+  - name: "Half Bathroom"
+    area: "Half Bathroom"
+  - name: "Master Bedroom"
+    area: "Master Bedroom"  
+  - name: "Master Bedroom Closet"
+    area: "Master Bedroom Closet"
+  - name: "Master Bathroom"
+    area: "Master Bathroom"
+  - name: "Master Bathroom Toilet"
+    area: "Master Bathroom Toilet"
+  - name: "Laundry"
+    area: "Laundry"
+  - name: "Office"
+    area: "Office"

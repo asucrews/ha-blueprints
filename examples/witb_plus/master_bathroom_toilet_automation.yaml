@@ -1,0 +1,34 @@
+- id: witb_plus_v3_master_bathroom_toilet
+  alias: WITB+ v3 - Master Bathroom Toilet Occupancy
+  description: Example occupancy automation for a bathroom toilet room.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_plus/v3/witb_plus.yaml
+    input:
+      seal_door: binary_sensor.master_bathroom_toilet_door_contact
+      transition_doors:
+        - binary_sensor.master_bathroom_toilet_door_contact
+      motion_sensor: binary_sensor.master_bathroom_toilet_pir_motion
+
+      mmwave_sensor: ""
+      mmwave_blocks_clear: true
+      mmwave_asserts_occupied: false
+
+      occupancy_helper: input_boolean.master_bathroom_toilet_occupied
+      last_motion_helper: input_datetime.master_bathroom_toilet_last_motion
+      last_door_helper: input_datetime.master_bathroom_toilet_last_door
+      last_exit_door_helper: input_datetime.master_bathroom_toilet_last_exit_door
+      latched_helper: input_boolean.master_bathroom_toilet_latched
+
+      automation_override: input_boolean.master_bathroom_toilet_automation_override
+      force_occupied: input_boolean.master_bathroom_toilet_force_occupied
+      manual_occupied: input_boolean.master_bathroom_toilet_manual_occupied
+
+      require_door_for_entry: false
+      entry_window_seconds: 15
+      exit_timeout_seconds: 45
+      exit_recent_window_seconds: 180
+
+      enable_failsafe: true
+      failsafe_timer: timer.master_bathroom_toilet_failsafe
+      failsafe_minutes: 120
