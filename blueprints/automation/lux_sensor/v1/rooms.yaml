@@ -1,0 +1,14 @@
+# rooms.yaml
+template: witb_plus_actions_lights_fan_package_template.yaml
+out: ./packages
+areas_script: ./assign_areas.py
+key_suffix: _lux_delta
+rooms:
+  - name: "Family Room"
+    area: "Family Room"
+  - name: "Dinning Room"
+    area: "Dinning Room"
+  - name: "Office"
+    area: "Office"
+  - name: "Master Bedroom"
+    area: "Master Bedroom"
