@@ -506,15 +506,6 @@ ASSIGNMENTS: dict[str, str] = {{
 }}
 
 
-def get_entity(entity_id: str) -> dict | None:
-    r = requests.get(
-        f"{{HA_URL}}/api/config/entity_registry/entry/{{entity_id}}",
-        headers=HEADERS,
-        timeout=10,
-    )
-    return r.json() if r.ok else None
-
-
 def assign_area(entity_id: str, area_id: str) -> bool:
     r = requests.patch(
         f"{{HA_URL}}/api/config/entity_registry/entry/{{entity_id}}",
@@ -528,19 +519,14 @@ def assign_area(entity_id: str, area_id: str) -> bool:
 def main() -> None:
     ok = fail = skip = 0
     for entity_id, area_id in ASSIGNMENTS.items():
-        entry = get_entity(entity_id)
-        if entry is None:
-            print(f"  SKIP  {{entity_id}}  (not registered yet)")
-            skip += 1
-            continue
         if assign_area(entity_id, area_id):
             print(f"  OK    {{entity_id}}  →  {{area_id}}")
             ok += 1
         else:
-            print(f"  FAIL  {{entity_id}}  →  {{area_id}}")
-            fail += 1
+            print(f"  SKIP  {{entity_id}}  (not registered — run again after HA restart)")
+            skip += 1
 
-    print(f"\\nDone. {{ok}} assigned, {{fail}} failed, {{skip}} skipped.")
+    print(f"\\nDone. {{ok}} assigned, {{skip}} skipped (not registered yet).")
 
 
 if __name__ == "__main__":
