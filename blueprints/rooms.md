@@ -18,6 +18,7 @@ python generate_witb_packages_templated.py --config rooms.yaml
 |---|---|---|
 | `template` | Yes* | Path to the template YAML file, relative to this config file |
 | `out` | Yes* | Output directory for generated files, relative to this config file |
+| `areas_script` | No | Path to a helper script (e.g. `./assign_areas.py`) run after generation to assign HA areas to generated entities |
 | `key_suffix` | No | Suffix appended to the room slug to form the HA package key (default: `_witb`) |
 | `file_suffix` | No | File extension for generated files (default: `.yaml`) |
 | `rooms` | Yes | List of rooms to generate (see below) |
@@ -38,6 +39,17 @@ optional feature flags.
 rooms:
   - name: "Office"
 ```
+
+### With area assignment
+
+```yaml
+rooms:
+  - name: "Office"
+    area: "Office"
+```
+
+The `area` field is passed to `areas_script` (if configured) to assign the generated
+entities to the matching HA area after generation.
 
 ### With per-room feature flags
 
