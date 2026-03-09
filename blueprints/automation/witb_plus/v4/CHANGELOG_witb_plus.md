@@ -5,6 +5,41 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [4.2.4] — 2026-03-09 — Seal Door Guard Hardening
+
+### Fixed
+
+- **FIX #11 — Seal door closed ALWAYS blocks clearing.** `exit_recent` no longer
+  overrides the sealed door guard. Previously an active exit-recent window could allow
+  clearing even when the seal door was closed, risking lights/fan turning off on a
+  sleeping occupant. The sealed condition is now an unconditional guard across all
+  three clearing paths: `exit_eval_done`, `fail_safe_done`, and the deadlock break.
+
+---
+
+## [4.2.3] — 2026-03-09 — force_occupied Multi-Helper Support
+
+### Added
+
+- **`force_occupied` now accepts multiple helpers** (list or single entity). `force_on`
+  is `true` if ANY configured helper is ON. Runtime recomputation added at evaluation
+  time so a still-active force helper blocks clearing even after the exit eval timer
+  delay fires.
+
+---
+
+## [4.2.2] — 2026-03-09 — manual_occupied Multi-Helper Support
+
+### Added
+
+- **`manual_occupied` now accepts multiple helpers** (list or single entity). `manual_on`
+  is `true` if ANY configured helper is ON. Runtime recomputation added at evaluation
+  time so a still-active manual-occupied helper blocks clearing even after the exit eval
+  timer delay fires.
+- **`min_version` bumped to `2026.3.0`** to reflect selector features used.
+
+---
+
 ## [4.2.0] — 2026-02-26 — Reliability Fixes
 
 ### Fixed

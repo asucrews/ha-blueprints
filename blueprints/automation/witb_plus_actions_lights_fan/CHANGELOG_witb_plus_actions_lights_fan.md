@@ -5,6 +5,28 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [3.0.3] — 2026-03-09 — Post-Delay Vacancy Guard Fix
+
+### Fixed
+
+- **FIX — Post-delay occupancy check moved to outer sequence level.** The occupancy
+  re-check after `fan_on_delay_done` must live at the outer `choose` condition level,
+  not inside a nested sequence. Previously, a room going vacant during the fan on-delay
+  could still trigger fan turn-on because the inner guard was not evaluated at the
+  correct nesting depth. The check `is_state(occ, 'on')` is now a top-level condition
+  on the `fan_on_delay_done` branch, ensuring vacancy mid-delay correctly aborts the
+  fan turn-on.
+
+---
+
+## [3.0.2] — 2026-03-09 — min_version bump
+
+### Changed
+
+- **`min_version` bumped to `2026.3.0`** to reflect selector and trigger features used.
+
+---
+
 ## [3.0.1] — 2026-03-03 — Fix fan_gate_cleared trigger crash
 
 ### Fixed
@@ -24,6 +46,19 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
   This is the same pattern used in WITB+ v4.2 for all optional trigger entities
   (FIX #7 in that CHANGELOG).
+
+---
+
+## [2.3.3] — 2026-03-09 — Post-Delay Vacancy Guard Fix
+
+### Fixed
+
+- **FIX — Post-delay occupancy check moved to outer sequence level.** The occupancy
+  re-check after the lights-off delay must live at the outer `choose` condition level.
+  Previously, a room going vacant during the delay could still proceed through nested
+  sequences because the guard was evaluated at the wrong nesting depth. The check is
+  now a top-level condition on the `lights_off` branch, ensuring vacancy mid-delay
+  correctly aborts the sequence.
 
 ---
 
