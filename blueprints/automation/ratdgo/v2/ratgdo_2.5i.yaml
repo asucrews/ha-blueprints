@@ -1,0 +1,309 @@
+blueprint:
+  name: Ratgdo 2.5i (2.1.0)
+  description: >
+    Ratgdo door mechanics — auto-close with obstruction handling, bypass support,
+    physical button session cancel, and notifications.
+    Light control and occupancy are handled externally (WITB+).
+  homeassistant:
+    min_version: 2024.6.0
+  domain: automation
+  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratgdo_2.5i.yaml
+  author: Jeremy Crews
+  input:
+    required_entities:
+      name: Required Entities
+      description: Required entities for this automation.
+      collapsed: false
+      input:
+        ratgdo_device:
+          name: Ratgdo Device
+          description: The garage door cover entity provided by the Ratgdo integration.
+          selector:
+            entity:
+              filter:
+                - domain: cover
+              multiple: false
+        obstruction_entity:
+          name: Obstruction Entity
+          description: Binary sensor that reports when an obstruction is detected.
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+              multiple: false
+
+    optional_entities:
+      name: Optional Entities
+      description: Optional entities for timer, bypass, and notifications.
+      collapsed: true
+      input:
+        garage_door_timer_helper:
+          name: Auto-Close Timer Helper
+          description: >
+            Timer entity that controls how long the door stays open before
+            auto-closing. Leave empty to disable auto-close.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: timer
+              multiple: false
+        bypass_helper:
+          name: Bypass Helper
+          description: >
+            When this input_boolean is on, auto-close is skipped entirely.
+            Useful for extended garage work sessions.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: input_boolean
+              multiple: false
+        button_entity:
+          name: Wall Button Entity (Optional)
+          description: >
+            Binary sensor that tracks physical button presses on the Ratgdo device
+            (e.g. binary_sensor.garage_ratgdo_v2_5i_button). When pressed while
+            the door is open, auto-close is cancelled for that session only.
+            Auto-close resumes normally the next time the door opens.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+              multiple: false
+        notify_group:
+          name: Notification Service (Optional)
+          description: >
+            Notification service to alert on door open, close, obstruction, and
+            button session-cancel events. Leave empty to disable notifications.
+          default: []
+          selector:
+            notify:
+
+variables:
+  ratgdo_device: !input ratgdo_device
+  obstruction_entity: !input obstruction_entity
+  garage_door_timer_helper: !input garage_door_timer_helper
+  bypass_helper: !input bypass_helper
+  button_entity: !input button_entity
+  notify_group: !input notify_group
+
+trigger:
+  - trigger: state
+    entity_id: !input ratgdo_device
+    from: opening
+    to: open
+    id: door_opened
+
+  - trigger: state
+    entity_id: !input ratgdo_device
+    from: closing
+    to: closed
+    id: door_closed
+
+  - trigger: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input garage_door_timer_helper
+    id: timer_done
+
+  - trigger: state
+    entity_id: !input obstruction_entity
+    from: "off"
+    to: "on"
+    id: obstruction_found
+
+  - trigger: state
+    entity_id: !input button_entity
+    from: "off"
+    to: "on"
+    id: button_pressed
+
+action:
+  - choose:
+
+    # -----------------------------------------------------------------------
+    # Door Opened
+    # -----------------------------------------------------------------------
+    - conditions:
+        - condition: trigger
+          id: door_opened
+      sequence:
+        - if:
+            - condition: template
+              value_template: "{{ garage_door_timer_helper | length > 0 }}"
+          then:
+            - action: timer.start
+              target:
+                entity_id: !input garage_door_timer_helper
+
+        - if:
+            - condition: template
+              value_template: "{{ notify_group | length > 0 }}"
+          then:
+            - action: notify.{{ notify_group }}
+              data:
+                title: "{{ device_attr(ratgdo_device, 'name') }} | {{ now().strftime('%H:%M') }}"
+                message: Garage door is open.
+                data:
+                  ttl: 0
+                  priority: high
+                  tag: tag-ratgdo
+
+    # -----------------------------------------------------------------------
+    # Door Closed
+    # -----------------------------------------------------------------------
+    - conditions:
+        - condition: trigger
+          id: door_closed
+      sequence:
+        - if:
+            - condition: template
+              value_template: >
+                {{ garage_door_timer_helper | length > 0 and
+                   is_state(garage_door_timer_helper, ['active', 'paused']) }}
+          then:
+            - action: timer.cancel
+              target:
+                entity_id: !input garage_door_timer_helper
+
+        - if:
+            - condition: template
+              value_template: "{{ notify_group | length > 0 }}"
+          then:
+            - action: notify.{{ notify_group }}
+              data:
+                title: "{{ device_attr(ratgdo_device, 'name') }} | {{ now().strftime('%H:%M') }}"
+                message: Garage door is closed.
+                data:
+                  ttl: 0
+                  priority: high
+                  tag: tag-ratgdo
+
+    # -----------------------------------------------------------------------
+    # Auto-Close Timer Expired
+    # -----------------------------------------------------------------------
+    - conditions:
+        - condition: trigger
+          id: timer_done
+        - condition: template
+          value_template: "{{ is_state(ratgdo_device, ['open', 'opening']) }}"
+      sequence:
+        - if:
+            - condition: template
+              value_template: >
+                {{ bypass_helper | length > 0 and is_state(bypass_helper, 'on') }}
+          then:
+            # Bypass is active — restart the timer and notify if configured
+            - if:
+                - condition: template
+                  value_template: "{{ garage_door_timer_helper | length > 0 }}"
+              then:
+                - action: timer.start
+                  target:
+                    entity_id: !input garage_door_timer_helper
+            - if:
+                - condition: template
+                  value_template: "{{ notify_group | length > 0 }}"
+              then:
+                - action: notify.{{ notify_group }}
+                  data:
+                    title: "{{ device_attr(ratgdo_device, 'name') }} | Auto-Close Bypassed"
+                    message: Auto-close skipped — bypass is active. Timer restarted.
+                    data:
+                      ttl: 0
+                      priority: normal
+                      tag: tag-ratgdo-bypass
+          else:
+            # Bypass is off — check for obstruction
+            - if:
+                - condition: state
+                  entity_id: !input obstruction_entity
+                  state: "off"
+              then:
+                - action: cover.close_cover
+                  target:
+                    entity_id: !input ratgdo_device
+              else:
+                # Obstruction present — restart timer and notify
+                - action: timer.cancel
+                  target:
+                    entity_id: !input garage_door_timer_helper
+                - action: timer.start
+                  target:
+                    entity_id: !input garage_door_timer_helper
+                - if:
+                    - condition: template
+                      value_template: "{{ notify_group | length > 0 }}"
+                  then:
+                    - action: notify.{{ notify_group }}
+                      data:
+                        title: "{{ device_attr(ratgdo_device, 'name') }} | Obstruction Detected"
+                        message: Auto-close delayed — obstruction detected. Timer restarted.
+                        data:
+                          ttl: 0
+                          priority: high
+                          tag: tag-ratgdo-obstruction
+
+    # -----------------------------------------------------------------------
+    # Obstruction Detected While Door is Open
+    # -----------------------------------------------------------------------
+    - conditions:
+        - condition: trigger
+          id: obstruction_found
+        - condition: template
+          value_template: "{{ is_state(ratgdo_device, ['open', 'opening']) }}"
+        - condition: template
+          value_template: "{{ garage_door_timer_helper | length > 0 }}"
+      sequence:
+        - action: timer.cancel
+          target:
+            entity_id: !input garage_door_timer_helper
+        - action: timer.start
+          target:
+            entity_id: !input garage_door_timer_helper
+        - if:
+            - condition: template
+              value_template: "{{ notify_group | length > 0 }}"
+          then:
+            - action: notify.{{ notify_group }}
+              data:
+                title: "{{ device_attr(ratgdo_device, 'name') }} | Obstruction Detected"
+                message: Obstruction detected while garage door is open. Timer restarted.
+                data:
+                  ttl: 0
+                  priority: high
+                  tag: tag-ratgdo-obstruction
+
+    # -----------------------------------------------------------------------
+    # Physical Button Pressed — Cancel Auto-Close for This Session
+    # -----------------------------------------------------------------------
+    - conditions:
+        - condition: trigger
+          id: button_pressed
+        - condition: template
+          value_template: "{{ is_state(ratgdo_device, ['open', 'opening']) }}"
+        - condition: template
+          value_template: >
+            {{ garage_door_timer_helper | length > 0 and
+               is_state(garage_door_timer_helper, ['active', 'paused']) }}
+      sequence:
+        - action: timer.cancel
+          target:
+            entity_id: !input garage_door_timer_helper
+        - if:
+            - condition: template
+              value_template: "{{ notify_group | length > 0 }}"
+          then:
+            - action: notify.{{ notify_group }}
+              data:
+                title: "{{ device_attr(ratgdo_device, 'name') }} | Auto-Close Cancelled"
+                message: Physical button pressed — auto-close cancelled for this session.
+                data:
+                  ttl: 0
+                  priority: normal
+                  tag: tag-ratgdo-button
+
+mode: single
+max_exceeded: silent
