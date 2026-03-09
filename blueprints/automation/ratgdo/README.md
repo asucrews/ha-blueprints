@@ -4,7 +4,7 @@ Ratgdo 2.5i garage door automation blueprint.
 
 ## Current version
 
-**v2** — see [`v2/README.md`](v2/README.md)
+**v2** — see [`v2/README_ratgdo_v2.md`](v2/README_ratgdo_v2.md)
 
 ## Summary
 
