@@ -34,7 +34,7 @@ blueprint:
       • button        — Flair clear hold
 
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/flair/flair.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/flair/v1/flair.yaml
   author: Jeremy Crews
   input:
     required_entities:

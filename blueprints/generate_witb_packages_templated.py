@@ -54,6 +54,14 @@ CHANGELOG:
             the HA REST entity registry API to assign areas to all helpers.
             Entity list per room respects each room's active feature flags so
             disabled-block entities are never included.
+  NEW #7b - areas_script can be set in rooms.yaml config so --areas-script
+            flag is never needed on the CLI.
+  BUG #10 - assign_areas.py used a GET pre-check that silently failed for
+            YAML-defined helpers, causing all entities to be SKIPped. Removed.
+  BUG #11 - assign_areas.py gave no detail on PATCH failures. Now shows HTTP
+            status and response body on failure.
+  BUG #12 - assign_areas.py assumed areas already existed in HA. Now checks
+            the area registry first and creates any missing areas automatically.
 """
 
 import argparse
@@ -132,26 +140,65 @@ _HA_SECTIONS: tuple[str, ...] = (
     "script",
 )
 
-# ---------------------------------------------------------------------------
-# Area assignment entity patterns
-# ---------------------------------------------------------------------------
-# Each entry is (feature_block_or_None, entity_id_pattern).
-# feature_block_or_None: if None, always included; otherwise only included
-# when that feature block is active for the room.
-_AREA_ENTITY_PATTERNS: list[tuple[str | None, str]] = [
-    ("helpers",      "input_boolean.{slug}_occupied"),
-    ("controls",     "input_boolean.{slug}_automation_override"),
-    ("controls",     "input_boolean.{slug}_force_occupied"),
-    ("controls",     "input_boolean.{slug}_manual_occupied"),
-    ("latched",      "input_boolean.{slug}_latched"),
-    ("helpers",      "input_datetime.{slug}_last_motion"),
-    ("helpers",      "input_datetime.{slug}_last_door"),
-    ("exit_close",   "input_datetime.{slug}_last_exit_door"),
-    ("failsafe",     "input_number.{slug}_failsafe_timeout"),
-    ("entry_gating", "input_number.{slug}_entry_window_seconds"),
-    ("helpers",      "timer.{slug}_exit_eval"),
-    ("failsafe",     "timer.{slug}_failsafe"),
-]
+# _AREA_ENTITY_PATTERNS removed — entity IDs are now auto-discovered from
+# the generated package YAML files so any template is supported automatically.
+
+# HA entity domain prefixes we care about assigning to areas.
+# template sensors/binary_sensors use unique_id-based entity IDs that HA
+# derives at load time — we cannot predict them from slugs alone, so we
+# only assign the directly-named helper types here.
+_ASSIGNABLE_DOMAINS: frozenset[str] = frozenset([
+    "input_boolean",
+    "input_datetime",
+    "input_number",
+    "input_select",
+    "input_text",
+    "timer",
+    "counter",
+])
+
+
+def _extract_entity_ids_from_yaml(text: str, domains: frozenset[str]) -> list[str]:
+    """
+    Extract top-level entity IDs from a generated package YAML string.
+    Looks for lines of the form `  entity_slug:` nested under a domain key.
+    Returns entity IDs in the form `domain.entity_slug`.
+    """
+    entity_ids: list[str] = []
+    current_domain: str | None = None
+    # Track indent of domain key so we know when we've left it
+    domain_indent: int = 0
+
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if not stripped or stripped.startswith("#"):
+            continue
+
+        leading = len(line) - len(stripped)
+
+        # Top-level or package-key lines (indent 0 or 2 after unwrap)
+        # Domain section headers look like `input_boolean:` at a consistent indent
+        if stripped.endswith(":") and "." not in stripped:
+            key = stripped[:-1]
+            if key in domains:
+                current_domain = key
+                domain_indent = leading
+                continue
+            elif leading <= domain_indent:
+                # Stepped back out of the domain section
+                current_domain = None
+
+        # Entity slug lines: indented one level deeper than the domain header
+        # and end with `:` (YAML mapping key)
+        if current_domain and leading > domain_indent and stripped.endswith(":"):
+            slug = stripped[:-1]
+            # Skip sub-keys like `name:`, `icon:` etc. — they contain no dots
+            # and are always indented deeper than the entity slug level.
+            # Entity slugs sit at exactly domain_indent + 2 (or +4) spaces.
+            if leading == domain_indent + 2 or leading == domain_indent + 4:
+                entity_ids.append(f"{current_domain}.{slug}")
+
+    return entity_ids
 
 
 # ---------------------------------------------------------------------------
@@ -392,28 +439,24 @@ def apply_tokens(text: str, room: Room) -> str:
 def _write_areas_script(
     path: Path,
     rooms: list[Room],
-    template_features: list[str],
-    global_defaults: dict[str, bool],
+    room_yaml_texts: dict[str, str],
     dry_run: bool,
 ) -> None:
-    """Generate a standalone Python script that assigns HA areas via REST API."""
+    """
+    Generate a standalone Python script that assigns HA areas via WebSocket API.
 
-    # Build the per-room entity lists, respecting enabled features
+    Entity IDs are auto-discovered from the generated package YAML text for
+    each room — no static pattern list required, works for any template.
+    """
+
     assignment_blocks: list[str] = []
 
     for room in rooms:
         if not room.area_id:
             continue
 
-        # Effective feature flags for this room
-        effective = global_defaults.copy()
-        effective.update({k: v for k, v in room.overrides.items() if k in template_features})
-
-        entity_ids: list[str] = []
-        for feature, pattern in _AREA_ENTITY_PATTERNS:
-            # Include if: feature is None (always present), or feature is active
-            if feature is None or effective.get(feature, False):
-                entity_ids.append(pattern.format(slug=room.slug))
+        yaml_text = room_yaml_texts.get(room.slug, "")
+        entity_ids = _extract_entity_ids_from_yaml(yaml_text, _ASSIGNABLE_DOMAINS)
 
         if not entity_ids:
             continue
@@ -433,33 +476,33 @@ def _write_areas_script(
 #!/usr/bin/env python3
 """
 Auto-generated by generate_witb_packages_templated.py
-Assigns Home Assistant areas to WITB+ helper entities via the REST API.
+Assigns Home Assistant areas to WITB+ helper entities via the WebSocket API.
+
+Area and entity registry operations require the WebSocket API in HA 2022+.
+The REST API (/api/config/...) is not available for registry operations.
 
 Run once after loading the generated packages and restarting HA so all
-entities are registered.  Safe to re-run (idempotent PATCH calls).
+entities are registered.  Safe to re-run (idempotent).
 
-Credentials are loaded from a .env file in the same directory:
+Credentials are loaded from the nearest .env walking up from this script:
     HA_URL=http://homeassistant.local:8123
     HA_TOKEN=your_long_lived_token_here
 
 Usage:
-    pip install requests python-dotenv
+    pip install websocket-client python-dotenv
     python assign_areas.py
 
 Requirements:
-    pip install requests python-dotenv
+    pip install websocket-client python-dotenv
 """
 
+import json
 import os
 import sys
 from pathlib import Path
 
-import requests
-
 # ---------------------------------------------------------------------------
-# Load credentials from .env (never hardcode tokens in scripts)
-# Walks up the directory tree from this script's location to find the
-# nearest .env — one .env at the repo root covers all generated scripts.
+# Load credentials from .env — walks up to repo root automatically
 # ---------------------------------------------------------------------------
 try:
     from dotenv import load_dotenv
@@ -469,13 +512,22 @@ except ImportError:
         "Run: pip install python-dotenv"
     )
 
+try:
+    import websocket
+except ImportError:
+    sys.exit(
+        "Error: websocket-client is not installed.\\n"
+        "Run: pip install websocket-client"
+    )
+
+
 def _find_dotenv(start: Path) -> Path | None:
-    """Walk up from *start* until a .env file is found or the root is reached."""
     for parent in [start, *start.parents]:
         candidate = parent / ".env"
         if candidate.is_file():
             return candidate
     return None
+
 
 _env_path = _find_dotenv(Path(__file__).parent)
 if _env_path is None:
@@ -493,11 +545,6 @@ if not HA_URL:
 if not TOKEN:
     sys.exit("Error: HA_TOKEN not set in .env  (e.g. HA_TOKEN=your_long_lived_token_here)")
 
-HEADERS = {{
-    "Authorization": f"Bearer {{TOKEN}}",
-    "Content-Type": "application/json",
-}}
-
 # ---------------------------------------------------------------------------
 # entity_id → area_id
 # ---------------------------------------------------------------------------
@@ -506,27 +553,107 @@ ASSIGNMENTS: dict[str, str] = {{
 }}
 
 
-def assign_area(entity_id: str, area_id: str) -> bool:
-    r = requests.patch(
-        f"{{HA_URL}}/api/config/entity_registry/entry/{{entity_id}}",
-        headers=HEADERS,
-        json={{"area_id": area_id}},
-        timeout=10,
-    )
-    return r.ok
+# ---------------------------------------------------------------------------
+# WebSocket helpers
+# ---------------------------------------------------------------------------
+
+def ws_send(ws: websocket.WebSocket, msg_id: int, payload: dict) -> dict:
+    """Send a command and block until the matching response arrives."""
+    payload["id"] = msg_id
+    ws.send(json.dumps(payload))
+    while True:
+        msg = json.loads(ws.recv())
+        if msg.get("id") == msg_id:
+            return msg
+
+
+def ws_connect() -> websocket.WebSocket:
+    """Open a WebSocket connection to HA and authenticate."""
+    ws_url = HA_URL.replace("https://", "wss://").replace("http://", "ws://") + "/api/websocket"
+    print(f"Connecting to {{ws_url}} ...")
+    ws = websocket.WebSocket()
+    ws.connect(ws_url)
+
+    # auth_required
+    msg = json.loads(ws.recv())
+    if msg.get("type") != "auth_required":
+        raise SystemExit(f"Expected auth_required, got: {{msg}}")
+
+    # authenticate
+    ws.send(json.dumps({{"type": "auth", "access_token": TOKEN}}))
+    msg = json.loads(ws.recv())
+    if msg.get("type") != "auth_ok":
+        raise SystemExit(f"Authentication failed: {{msg}}")
+
+    print("  Authenticated OK\\n")
+    return ws
 
 
 def main() -> None:
-    ok = fail = skip = 0
+    ws = ws_connect()
+    msg_id = 1
+
+    # ------------------------------------------------------------------
+    # Step 1: fetch existing areas
+    # ------------------------------------------------------------------
+    print("Checking areas...")
+    result = ws_send(ws, msg_id, {{"type": "config/area_registry/list"}})
+    msg_id += 1
+    if not result.get("success"):
+        raise SystemExit(f"Failed to list areas: {{result}}")
+
+    existing_areas: dict[str, str] = {{
+        a["area_id"]: a["name"] for a in result.get("result", [])
+    }}
+
+    # Collect unique area_ids needed and reconstruct friendly names from slug
+    needed: dict[str, str] = {{}}
+    for area_id in ASSIGNMENTS.values():
+        if area_id not in needed:
+            needed[area_id] = area_id.replace("_", " ").title()
+
+    # Create any missing areas; build a resolved area_id map in case HA
+    # assigns a different area_id than the slug we derived.
+    resolved: dict[str, str] = dict(existing_areas)  # area_id → area_id passthrough
+    for area_id, area_name in needed.items():
+        if area_id in existing_areas:
+            print(f"  EXISTS  {{area_id}}  ({{existing_areas[area_id]}})")
+        else:
+            result = ws_send(ws, msg_id, {{
+                "type": "config/area_registry/create",
+                "name": area_name,
+            }})
+            msg_id += 1
+            if result.get("success"):
+                created_id = result["result"]["area_id"]
+                resolved[area_id] = created_id
+                print(f"  CREATED {{created_id}}  ({{area_name}})")
+            else:
+                print(f"  FAILED  Could not create '{{area_name}}': {{result.get('error')}}")
+
+    # ------------------------------------------------------------------
+    # Step 2: assign entities to areas
+    # ------------------------------------------------------------------
+    print("\\nAssigning entities...")
+    ok = fail = 0
     for entity_id, area_id in ASSIGNMENTS.items():
-        if assign_area(entity_id, area_id):
-            print(f"  OK    {{entity_id}}  →  {{area_id}}")
+        target_area_id = resolved.get(area_id, area_id)
+        result = ws_send(ws, msg_id, {{
+            "type": "config/entity_registry/update",
+            "entity_id": entity_id,
+            "area_id": target_area_id,
+        }})
+        msg_id += 1
+        if result.get("success"):
+            print(f"  OK    {{entity_id}}  →  {{target_area_id}}")
             ok += 1
         else:
-            print(f"  SKIP  {{entity_id}}  (not registered — run again after HA restart)")
-            skip += 1
+            err = result.get("error", {{}})
+            print(f"  FAIL  {{entity_id}}  →  {{target_area_id}}  ({{err.get('code')}}: {{err.get('message')}})")
+            fail += 1
 
-    print(f"\\nDone. {{ok}} assigned, {{skip}} skipped (not registered yet).")
+    ws.close()
+    print(f"\\nDone. {{ok}} assigned, {{fail}} failed.")
 
 
 if __name__ == "__main__":
@@ -540,7 +667,9 @@ if __name__ == "__main__":
     else:
         path.write_text(script, encoding="utf-8")
         print(f"\nArea assignment script written: {path}")
-        print("  Populate .env with HA_URL and HA_TOKEN, then run once after packages load.")
+        print("  Populate .env with HA_URL and HA_TOKEN, then run:")
+        print("  pip install websocket-client python-dotenv")
+        print("  python assign_areas.py")
 
 
 # ---------------------------------------------------------------------------
@@ -625,9 +754,9 @@ Per-room config override example (rooms.yaml):
         default=None,
         metavar="PATH",
         help=(
-            "If set, write a standalone HA REST area-assignment script to this path "
+            "If set, write a standalone HA WebSocket area-assignment script to this path "
             "(e.g. assign_areas.py). Only rooms with 'area:' defined are included. "
-            "Edit HA_URL and TOKEN in the script before running it."
+            "Requires: pip install websocket-client python-dotenv"
         ),
     )
 
@@ -738,6 +867,8 @@ Per-room config override example (rooms.yaml):
 
     # 4. Generate per room
     generated_count = 0
+    room_yaml_texts: dict[str, str] = {}  # slug → final_yaml, for area discovery
+
     for room in rooms:
         # Effective flags scoped to this template's blocks only.
         # Per-room overrides for blocks not in this template are silently ignored.
@@ -766,6 +897,9 @@ Per-room config override example (rooms.yaml):
 
         # Wrap in package key
         final_yaml = f"---\n{room.package_key}:\n{indent(current_text, 2)}\n"
+
+        # Stash generated text for area entity auto-discovery
+        room_yaml_texts[room.slug] = final_yaml
 
         fname = f"{room.slug}{args.file_suffix}"
         active_features = [k for k, v in effective_flags.items() if v]
@@ -800,8 +934,7 @@ Per-room config override example (rooms.yaml):
             _write_areas_script(
                 args.areas_script,
                 rooms,
-                template_features,
-                global_defaults,
+                room_yaml_texts,
                 args.dry_run,
             )
         else:

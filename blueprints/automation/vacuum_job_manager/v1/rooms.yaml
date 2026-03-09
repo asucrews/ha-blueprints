@@ -1,0 +1,12 @@
+# rooms.yaml
+template: witb_plus_actions_lights_fan_package_template.yaml
+out: ./packages
+areas_script: ./assign_areas.py
+key_suffix: _witb_actions
+rooms:
+  - name: "F1 Roomba"
+    area: "Dinning Room"
+  - name: "F2 Roomba"
+    area: "Loft"
+  - name: "F1 Braava Jet"
+    area: "Dinning Room"
