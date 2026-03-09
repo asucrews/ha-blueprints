@@ -5,6 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## [2.1.1] — 2026-03-09
+
+### Fixed
+- `notify` selector replaced with `text` selector — the `notify` selector type is not accepted by all HA versions and caused blueprint import to fail with "Unknown selector type notify".
+
+---
+
 ## [2.1.0] — 2026-03-09
 
 ### Added

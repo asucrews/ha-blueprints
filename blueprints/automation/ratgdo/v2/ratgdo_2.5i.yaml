@@ -1,11 +1,11 @@
 blueprint:
-  name: Ratgdo 2.5i (2.1.0)
+  name: Ratgdo 2.5i (2.1.1)
   description: >
     Ratgdo door mechanics — auto-close with obstruction handling, bypass support,
     physical button session cancel, and notifications.
     Light control and occupancy are handled externally (WITB+).
   homeassistant:
-    min_version: 2026.3.0
+    min_version: 2024.6.0
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/ratgdo_2.5i/ratgdo_2.5i.yaml
   author: Jeremy Crews
@@ -75,11 +75,13 @@ blueprint:
         notify_group:
           name: Notification Service (Optional)
           description: >
-            Notification service to alert on door open, close, obstruction, and
-            button session-cancel events. Leave empty to disable notifications.
-          default: []
+            Notification service name to alert on door open, close, obstruction,
+            and button session-cancel events. Enter the service name without the
+            notify. prefix (e.g. enter notify_all not notify.notify_all).
+            Leave empty to disable notifications.
+          default: ""
           selector:
-            notify:
+            text:
 
 variables:
   ratgdo_device: !input ratgdo_device

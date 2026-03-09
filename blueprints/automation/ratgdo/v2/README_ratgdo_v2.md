@@ -1,6 +1,6 @@
 # Ratgdo 2.5i Blueprint
 
-**Version:** 2.1.0
+**Version:** 2.1.1
 **Domain:** automation
 **Minimum HA Version:** 2024.6.0
 **Author:** Jeremy Crews
@@ -46,7 +46,7 @@ This blueprint is **single-responsibility** — it manages the door and nothing 
 | `garage_door_timer_helper` | _(empty)_ | Timer entity for auto-close countdown. Leave empty to disable auto-close entirely |
 | `bypass_helper` | _(empty)_ | `input_boolean` — when `on`, auto-close is skipped and the timer restarts instead. Useful for intentional extended sessions |
 | `button_entity` | _(empty)_ | Binary sensor tracking physical button presses on the Ratgdo device. When pressed while the door is open, cancels auto-close for that session only. Auto-close resumes normally next time the door opens |
-| `notify_group` | _(empty)_ | Notification service for open, close, obstruction, bypass, and button-cancel events |
+| `notify_group` | _(empty)_ | Notification service name — enter without the `notify.` prefix (e.g. `notify_all` not `notify.notify_all`). Leave empty to disable notifications |
 
 ---
 
