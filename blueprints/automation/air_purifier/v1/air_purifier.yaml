@@ -1,0 +1,111 @@
+blueprint:
+  name: "Air Purifier Group Reconciler"
+  description: >
+    2x daily boost schedule with self-correction on boundaries, startup, and every 5 minutes.
+  domain: automation
+  author: Jeremy
+  homeassistant:
+    min_version: 2025.6.0
+  input:
+    purifier_entities:
+      name: Air purifiers
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - domain: fan
+    first_start_time:
+      name: First boost start
+      default: "09:00:00"
+      selector:
+        time: {}
+    first_end_time:
+      name: First boost end
+      default: "09:40:00"
+      selector:
+        time: {}
+    second_start_time:
+      name: Second boost start
+      default: "21:00:00"
+      selector:
+        time: {}
+    second_end_time:
+      name: Second boost end
+      default: "21:40:00"
+      selector:
+        time: {}
+    boost_percentage:
+      name: Boost percentage
+      default: 100
+      selector:
+        number:
+          min: 1
+          max: 100
+          unit_of_measurement: "%"
+    return_preset_mode:
+      name: Return preset mode
+      default: auto
+      selector:
+        text: {}
+
+mode: single
+
+triggers:
+  - trigger: time
+    at:
+      - !input first_start_time
+      - !input first_end_time
+      - !input second_start_time
+      - !input second_end_time
+  - trigger: homeassistant
+    event: start
+  - trigger: time_pattern
+    minutes: "/5"
+
+# Step 1: alias all !input values (YAML level — !input only valid here)
+variables:
+  entities: !input purifier_entities
+  boost_pct: !input boost_percentage
+  return_mode: !input return_preset_mode
+  first_start: !input first_start_time
+  first_end: !input first_end_time
+  second_start: !input second_start_time
+  second_end: !input second_end_time
+
+actions:
+  # Step 2: derive computed values (Jinja level — can reference step 1 vars)
+  # HH:MM:SS string comparison is timezone-safe, avoids today_at()/now() TypeError
+  - variables:
+      t_now: "{{ now().strftime('%H:%M:%S') }}"
+      should_boost: >
+        {{ (t_now >= first_start and t_now < first_end) or
+           (t_now >= second_start and t_now < second_end) }}
+
+  - repeat:
+      for_each: "{{ entities }}"
+      sequence:
+        - alias: "Reconcile {{ repeat.item }}"
+          choose:
+            - conditions:
+                - condition: template
+                  value_template: "{{ should_boost }}"
+              sequence:
+                # Guard: skip if already at target (prevents log spam / unnecessary traffic)
+                - condition: template
+                  value_template: >
+                    {{ state_attr(repeat.item, 'percentage') | int(-1) != boost_pct | int }}
+                - action: fan.set_percentage
+                  target:
+                    entity_id: "{{ repeat.item }}"
+                  data:
+                    percentage: "{{ boost_pct }}"
+          default:
+            # Guard: skip if already in correct preset
+            - condition: template
+              value_template: >
+                {{ state_attr(repeat.item, 'preset_mode') != return_mode }}
+            - action: fan.set_preset_mode
+              target:
+                entity_id: "{{ repeat.item }}"
+              data:
+                preset_mode: "{{ return_mode }}"
