@@ -1,12 +1,23 @@
-# rooms.yaml
-template: witb_plus_actions_lights_fan_package_template.yaml
-out: ./packages
-areas_script: ./assign_areas.py
-key_suffix: _witb_actions
+# rooms.yaml — Vacuum Job Manager Packages
+# Template: vacuum_job_manager_package_template.yaml
+#
+# NOTE: key_suffix changed from _witb_actions → _vacuum
+# If your vacuum package template uses a different suffix convention,
+# update key_suffix to match.
+#
+# Run with: python generate_witb_packages_templated.py --config rooms_roomba.yaml
+
+template: vacuum_job_manager_package_template.yaml
+out: ./packages/vacuum
+areas_script: ./assign_areas_vacuum.py
+key_suffix: _vacuum
+
 rooms:
   - name: "F1 Roomba"
     area: "Dinning Room"
+
   - name: "F2 Roomba"
     area: "Loft"
+
   - name: "F1 Braava Jet"
     area: "Dinning Room"

@@ -6,6 +6,7 @@ Template-driven generator for Home Assistant merge_named packages for:
   WITB Standard Helpers (Occupied, Override, Latched, Failsafe)
   WITB Actions Helpers  (Lights, Fan, Thresholds, Timers)
   Room Humidity Baseline + Delta
+  Room Lux Baseline + Delta
   Transit Room Helpers
   Vacuum Job Helpers
   … and any future template files.
@@ -62,6 +63,17 @@ CHANGELOG:
             status and response body on failure.
   BUG #12 - assign_areas.py assumed areas already existed in HA. Now checks
             the area registry first and creates any missing areas automatically.
+
+  v3 → v4 (per-room custom tokens):
+  NEW #8  - Room dataclass now carries `tokens: dict[str, str]` for arbitrary
+            per-room substitutions (e.g. __LUX_SENSOR__, __FAN_ENTITY__).
+            Tokens are defined under a `tokens:` key in the per-room config
+            dict and applied by apply_tokens() after the standard slug/name
+            substitutions. Token keys are substituted literally as written
+            (e.g. __LUX_SENSOR__), so use whatever delimiter the template uses.
+  NEW #9  - apply_tokens() warns on stderr if any __TOKEN__ placeholders remain
+            unsubstituted after all passes, identifying the room and token names.
+            Prevents silently broken output when a tokens: entry is missing.
 """
 
 import argparse
@@ -101,6 +113,9 @@ from typing import Any
 # room_humidity_baseline_delta_package_template.yaml blocks:
 #   tuning_helpers - input_boolean + input_number tuning entities
 #
+# room_lux_baseline_delta_package_template.yaml blocks:
+#   tuning_helpers - input_boolean + input_number tuning entities
+#
 # transit_helpers_package_template.yaml blocks:
 #   (no feature blocks — flat template, no # --- BEGIN/END --- markers)
 #
@@ -116,7 +131,7 @@ _STATIC_FEATURES: list[str] = [
     "helpers", "controls", "latched", "exit_close", "failsafe", "entry_gating",
     # witb_actions template
     "lights", "fan", "lux", "humidity", "night",
-    # humidity template
+    # humidity / lux templates
     "tuning_helpers",
     # witb_profile sbm helpers template
     "sbm",
@@ -270,6 +285,9 @@ class Room:
     # Area assignment fields (NEW #5)
     area: str = ""      # Friendly area name, e.g. "Master Bathroom"
     area_id: str = ""   # HA area slug, e.g. "master_bathroom" (auto-derived if absent)
+    # Per-room custom token substitutions (NEW #8)
+    # e.g. {"__LUX_SENSOR__": "sensor.office_motion_illuminance"}
+    tokens: dict[str, str] = field(default_factory=dict)
 
 
 def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
@@ -280,6 +298,7 @@ def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
         slug = slugify(name)
         area = ""
         area_id = ""
+        tokens: dict[str, str] = {}  # NEW #8
     else:
         name = str(obj["name"])
         slug = str(obj.get("slug") or slugify(name))
@@ -296,6 +315,9 @@ def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
                 feature = k[3:]
                 overrides[feature] = not bool(v)
 
+        # NEW #8: parse arbitrary per-room token substitutions
+        tokens = {str(k): str(v) for k, v in obj.get("tokens", {}).items()}
+
     return Room(
         name=name,
         slug=slug,
@@ -303,6 +325,7 @@ def build_room(obj: str | dict[str, Any], key_suffix: str) -> Room:
         overrides=overrides,
         area=area,
         area_id=area_id,
+        tokens=tokens,  # NEW #8
     )
 
 
@@ -425,10 +448,30 @@ def apply_tokens(text: str, room: Room) -> str:
          avoid the bare "Friendly Name" replacement consuming it partially).
       2. Replace any remaining "Friendly Name" occurrences (transit compat).
       3. Replace "room_slug".
+      4. Apply per-room custom tokens from room.tokens (NEW #8).
+         Keys substituted literally as written (e.g. __LUX_SENSOR__).
+
+    After all substitutions, any remaining __TOKEN__ patterns produce a warning
+    on stderr so missing tokens: entries are caught immediately (NEW #9).
     """
     text = text.replace("Room Friendly Name", room.name)
     text = text.replace("Friendly Name", room.name)
     text = text.replace("room_slug", room.slug)
+
+    # NEW #8: apply per-room custom tokens
+    for token, value in room.tokens.items():
+        text = text.replace(token, value)
+
+    # NEW #9: warn if any __TOKEN__ placeholders remain unsubstituted
+    remaining = re.findall(r"__[A-Z_]+__", text)
+    if remaining:
+        unique_remaining = sorted(set(remaining))
+        print(
+            f"WARNING: {room.name}: unsubstituted token(s): {', '.join(unique_remaining)}\n"
+            f"         Add them under  tokens:  in rooms.yaml for this room.",
+            file=sys.stderr,
+        )
+
     return text
 
 
@@ -725,6 +768,12 @@ Examples:
     --key-suffix _transit \\
     --out ./packages/transit
 
+  # Lux template with per-room sensor tokens:
+  python generate_witb_packages_templated.py \\
+    --template room_lux_baseline_delta_package_template.yaml \\
+    --config rooms.yaml \\
+    --out ./packages/lux
+
 Per-room config override example (rooms.yaml):
   template: witb_plus_package_template.yaml
   out: ./packages
@@ -738,6 +787,20 @@ Per-room config override example (rooms.yaml):
     - name: Office
       no_exit_eval: true            # Disable exit_eval timer (not using WITB v4.2)
     - name: Bathroom
+
+Per-room tokens example (rooms.yaml for lux template):
+  template: room_lux_baseline_delta_package_template.yaml
+  out: ./packages/lux
+  key_suffix: _lux_delta
+  rooms:
+    - name: Office
+      area: Office
+      tokens:
+        __LUX_SENSOR__: sensor.office_motion_illuminance
+    - name: Family Room
+      area: Family Room
+      tokens:
+        __LUX_SENSOR__: sensor.family_room_motion_illuminance
 """,
     )
     ap.add_argument("--out", type=Path, help="Output directory for generated files (can also be set in config as 'out:')")
@@ -892,7 +955,7 @@ Per-room config override example (rooms.yaml):
         for sec in _HA_SECTIONS:
             current_text = remove_empty_section(current_text, sec)
 
-        # Replace tokens with room-specific values
+        # Replace tokens with room-specific values (NEW #8 + #9 applied inside)
         current_text = apply_tokens(current_text, room)
 
         # Wrap in package key
@@ -910,13 +973,16 @@ Per-room config override example (rooms.yaml):
             print(f"          Package key: {room.package_key}")
             area_str = f"{room.area} ({room.area_id})" if room.area_id else "(none)"
             print(f"          Area:        {area_str}")
+            if room.tokens:
+                print(f"          Tokens:      {list(room.tokens.keys())}")
             print()
         else:
             out_path = args.out / fname
             out_path.write_text(final_yaml, encoding="utf-8")
             features_str = ", ".join(active_features) or "(none — flat template)"
             area_str = f"  [area: {room.area_id}]" if room.area_id else ""
-            print(f"Generated {fname}  [pkg: {room.package_key}]  [features: {features_str}]{area_str}")
+            tokens_str = f"  [tokens: {list(room.tokens.keys())}]" if room.tokens else ""
+            print(f"Generated {fname}  [pkg: {room.package_key}]  [features: {features_str}]{area_str}{tokens_str}")
 
         generated_count += 1
 
