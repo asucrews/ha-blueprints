@@ -1,0 +1,69 @@
+- id: zooz_v1_office_switch
+  alias: Zooz Switch - Office
+  description: >
+    Maps button presses on a Zooz ZEN71/72/76/77 switch to actions.
+    This example shows the primary use case: delegating single-press ON/OFF
+    to WITB hook scripts, which handle light profiles and VZW31-SN LED sync.
+    Multi-tap and hold actions are mapped directly to service calls.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/zooz_all_light_switch_modified/v1/zooz-all.yaml
+    input:
+      # Device ID of the Zooz switch. Find it in HA under:
+      #   Settings > Devices & Services > Z-Wave JS > your device > Device info
+      # Copy the device ID from the URL or the device page.
+      zooz-switch:
+        - YOUR_ZOOZ_DEVICE_ID
+
+      # --- Hook Scripts (recommended for WITB+ rooms) ---
+
+      # Script instance created from the WITB Lights ON Hook blueprint.
+      # When set, Up/On 1x press calls this script instead of button_a below.
+      # The script manages lights, LED sync, and recovery — fully self-contained.
+      on_hook_script: script.office_witb_lights_on
+
+      # Script instance created from the WITB Lights OFF Hook blueprint.
+      # When set, Down/Off 1x press calls this script instead of button_b below.
+      off_hook_script: script.office_witb_lights_off
+
+      # --- Button A: Up/On presses ---
+      # button_a (1x) is ignored when on_hook_script is set above.
+
+      button_a2:
+        - service: scene.turn_on
+          target:
+            entity_id: scene.office_bright
+
+      button_a3:
+        - service: scene.turn_on
+          target:
+            entity_id: scene.office_focus
+
+      button_a4: []
+      button_a5: []
+
+      button_a_held:
+        - service: light.turn_on
+          target:
+            entity_id: light.office_ceiling
+          data:
+            brightness_pct: 100
+
+      # --- Button B: Down/Off presses ---
+      # button_b (1x) is ignored when off_hook_script is set above.
+
+      button_b2:
+        - service: scene.turn_on
+          target:
+            entity_id: scene.office_dim
+
+      button_b3: []
+      button_b4: []
+      button_b5: []
+
+      button_b_held:
+        - service: light.turn_off
+          target:
+            entity_id:
+              - light.office_ceiling
+              - light.office_lamp

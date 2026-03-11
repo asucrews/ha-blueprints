@@ -1,10 +1,10 @@
-# Car Tag (1.3.0)
+# Car Tag (1.4.0)
 
 Car ESPHome Tag - Opens and Closes Garage Door.
 
 ## Blueprint Details
 
-- **Name:** Car Tag (1.3.0)
+- **Name:** Car Tag (1.4.0)
 - **Home Assistant Minimum Version:** 2024.6.0
 - **Description:** Car ESPHome Tag - Opens and Closes Garage Door
 - **Domain:** automation
@@ -17,13 +17,23 @@ Car ESPHome Tag - Opens and Closes Garage Door.
 - **Close debounce is long (default 5 min):** Closing the door is higher stakes — a false close is a safety risk. A longer delay confirms actual departure vs. momentary signal loss.
 
 ### WiFi Backup Trigger
-If BLE misses the car tag (e.g. the ESPHome scanner is mid-boot when the car pulls in), the node status sensor transitioning `off → on` acts as a fallback open trigger. The WiFi backup branch has two additional safety guards not present in the BLE branches:
+If BLE misses the car tag, a secondary WiFi signal fires as a fallback open trigger. Two entity types are supported:
 
-1. **`person_entity` is required, not optional.** If no person entity is configured, the WiFi backup branch is skipped entirely. Node reboots, power blips, and OTA firmware updates all cause the node status to cycle — without the person gate this would open the door unsafely.
-2. **Dedup check.** If any BLE sensor is already `on` when the node comes online, the WiFi branch is skipped. BLE fired first and the door is already opening.
+**Option A — Firewalla / Router `device_tracker` (preferred):**
+When a Firewalla (or other router-based) HA integration is configured, it creates `device_tracker` entities per network device tracked by MAC address. If your car's infotainment system or a device in the car connects to home WiFi on arrival, that `device_tracker` transitioning `not_home → home` is a precise, car-specific signal.
 
-### Connected/Disconnected Triggers Removed (v1.2.0)
-The original node-connected triggers were removed in v1.2.0 due to the 2am-crash risk. The v1.3.0 WiFi backup re-introduces this capability safely via the mandatory person gate.
+To find your entity: open the Firewalla app → Devices, note the car device name, then find it under HA Settings → Devices & Services → Entities (search for the device name). The entity ID will look like `device_tracker.my_car_infotainment`.
+
+**Option B — ESPHome node status `binary_sensor`:**
+The ESPHome node's connectivity sensor (e.g. `binary_sensor.garage_ble_scanner_status`) fires `off → on` whenever the node comes online. Useful when no Firewalla or router integration is available, but less precise — it fires on any reboot or power event, not just car arrival.
+
+Both options use the same `wifi_backup_entity` input and the same action branch. The trigger watches for `to: "on"` (binary_sensor) and `to: "home"` (device_tracker) simultaneously.
+
+### WiFi Backup Safety Gates
+The WiFi backup branch has two guards that are stricter than the BLE branches:
+
+1. **`person_entity` is required, not optional.** If no person entity is configured, the WiFi backup branch is skipped entirely. A Firewalla device_tracker going `home` on a phone reconnect after sleep, or an ESPHome node rebooting overnight, would otherwise open the door. This is a hard requirement with no bypass.
+2. **Dedup check.** If any BLE sensor is already `on` when the backup fires, the branch is skipped. BLE fired first — the door is already opening.
 
 ### Multiple Vehicle Support
 `esphome_ble` accepts multiple sensors. Any detected tag triggers the automation. The notification message includes `trigger.entity_id` so you can see which sensor fired.
@@ -47,7 +57,7 @@ The original node-connected triggers were removed in v1.2.0 due to the 2am-crash
 |---|---|---|
 | Garage Door Timer Helper | *(none)* | Timer started on departure; companion automation closes the door when it fires |
 | Person / Device Tracker | *(none)* | Confirmation gate — open only when `not_home`, start timer only when `home`. **Required for WiFi backup to function.** |
-| ESPHome Node Status | *(none)* | WiFi backup trigger — opens door if node comes online and BLE hasn't already fired. Requires person entity. |
+| WiFi Backup Trigger Entity | *(none)* | Fallback open trigger when BLE hasn't fired. Accepts `binary_sensor` (ESPHome node status) or `device_tracker` (Firewalla / router). Requires person entity. |
 | Notification Target | *(none)* | Notify service to call on door events, e.g. `notify.mobile_app_iphone` |
 
 ### Timing
@@ -69,7 +79,7 @@ The original node-connected triggers were removed in v1.2.0 due to the 2am-crash
 |---|---|
 | `ESPHome BLE Found` | BLE tag detected (sustained for open debounce duration) |
 | `ESPHome BLE Not Found` | BLE tag lost (sustained for close debounce duration) |
-| `ESPHome Node Online` | ESPHome node WiFi status transitions off → on (WiFi backup, optional) |
+| `WiFi Backup Online` | WiFi backup entity reaches `on` (binary_sensor) or `home` (device_tracker) |
 
 ---
 
@@ -93,15 +103,23 @@ All conditions must pass:
 
 **Action:** Start the close timer, then send a notification *(if configured)*.
 
-### ESPHome Node Online — WiFi Backup Open
+### WiFi Backup Online — Fallback Open
 All conditions must pass:
 1. Cover is not `unavailable`
 2. Door is `closed`, `closing`, or `off`
-3. **Person entity is configured AND is `not_home`** *(hard requirement — skips if no person entity)*
+3. **Person entity is configured AND is `not_home`** *(hard requirement — skips entirely if no person entity)*
 4. No BLE sensor is currently `on` *(dedup: BLE hasn't already opened the door)*
 5. Current time is within the open window *(or window is disabled)*
 
 **Action:** Open the garage door, then send a notification *(if configured)* indicating WiFi backup fired.
+
+---
+
+## Upgrading from v1.3.0
+
+The `esphome_node_status` input has been renamed to `wifi_backup_entity`. After
+updating the blueprint file, open the automation instance in the HA UI and
+re-select your backup entity in the **WiFi Backup Trigger Entity** field.
 
 ---
 

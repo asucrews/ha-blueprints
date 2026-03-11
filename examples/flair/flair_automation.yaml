@@ -1,0 +1,31 @@
+- id: flair_v1_office
+  alias: Flair Smart Vent - Office
+  description: >
+    Sets the Flair vent activity status to Active when the office is occupied
+    and Inactive when vacant, based on the WITB+ effective occupancy sensor.
+    Create one automation per room that has a Flair vent.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/flair/v1/flair.yaml
+    input:
+      # --- Required ---
+
+      # The room's WITB+ effective occupancy binary sensor.
+      # Use binary_sensor.<room_slug>_occupied_effective — not the raw
+      # input_boolean helper or a door/motion sensor directly.
+      occupied_effective: binary_sensor.office_occupied_effective
+
+      # The Flair activity status select entity for this room.
+      # Found under the Flair integration device page in HA.
+      flair_activity_status: select.office_flair_activity_status
+
+      # The Flair clear hold button entity for this room.
+      # Pressed after every status change to apply the new state immediately.
+      flair_clear_hold: button.office_flair_clear_hold
+
+      # --- Optional settings ---
+
+      # Seconds to wait before correcting a mismatched Flair status.
+      # Prevents fighting Flair cloud transitions or manual changes.
+      # Set to 0 to correct immediately.
+      reconciliation_delay: 5

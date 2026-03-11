@@ -1,0 +1,57 @@
+- id: car_tag_v1_garage
+  alias: Car Tag - Garage Door
+  description: >
+    BLE-based automatic garage door opener/closer.
+    Opens the door when the car's BLE tag is detected and closes it after
+    the tag is lost. Uses a person entity as a confirmation gate so the
+    door only acts when the resident is actually leaving or arriving.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/car_tag/v1/car_tag.yaml
+    input:
+      # --- Required ---
+
+      # BLE presence sensor(s) from your ESPHome scanner.
+      # Add multiple entities here if you have more than one vehicle tag.
+      esphome_ble:
+        - binary_sensor.garage_ble_tag_car
+
+      # The cover entity for the garage door (provided by your integration).
+      garage_door_cover: cover.garage_door
+
+      # --- Optional entities ---
+
+      # Timer that controls the auto-close delay.
+      # When BLE is lost long enough, this timer fires and a companion
+      # automation should close the door. Leave empty to disable auto-close.
+      garage_door_timer_helper: timer.garage_door_close_delay
+
+      # Person/device-tracker used as a confirmation gate.
+      # Door opens only when this person is 'not_home'; close timer only
+      # starts when they are 'home'. Also required for the WiFi backup trigger.
+      person_entity: person.resident
+
+      # ESPHome node connectivity sensor (WiFi backup open trigger).
+      # When the node reconnects to WiFi and BLE hasn't fired yet, this
+      # provides a fallback open. Requires person_entity to be set.
+      esphome_node_status: binary_sensor.garage_ble_scanner_status
+
+      # Notification service to call on door events.
+      # Leave blank ("") to disable notifications.
+      notify_target: notify.mobile_app_iphone
+
+      # --- Timing ---
+
+      # How long BLE must be detected before opening (filters signal noise).
+      # 5–15 s recommended.
+      open_debounce: "00:00:10"
+
+      # How long BLE must be absent before starting the close timer.
+      # Longer values (3–5 min) confirm actual departure vs. brief dropout.
+      close_debounce: "00:05:00"
+
+      # Time window: earliest the door will auto-open.
+      # Set both open_after and open_before to 00:00:00 to disable the
+      # time restriction entirely (door opens any time of day).
+      open_after: "00:00:00"
+      open_before: "00:00:00"

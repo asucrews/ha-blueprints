@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag (1.3.0)
+  name: Car Tag (1.4.0)
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -8,14 +8,17 @@ blueprint:
     Uses asymmetric debounce: short delay on open (fast entry) and long delay
     on close (confirms departure). Both delays are configurable inputs.
 
-    Supports multiple BLE sensors (multiple cars), optional WiFi/node-status
-    backup trigger, optional person/device tracker gate, optional time-of-day
-    window, optional notifications, and unavailable state protection.
+    Supports multiple BLE sensors (multiple cars), optional WiFi backup trigger
+    (ESPHome node status binary_sensor OR Firewalla/router device_tracker),
+    optional person/device tracker gate, optional time-of-day window, optional
+    notifications, and unavailable state protection.
 
-    WiFi backup: if BLE misses the car tag but the ESPHome node detects it
-    coming online (WiFi join), the door will still open. The backup branch
-    requires person_entity to be configured and is not_home — it is not safe
-    to use without the person gate.
+    WiFi backup: if BLE misses the car tag, a secondary WiFi signal fires as a
+    fallback open trigger. Supports either an ESPHome node status binary_sensor
+    (fires when the node comes online) or a Firewalla/router device_tracker
+    entity (fires when the tracked device joins the network). The backup branch
+    requires person_entity to be configured — it is not safe without the person
+    gate.
 
     Note: A companion automation triggered by the Garage Door Timer Helper is
     required to actually close the door when the timer fires.
@@ -77,23 +80,36 @@ blueprint:
                 - domain: person
                 - domain: device_tracker
               multiple: false
-        esphome_node_status:
-          name: ESPHome Node Status (WiFi Backup Trigger)
+        wifi_backup_entity:
+          name: WiFi Backup Trigger Entity
           description: >
-            Optional. Binary sensor for the ESPHome node's connectivity status
-            (e.g. binary_sensor.garage_ble_scanner_status). When the node
-            connects to WiFi and BLE has not already detected the tag, this
-            fires as a fallback open trigger.
+            Optional. A secondary signal used as a fallback open trigger when
+            BLE has not already detected the tag. Supports two entity types:
+
+            - binary_sensor: ESPHome node status sensor (e.g.
+              binary_sensor.garage_ble_scanner_status). Fires when the node
+              comes online (off -> on).
+
+            - device_tracker: A Firewalla or router-based device tracker for
+              the car's infotainment WiFi or a device that joins your home
+              network when the car arrives (e.g.
+              device_tracker.my_car_infotainment). Fires when the device joins
+              the network (not_home -> home).
+
+            To find your Firewalla device_tracker: open the Firewalla app,
+            note the car device name under Devices, then find the matching
+            entity under HA Settings -> Devices & Services -> Entities.
 
             WARNING: This branch requires person_entity to be configured. If
             no person entity is set, the WiFi backup trigger is skipped entirely
-            to prevent the door from opening on node reboots or power blips.
+            to prevent the door from opening on node reboots, power blips, or
+            device reconnects.
           default: []
           selector:
             entity:
               filter:
                 - domain: binary_sensor
-                - integration: esphome
+                - domain: device_tracker
               multiple: false
         notify_target:
           name: Notification Target
@@ -147,7 +163,7 @@ variables:
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
   person_entity: !input person_entity
-  esphome_node_status: !input esphome_node_status
+  wifi_backup_entity: !input wifi_backup_entity
   esphome_ble: !input esphome_ble
   notify_target: !input notify_target
   open_after: !input open_after
@@ -168,11 +184,14 @@ trigger:
     for: !input close_debounce
     id: ESPHome BLE Not Found
 
+  # WiFi backup: fires on binary_sensor off->on (ESPHome node status)
+  # OR device_tracker not_home->home (Firewalla / router device_tracker)
   - trigger: state
-    entity_id: !input esphome_node_status
-    from: "off"
-    to: "on"
-    id: ESPHome Node Online
+    entity_id: !input wifi_backup_entity
+    to:
+      - "on"
+      - "home"
+    id: WiFi Backup Online
 
 action:
   - choose:
@@ -256,10 +275,10 @@ action:
                     Garage door close timer started — BLE tag lost
                     ({{ trigger.entity_id }}).
 
-      # WiFi backup — node came online and BLE hasn't already fired
+      # WiFi backup — backup entity came online and BLE hasn't already fired
       - conditions:
           - condition: trigger
-            id: ESPHome Node Online
+            id: WiFi Backup Online
           # Guard: cover must not be unavailable
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
@@ -267,8 +286,9 @@ action:
           - condition: template
             value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
           # Safety gate: person_entity MUST be configured and not_home.
-          # This branch is not safe without it — node reboots and power blips
-          # would open the door. No person entity = skip entirely.
+          # This branch is not safe without it — node reboots, power blips,
+          # and device reconnects (including Firewalla reconnects after sleep)
+          # would open the door unsafely. No person entity = skip entirely.
           - condition: template
             value_template: >
               {{ person_entity | length > 0

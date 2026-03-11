@@ -1,0 +1,164 @@
+- id: witb_plus_actions_v3_office
+  alias: WITB+ Actions v3 - Office Lights and Fan
+  description: Example v3 actions automation paired with WITB+ v4 occupancy (office).
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
+    input:
+      # --- Core ---
+
+      occupied_effective: binary_sensor.office_occupied_effective
+
+      # When ON, the blueprint performs no actions at all.
+      automation_override: input_boolean.office_automation_override
+
+      # Any of these ON will block vacancy (OFF) actions.
+      # Use for force-occupied or manual-occupied helpers.
+      blocking_entities:
+        - input_boolean.office_force_occupied
+
+      # Run cleanup logic after HA restart to validate light/fan state.
+      startup_cleanup: true
+      startup_cleanup_delay: "00:00:15"
+
+      # Require occupancy to be ON for this long before running ON actions.
+      on_debounce: "00:00:00"
+
+      # Prevents rapid re-triggering after a manual action.
+      cooldown_timer: timer.office_actions_cooldown
+      cooldown_duration: "00:00:30"
+
+      # --- Lights ---
+
+      lights:
+        - light.office_ceiling
+        - light.office_lamp
+
+      # Set ON when automation turns lights ON; required for safe OFF.
+      auto_tag_lights: input_boolean.office_auto_lights_on
+
+      # Binary sensor that must be ON for lights to auto-turn ON.
+      # Use a lux sensor threshold helper (e.g. from lux_sensor_sync blueprint)
+      # or leave blank ("") to always allow lights ON with no gating.
+      light_gating_entity: binary_sensor.office_lux_below_threshold
+
+      # Bed sensor — not used in an office; leave blank.
+      bed_occupied: ""
+      suppress_lights_on_when_in_bed: true
+
+      # Optional scripts for custom lights ON/OFF logic. Leave blank to use
+      # the built-in turn_on / turn_off with transition and brightness below.
+      lights_on_script: ""
+      lights_off_script: ""
+
+      # Transition times in seconds.
+      transition_on: 1
+      transition_on_night: 3
+      transition_off: 2
+
+      # Dims to 10% for 15 s before turning off completely.
+      # Requires soft_off_timer. Disable for instant-off behavior.
+      lights_soft_off_enabled: false
+      soft_off_timer: ""
+
+      # Skip turning ON if any light in the group is already ON.
+      skip_on_if_any_light_on: true
+
+      # How long after vacancy before lights turn off.
+      lights_off_delay:
+        minutes: 2
+
+      # --- Lights Off Verification ---
+
+      # After turning off, re-check that lights are actually off and retry.
+      lights_off_verify_enabled: true
+
+      # Timer that drives the post-off wait and retry intervals.
+      # Create: timer.office_actions_lights_verify
+      lights_verify_timer: timer.office_actions_lights_verify
+
+      # Counter that tracks retry attempts across timer-fired runs.
+      # Create: input_number.office_actions_verify_attempts (min 0, max 10, step 1)
+      lights_verify_attempts_helper: input_number.office_actions_verify_attempts
+
+      # How long after first turn-off before checking lights state.
+      lights_off_verify_delay: "00:00:05"
+
+      # How many times to retry turning off before giving up.
+      lights_off_verify_retries: 3
+
+      # How long between retry attempts.
+      lights_off_verify_retry_interval: "00:00:05"
+
+      # If retries exhausted: keep auto_tag ON so cleanup blueprint can clear it.
+      lights_off_keep_tag_on_failure: true
+
+      # --- Night Profile ---
+
+      use_night_profile: true
+
+      # Static night window (used when helpers below are not set).
+      night_start: "22:00:00"
+      night_end: "06:30:00"
+
+      # Optional input_datetime helpers to adjust night window from the UI.
+      # Leave blank ("") to use the static values above.
+      night_start_helper: ""
+      night_end_helper: ""
+
+      # Optional input_number helpers to adjust brightness from the UI.
+      # When set, these override brightness_day_pct / brightness_night_pct.
+      brightness_day_helper: input_number.office_actions_brightness_day
+      brightness_night_helper: input_number.office_actions_brightness_night
+
+      # Static brightness percentages (used when helpers are not set).
+      brightness_day_pct: 100
+      brightness_night_pct: 20
+
+      # --- Fan ---
+
+      fan_entity: fan.office_ceiling_fan
+      fan_switches: []
+
+      # Set ON when automation turns fan ON; required for safe OFF.
+      auto_tag_fan: input_boolean.office_auto_fan_on
+
+      # Binary sensor that must be ON before fan may turn OFF on vacancy.
+      # Leave blank to allow fan OFF with no hold condition.
+      fan_vacancy_gate_entity: ""
+
+      # Fan does not auto-turn ON when room becomes occupied (office preference).
+      fan_turn_on_on_occupy: false
+      fan_turn_off_on_vacant: true
+      fan_skip_on_if_already_on: true
+      fan_disable_during_night: false
+
+      # --- Fan Timing ---
+
+      # Timer required when fan_on_delay > 0. Leave blank if delay is 0.
+      fan_on_delay_timer: ""
+      fan_on_delay: "00:00:00"
+
+      # Optional input_number to override static delay from UI.
+      fan_on_delay_seconds_helper: input_number.office_actions_fan_on_delay_seconds
+
+      # Fan continues running after vacancy for this long after lights off.
+      fan_runon_timer: timer.office_fan_runon
+      fan_runon_duration:
+        minutes: 8
+
+      # Optional input_number (minutes) to override static run-on from UI.
+      fan_runon_minutes_helper: ""
+
+      # Start run-on countdown after lights turn off, not when room goes vacant.
+      fan_runon_starts_after_lights_off: true
+
+      # --- Fan Profile ---
+
+      fan_use_night_profile: true
+      fan_percentage_day: 35
+      fan_percentage_night: 20
+      fan_percentage_day_helper: ""
+      fan_percentage_night_helper: ""
+      fan_preset_day: ""
+      fan_preset_night: ""

@@ -1,0 +1,124 @@
+- id: witb_plus_actions_v3_master_bathroom_toilet
+  alias: WITB+ Actions v3 - Master Bathroom Toilet
+  description: >
+    Example v3 actions automation for a bathroom with a ceiling light and
+    exhaust fan switch. Fan auto-turns ON on occupancy with a short delay,
+    then runs on after vacancy. No lux gating (bathroom lights always on
+    when occupied).
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
+    input:
+      # --- Core ---
+
+      occupied_effective: binary_sensor.master_bathroom_toilet_occupied_effective
+
+      automation_override: input_boolean.master_bathroom_toilet_automation_override
+
+      # No blocking entities for this room.
+      blocking_entities: []
+
+      startup_cleanup: true
+      startup_cleanup_delay: "00:00:15"
+
+      on_debounce: "00:00:00"
+
+      cooldown_timer: timer.master_bathroom_toilet_actions_cooldown
+      cooldown_duration: "00:00:30"
+
+      # --- Lights ---
+
+      lights:
+        - light.master_bathroom_toilet_ceiling
+
+      auto_tag_lights: input_boolean.master_bathroom_toilet_auto_lights_on
+
+      # No lux gating — bathroom lights always turn on when occupied.
+      light_gating_entity: ""
+
+      bed_occupied: ""
+      suppress_lights_on_when_in_bed: true
+
+      lights_on_script: ""
+      lights_off_script: ""
+
+      transition_on: 1
+      transition_on_night: 3
+      transition_off: 2
+
+      lights_soft_off_enabled: false
+      soft_off_timer: ""
+
+      skip_on_if_any_light_on: true
+
+      lights_off_delay:
+        minutes: 2
+
+      # --- Lights Off Verification ---
+
+      lights_off_verify_enabled: true
+      lights_verify_timer: timer.master_bathroom_toilet_actions_lights_verify
+      lights_verify_attempts_helper: input_number.master_bathroom_toilet_actions_verify_attempts
+      lights_off_verify_delay: "00:00:05"
+      lights_off_verify_retries: 3
+      lights_off_verify_retry_interval: "00:00:05"
+      lights_off_keep_tag_on_failure: true
+
+      # --- Night Profile ---
+
+      use_night_profile: true
+      night_start: "22:30:00"
+      night_end: "06:00:00"
+      night_start_helper: ""
+      night_end_helper: ""
+
+      # No UI helpers for brightness in this room; use static values.
+      brightness_day_helper: ""
+      brightness_night_helper: ""
+      brightness_day_pct: 100
+      brightness_night_pct: 10
+
+      # --- Fan ---
+
+      # Exhaust fan is a switch, not a fan entity.
+      fan_entity: ""
+      fan_switches:
+        - switch.master_bathroom_toilet_exhaust_fan
+
+      auto_tag_fan: input_boolean.master_bathroom_toilet_auto_fan_on
+
+      fan_vacancy_gate_entity: ""
+
+      fan_turn_on_on_occupy: true
+      fan_turn_off_on_vacant: true
+      fan_skip_on_if_already_on: true
+      fan_disable_during_night: false
+
+      # --- Fan Timing ---
+
+      # Timer required because fan_on_delay > 0 (20 seconds).
+      # Create: timer.master_bathroom_toilet_fan_on_delay
+      fan_on_delay_timer: timer.master_bathroom_toilet_fan_on_delay
+      fan_on_delay:
+        seconds: 20
+
+      fan_on_delay_seconds_helper: ""
+
+      fan_runon_timer: timer.master_bathroom_toilet_fan_runon
+      fan_runon_duration:
+        minutes: 12
+
+      fan_runon_minutes_helper: ""
+
+      fan_runon_starts_after_lights_off: true
+
+      # --- Fan Profile ---
+
+      # Switch-based fan has no speed control — percentage/preset unused.
+      fan_use_night_profile: false
+      fan_percentage_day: 0
+      fan_percentage_night: 0
+      fan_percentage_day_helper: ""
+      fan_percentage_night_helper: ""
+      fan_preset_day: ""
+      fan_preset_night: ""

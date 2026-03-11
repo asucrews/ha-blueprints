@@ -1,0 +1,37 @@
+- id: ratgdo_v2_garage
+  alias: Ratgdo - Garage Door
+  description: >
+    Manages the garage door via the Ratgdo 2.5i integration.
+    Handles obstruction alerts, auto-close timer, bypass toggle,
+    and wall-button session cancellation with optional notifications.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/ratgdo/v2/ratgdo_2.5i.yaml
+    input:
+      # --- Required ---
+
+      # The Ratgdo cover entity for the garage door.
+      ratgdo_device: cover.garage_ratgdo
+
+      # Binary sensor that reports obstructions from the Ratgdo device.
+      obstruction_entity: binary_sensor.garage_ratgdo_obstruction
+
+      # --- Optional entities ---
+
+      # Timer that controls how long the door stays open before auto-closing.
+      # Leave empty to disable auto-close entirely.
+      garage_door_timer_helper: timer.garage_door_auto_close
+
+      # When this input_boolean is ON, auto-close is skipped for the session.
+      # Useful during extended garage work sessions.
+      bypass_helper: input_boolean.garage_door_bypass_autoclose
+
+      # Binary sensor for the Ratgdo wall button (tracks physical presses).
+      # Pressing the button while the door is open cancels auto-close for
+      # that session only; auto-close resumes normally next time the door opens.
+      button_entity: binary_sensor.garage_ratgdo_button
+
+      # Notification service name WITHOUT the 'notify.' prefix.
+      # e.g. enter 'notify_all' not 'notify.notify_all'.
+      # Leave blank ("") to disable notifications.
+      notify_group: notify_all

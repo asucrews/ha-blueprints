@@ -4,6 +4,33 @@ All notable changes to this blueprint are documented here.
 
 ---
 
+## [1.4.0] - 2026-03-10
+
+### Changed
+- **`esphome_node_status` renamed to `wifi_backup_entity`** (breaking rename
+  for anyone on v1.3.0 — re-select the entity in the automation instance after
+  updating the blueprint).
+- **`wifi_backup_entity` selector expanded** from `binary_sensor` only to
+  accept both `binary_sensor` and `device_tracker` domains. The `integration:
+  esphome` filter has been removed so Firewalla and other router-based
+  device_tracker entities are selectable.
+- **WiFi backup trigger updated** from `to: "on"` to `to: ["on", "home"]` so
+  the trigger fires correctly for both entity types:
+  - `binary_sensor` (ESPHome node status): `off -> on`
+  - `device_tracker` (Firewalla / router): `not_home -> home`
+- Trigger ID renamed from `ESPHome Node Online` to `WiFi Backup Online` to
+  reflect the generalized purpose.
+- Updated blueprint description, input description, and README to document
+  Firewalla device_tracker usage and how to find the entity in HA.
+
+### Added
+- Firewalla `device_tracker` is now the preferred WiFi backup signal when
+  available. It is a more precise signal than ESPHome node status — it fires
+  only when the specific tracked device (e.g. car infotainment) joins the
+  network, rather than on any node reboot or power event.
+
+---
+
 ## [1.3.0] - 2026-03-10
 
 ### Added
@@ -20,13 +47,13 @@ All notable changes to this blueprint are documented here.
 - The WiFi backup branch enforces a **hard `person_entity` requirement**: if no
   person entity is configured, the branch is skipped entirely. Node reboots,
   power blips, and firmware OTA events all cause the node status sensor to
-  transition `off → on`; without the person gate this would open the door
+  transition `off -> on`; without the person gate this would open the door
   unsafely. This is intentionally stricter than the BLE branches, which allow
   operation without a person gate.
 
 ### Changed
-- `esphome_ble` added to `variables` block (required to evaluate the dedup guard
-  template across all action branches).
+- `esphome_ble` added to `variables` block (required to evaluate the dedup
+  guard template across all action branches).
 
 ---
 
