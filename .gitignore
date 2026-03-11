@@ -7,6 +7,7 @@
 # Generated files — reproducible from source, no need to track
 # ---------------------------------------------------------------------------
 assign_areas.py
+assign_areas_*.py
 packages/
 
 # ---------------------------------------------------------------------------

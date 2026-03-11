@@ -13,67 +13,8 @@ Template-driven generator for Home Assistant merge_named packages for:
 
 Supports per-room configuration overrides via config file.
 
-CHANGELOG:
-  v1 → v2 (auto-discovery + multi-template hardening):
-  NEW #1  - Feature blocks are now AUTO-DISCOVERED from the template file at
-            startup by scanning for  # --- BEGIN X ---  markers. The static
-            ALL_FEATURES list is kept as a fallback/documentation artifact but
-            is no longer the sole source of --no-X CLI flags. Any new template
-            block name is picked up automatically without editing this script.
-
-  NEW #2  - apply_tokens() now handles BOTH token styles:
-              "Room Friendly Name"  (witb_plus / witb_actions / humidity templates)
-              "Friendly Name"       (transit template — no "Room" prefix)
-            The first pass replaces "Room Friendly Name" → room.name; the second
-            replaces any remaining bare "Friendly Name" → room.name so transit
-            templates work without modification.
-
-  NEW #3  - remove_empty_section() now covers ALL HA platform section headers,
-            including `input_text` (transit) and `counter` (vacuum) which were
-            previously unhandled, leaving bare section keys in the output.
-
-  NEW #4  - extract_inner_if_single_package() de-indents by the ACTUAL wrapper
-            indentation width instead of hard-coding 2 spaces. Wrapper blocks
-            indented by 4 spaces (or any other depth) now unwrap correctly.
-
-  BUG #1  - input_number missing from remove_empty_section cleanup list. Fixed.
-  BUG #2  - Config emit_X overrode CLI --no-X flags. CLI now wins.
-  BUG #3  - No duplicate slug detection. Added.
-  BUG #4  - slugify() matched Unicode word chars. Fixed with re.ASCII.
-  BUG #5  - Dead-code regex in apply_tokens(). Removed.
-  BUG #6  - No --dry-run mode. Added.
-  BUG #7  - No existence check on --template path. Added.
-  BUG #8  - Redundant dual override syntax. Unified to no_X per-room.
-  BUG #9  - remove_empty_section used DOTALL, ate real content. Fixed.
-
-  v2 → v3 (area assignment support):
-  NEW #5  - Room dataclass now carries `area` (friendly name) and `area_id`
-            (HA slug, auto-derived from area via slugify() if not explicit).
-  NEW #6  - build_room() parses `area:` and optional `area_id:` from per-room
-            config dicts.
-  NEW #7  - --areas-script flag emits a standalone assign_areas.py that calls
-            the HA REST entity registry API to assign areas to all helpers.
-            Entity list per room respects each room's active feature flags so
-            disabled-block entities are never included.
-  NEW #7b - areas_script can be set in rooms.yaml config so --areas-script
-            flag is never needed on the CLI.
-  BUG #10 - assign_areas.py used a GET pre-check that silently failed for
-            YAML-defined helpers, causing all entities to be SKIPped. Removed.
-  BUG #11 - assign_areas.py gave no detail on PATCH failures. Now shows HTTP
-            status and response body on failure.
-  BUG #12 - assign_areas.py assumed areas already existed in HA. Now checks
-            the area registry first and creates any missing areas automatically.
-
-  v3 → v4 (per-room custom tokens):
-  NEW #8  - Room dataclass now carries `tokens: dict[str, str]` for arbitrary
-            per-room substitutions (e.g. __LUX_SENSOR__, __FAN_ENTITY__).
-            Tokens are defined under a `tokens:` key in the per-room config
-            dict and applied by apply_tokens() after the standard slug/name
-            substitutions. Token keys are substituted literally as written
-            (e.g. __LUX_SENSOR__), so use whatever delimiter the template uses.
-  NEW #9  - apply_tokens() warns on stderr if any __TOKEN__ placeholders remain
-            unsubstituted after all passes, identifying the room and token names.
-            Prevents silently broken output when a tokens: entry is missing.
+Current version: v4.1
+See CHANGELOG_generate_witb_packages_templated.md for full change history.
 """
 
 import argparse
@@ -408,6 +349,15 @@ def extract_inner_if_single_package(text: str) -> str:
         break  # Only inspect the very first content line
 
     if wrapper_index == -1:
+        return "\n".join(lines)
+
+    # If the detected "wrapper" key is actually an HA platform section key
+    # (e.g. input_boolean, template, input_number) the template has no package
+    # wrapper and should be used as-is.  This handles templates like the lux /
+    # humidity baseline packages that start directly with HA section keys rather
+    # than a custom package key like `room_slug_witb:`.
+    wrapper_key = lines[wrapper_index].strip().rstrip(":")
+    if wrapper_key in _HA_SECTIONS:
         return "\n".join(lines)
 
     # Detect actual indentation width from the first substantive child line

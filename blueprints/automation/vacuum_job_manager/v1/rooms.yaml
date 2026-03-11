@@ -8,7 +8,7 @@
 # Run with: python generate_witb_packages_templated.py --config rooms_roomba.yaml
 
 template: vacuum_job_manager_package_template.yaml
-out: ./packages/vacuum
+out: ./packages
 areas_script: ./assign_areas_vacuum.py
 key_suffix: _vacuum
 

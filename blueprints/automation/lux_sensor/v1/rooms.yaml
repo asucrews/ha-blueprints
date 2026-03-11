@@ -9,7 +9,7 @@
 # Run with: python generate_witb_packages_templated.py --config rooms_lux.yaml
 
 template: room_lux_baseline_delta_package_template.yaml
-out: ./packages/lux
+out: ./packages
 areas_script: ./assign_areas_lux.py
 key_suffix: _lux_delta
 
@@ -17,19 +17,19 @@ rooms:
   - name: "Family Room"
     area: "Family Room"
     tokens:
-      __LUX_SENSOR__: sensor.FIXME_family_room_illuminance
+      __LUX_SENSOR__: sensor.family_room_lux_level
 
   - name: "Dinning Room"
     area: "Dinning Room"
     tokens:
-      __LUX_SENSOR__: sensor.FIXME_dinning_room_illuminance
+      __LUX_SENSOR__: sensor.dinning_room_lux_level
 
   - name: "Office"
     area: "Office"
     tokens:
-      __LUX_SENSOR__: sensor.FIXME_office_illuminance
+      __LUX_SENSOR__: sensor.office_lux_level
 
   - name: "Master Bedroom"
     area: "Master Bedroom"
     tokens:
-      __LUX_SENSOR__: sensor.FIXME_master_bedroom_illuminance
+      __LUX_SENSOR__: sensor.master_bedroom_lux_level
