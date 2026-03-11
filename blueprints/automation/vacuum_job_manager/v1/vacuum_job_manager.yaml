@@ -7,16 +7,28 @@ blueprint:
   description: |
     Version: 1.3 — see CHANGELOG.md for full version history.
 
-    Roomba-safe job manager. Does NOT treat 'docked' as complete.
-    Completes only when mission counters increment (successful/failed/canceled).
-    v1.1: turn ON lights/switches + enable WITB automation_override booleans during job;
-    on job end, disable overrides and turn OFF lights if NOT occupied.
-    v1.2: fix multi-entity service calls (join(',') → list); add enabled guard on button
-    request; prevent duplicate schedule queue; add unavailable/unknown sensor guard on
-    counter triggers; add post-watchdog docked recovery with 30 s settle delay; add
-    completion notifications; reduce queued max from 10 to 3.
-    v1.3: separate canceled_counter from failures_counter so user-canceled missions are
-    tracked independently; remove deprecated initial: from max_runtime helper.
+    iRobot-safe job manager for queued and scheduled cleaning runs.
+
+    JOB FLOW
+      • Queues requests from button and optional schedule.
+      • Starts only when enabled and vacuum is in a valid ready state.
+      • Tracks phase/state helpers (queued, cleaning, paused, returning, etc.).
+      • Completes jobs only when mission counters increment (not just docked).
+
+    INTEGRATIONS
+      • Optional: turn ON configured lights/switches during active job.
+      • Optional: enable WITB automation_override booleans during active job.
+      • On job end, disables overrides and can turn OFF lights when not occupied.
+
+    SAFETY / RELIABILITY
+      • Watchdog timer can force return_to_base on overrun.
+      • Guards against unavailable/unknown mission sensor transitions.
+      • Handles post-watchdog docked recovery with settle delay.
+
+    VERSION NOTES
+      • v1.1: added lights/switches and WITB override integration.
+      • v1.2: hardened queue, counters, watchdog recovery, and notifications.
+      • v1.3: split canceled vs failed counters; removed deprecated initial.
 
   input:
     vacuum_entity:

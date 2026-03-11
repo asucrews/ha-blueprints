@@ -13,25 +13,25 @@
 blueprint:
   name: WITB Transit Room Driver (1.0.0)
   description: |
-    Version: 1 — see CHANGELOG.md for full version history.
+    Version: 1.0.0 — see CHANGELOG.md for full version history.
 
-    Occupancy driver for transit areas (hallways/stairs/open connectors) using PIR-only decay logic.
-    Outputs a WITB-compatible occupancy signal (input_boolean.*_occupied_effective) that your Actions 2.2
-    automation consumes.
+    Transit-area occupancy driver (hallways/stairs/open connectors) using
+    PIR-only decay logic and WITB-compatible helper outputs.
 
-    Core behavior:
-    - Motion ON => occupied_effective ON + restart decay timer (hold_timer)
-    - Keepalive ON holds occupancy WITHOUT looping the timer (prevents timer/event spam)
-    - Keepalive OFF (all) + motion OFF => start decay timer (attempt-to-clear phase)
-    - keepalive_mode extend_and_turn_on: neighbor ON can turn this room ON (keepalive state change triggers included)
-    - Instant OFF: forces occupied_effective OFF + cancels hold timer
-    - Optional instant-off rearm mitigation via suppress timer (reduces PIR dead-time trap)
-    - Maintenance override: forces occupied_effective ON indefinitely
-    - Restart restore (homeassistant.start): recovers state if motion is currently ON
+    CORE BEHAVIOR
+      • Motion ON -> occupied_effective ON + restart hold timer.
+      • Keepalive ON holds occupancy without looping timer events.
+      • Keepalive OFF + no motion -> start release-decay timer.
+      • Optional extend_and_turn_on mode allows neighbor keepalive to assert ON.
+      • Instant OFF path forces occupied_effective OFF and cancels hold timer.
+      • Optional instant-off rearm suppression mitigates PIR dead-time traps.
+      • Maintenance override pins occupied_effective ON indefinitely.
+      • On Home Assistant restart, restores state from current motion inputs.
 
-    IMPORTANT (Home Assistant validation):
-    - State triggers must have entities. If you don't want keepalive/instant_off, select the provided per-room dummy helpers
-      from the helpers package template.
+    IMPORTANT (HA VALIDATION)
+      • State triggers must have at least one entity selected.
+      • If keepalive or instant_off is unused, select the provided dummy helpers
+        from the transit helper package template.
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/tree/main/blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml
 

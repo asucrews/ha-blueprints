@@ -2,26 +2,25 @@ blueprint:
   name: Car Tag (1.4.0)
   homeassistant:
     min_version: 2024.6.0
-  description: >
-    Car ESPHome Tag - Opens and Closes Garage Door.
+  description: |
+    Version: 1.4.0 — see CHANGELOG_car_tag.md for full version history.
 
-    Uses asymmetric debounce: short delay on open (fast entry) and long delay
-    on close (confirms departure). Both delays are configurable inputs.
+    Garage-door arrival/departure automation using ESPHome BLE tag presence.
 
-    Supports multiple BLE sensors (multiple cars), optional WiFi backup trigger
-    (ESPHome node status binary_sensor OR Firewalla/router device_tracker),
-    optional person/device tracker gate, optional time-of-day window, optional
-    notifications, and unavailable state protection.
+    CORE BEHAVIOR
+      • Asymmetric debounce: fast open confirmation, slower close confirmation.
+      • Supports multiple BLE sensors (multiple vehicles).
+      • Optional person/device tracker gate for additional safety validation.
+      • Optional time window and notifications.
 
-    WiFi backup: if BLE misses the car tag, a secondary WiFi signal fires as a
-    fallback open trigger. Supports either an ESPHome node status binary_sensor
-    (fires when the node comes online) or a Firewalla/router device_tracker
-    entity (fires when the tracked device joins the network). The backup branch
-    requires person_entity to be configured — it is not safe without the person
-    gate.
+    WIFI BACKUP (OPTIONAL)
+      • Secondary trigger path when BLE misses a tag.
+      • Supports ESPHome node-status binary_sensor or router device_tracker.
+      • Requires person_entity to be configured; otherwise backup path is skipped.
 
-    Note: A companion automation triggered by the Garage Door Timer Helper is
-    required to actually close the door when the timer fires.
+    IMPORTANT
+      • A companion automation driven by the Garage Door Timer Helper is required
+        to perform the actual close action when timer expires.
   domain: automation
   source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
   author: Jeremy Crews

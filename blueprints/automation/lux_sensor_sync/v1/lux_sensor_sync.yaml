@@ -3,15 +3,18 @@ blueprint:
   description: |
     Version: 1.0.0 — see CHANGELOG.md for full version history.
 
-    Infers whether a light is on or off by comparing a lux delta sensor against
-    configurable thresholds. Designed for lights that cannot be controlled
-    directly by Home Assistant (fan-mounted lights, dumb switches, etc.).
+    Light-state inference blueprint using a lux delta sensor.
 
-    Updates an input_boolean to keep HA in sync with the physical light state.
-    Also re-evaluates state on Home Assistant restart.
+    INFERENCE LOGIC
+      • Infers ON when delta >= on_threshold for on_for_seconds.
+      • Infers OFF when delta <= off_threshold for off_for_seconds.
+      • Writes inferred state to input_boolean light_boolean.
+      • Re-evaluates state on Home Assistant restart.
 
-    Requires a lux delta sensor produced by the companion package template
-    (lux_sensor_sync_package_template.yaml).
+    USE CASE
+      • Designed for lights that HA cannot control directly (fan lights,
+        switched outlets behind dumb switches, relay-only circuits).
+      • Requires companion helpers from lux_sensor_sync_package_template.yaml.
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync.yaml
   domain: automation
   author: asucrews

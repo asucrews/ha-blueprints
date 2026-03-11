@@ -3,10 +3,18 @@ blueprint:
   description: |
     Version: 1.1.0 — see CHANGELOG.md for full version history.
 
-    Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
-    and OFF when it falls below a lower threshold for a while (hysteresis),
-    with optional minimum runtime and a failsafe max runtime.
-    Also re-evaluates state on Home Assistant restart.
+    Humidity-delta bathroom fan controller for a single room.
+
+    CORE BEHAVIOR
+      • Turns fan ON when delta rises above on_threshold for on_for_seconds.
+      • Turns fan OFF when delta falls below off_threshold for off_for_seconds.
+      • Enforces min_run_seconds before allowing OFF.
+      • Enforces max_run_seconds failsafe to prevent runaway runtime.
+
+    NIGHT / RESTART
+      • Optional night window suppresses turn-ON actions during quiet hours.
+      • On Home Assistant restart, re-evaluates humidity and corrects fan state.
+      • OFF correction is always allowed; ON correction is opt-in.
 
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan.yaml
   domain: automation

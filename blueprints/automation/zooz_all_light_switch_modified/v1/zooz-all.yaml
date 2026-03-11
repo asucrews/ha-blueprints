@@ -1,6 +1,18 @@
 blueprint:
   name: Z-Wave Plus 700/800 Series S2 ZEN 71/72/76/77 Switches
-  description: Create automations for the Z-Wave Plus 700/800 Series S2 Switches Zen71/Zen72/Zen76/Zen77
+  description: |
+    Version: v1.
+
+    Button-event mapper for Zooz ZEN71/ZEN72/ZEN76/ZEN77 switches and dimmers
+    on Z-Wave JS.
+
+    CORE BEHAVIOR
+      • Maps multi-tap and hold events to user-defined actions.
+      • Supports optional ON/OFF hook scripts for WITB light profiles.
+      • Hook scripts can override default 1x up/down button actions.
+
+    SUPPORTED HARDWARE
+      • Zooz 700 and 800LR variants of ZEN71, ZEN72, ZEN76, and ZEN77.
   domain: automation
   input:
     zooz-switch:

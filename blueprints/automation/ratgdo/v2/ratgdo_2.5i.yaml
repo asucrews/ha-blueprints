@@ -1,9 +1,19 @@
 blueprint:
   name: Ratgdo 2.5i (2.1.1)
-  description: >
-    Ratgdo door mechanics — auto-close with obstruction handling, bypass support,
-    physical button session cancel, and notifications.
-    Light control and occupancy are handled externally (WITB+).
+  description: |
+    Version: 2.1.1 — see CHANGELOG_ratgdo_v2.md for full version history.
+
+    Garage door mechanics automation for Ratgdo 2.5i devices.
+
+    CORE BEHAVIOR
+      • Auto-close flow with obstruction-aware handling.
+      • Optional bypass helper to skip auto-close when desired.
+      • Physical wall-button session cancel support.
+      • Optional notifications for key door events.
+
+    INTEGRATION MODEL
+      • Light control and occupancy are handled externally.
+      • Designed to pair with WITB occupancy/actions workflows.
   homeassistant:
     min_version: 2024.6.0
   domain: automation
