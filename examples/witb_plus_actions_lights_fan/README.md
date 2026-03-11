@@ -7,17 +7,21 @@ Blueprint source:
 
 ### Files
 
+- `rooms_witb_actions_v3.example.yaml` — rooms config for the package generator
+- `packages/office_witb_actions_v3.yaml`
+- `packages/master_bathroom_toilet_witb_actions_v3.yaml`
 - `v3_office_actions_automation.yaml`
 - `v3_master_bathroom_toilet_actions_automation.yaml`
 
 ### How To Use
 
-1. Copy the relevant automation YAML and update:
+1. Copy the relevant package YAML to your Home Assistant packages folder (or generate from `rooms_witb_actions_v3.example.yaml`).
+2. Ensure packages are loaded with `!include_dir_merge_named`.
+3. Copy the automation YAML and update:
    - `use_blueprint.path` with your namespace
    - `occupied_effective` — your WITB+ effective occupancy sensor (`binary_sensor.<slug>_occupied_effective`)
    - entity IDs in `input` to match your room helpers
-2. Create any required timer/input_number helpers referenced in the example.
-3. Paste into your `automations.yaml` or HA YAML editor.
+4. Paste into your `automations.yaml` or HA YAML editor.
 
 > **Note:** v3 removed built-in humidity control and the illuminance gate selector.
 > Use the `lux_sensor_sync` blueprint to produce a `light_gating_entity` binary sensor instead.

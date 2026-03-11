@@ -1,0 +1,53 @@
+# rooms_witb_actions_v3.example.yaml — WITB+ Actions v3 Helper Packages
+# Template: blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan_package_template.yaml
+#
+# Generates device control helpers for each room (v3 adds soft_off, lights_verify,
+# fan_on_delay timers, verify_attempts counter, and keep_on blocking boolean):
+#
+#   input_boolean.<slug>_auto_lights_on      — auto-tag for lights ON
+#   input_boolean.<slug>_keep_on             — block vacancy OFF actions
+#   input_boolean.<slug>_auto_fan_on         — auto-tag for fan ON
+#   input_datetime.<slug>_actions_night_start
+#   input_datetime.<slug>_actions_night_end
+#   input_number.<slug>_actions_brightness_day_pct
+#   input_number.<slug>_actions_brightness_night_pct
+#   input_number.<slug>_actions_verify_attempts  — retry counter (new in v3)
+#   input_number.<slug>_actions_fan_pct_day
+#   input_number.<slug>_actions_fan_pct_night
+#   input_number.<slug>_actions_fan_runon_minutes
+#   input_number.<slug>_actions_fan_on_delay_seconds
+#   timer.<slug>_actions_cooldown
+#   timer.<slug>_actions_soft_off            — 15 s dim-before-off warning (new in v3)
+#   timer.<slug>_actions_lights_verify       — post-off verify / retry driver (new in v3)
+#   timer.<slug>_actions_fan_runon
+#   timer.<slug>_actions_fan_on_delay        — non-blocking fan on-delay driver (new in v3)
+#   binary_sensor.<slug>_actions_cooldown_active
+#   binary_sensor.<slug>_actions_soft_off_active
+#   binary_sensor.<slug>_actions_lights_verify_active
+#   binary_sensor.<slug>_actions_fan_runon_active
+#   binary_sensor.<slug>_actions_fan_on_delay_active
+#   binary_sensor.<slug>_actions_in_night_window
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_witb_actions_v3.yaml
+
+template: witb_plus_actions_lights_fan_package_template.yaml
+out: ./packages/witb_actions_v3
+areas_script: ./assign_areas.py
+key_suffix: _witb_actions
+
+rooms:
+  - name: "Living Room"
+    area: "Living Room"
+
+  - name: "Kitchen"
+    area: "Kitchen"
+
+  - name: "Guest Bathroom"
+    area: "Guest Bathroom"
+
+  - name: "Office"
+    area: "Office"
+
+  - name: "Garage"
+    area: "Garage"
