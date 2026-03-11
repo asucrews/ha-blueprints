@@ -1,12 +1,18 @@
 blueprint:
-  name: Bathroom Fan From Humidity Delta v1.0.2
+  name: Bathroom Fan From Humidity Delta v1.1.0
   description: |
-    Version: 1.0.2 — see CHANGELOG.md for full version history.
+    Version: 1.1.0 — see CHANGELOG.md for full version history.
 
     Turns a bathroom exhaust fan ON when humidity delta rises above a threshold,
     and OFF when it falls below a lower threshold for a while (hysteresis),
     with optional minimum runtime and a failsafe max runtime.
     Also re-evaluates state on Home Assistant restart.
+
+    v1.1.0 adds:
+      - Night mode: suppress fan turn-on during a configurable quiet window.
+        The fan can still turn OFF during night hours (safe direction).
+      - HA restart guard: on restart the automation now only corrects
+        turn-OFF by default; turn-ON must be explicitly enabled.
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan.yaml
   domain: automation
   author: asucrews
@@ -103,7 +109,59 @@ blueprint:
           step: 60
           unit_of_measurement: seconds
 
+    night_mode_enabled:
+      name: Enable night mode
+      description: >
+        When enabled, the fan will NOT turn ON during the quiet window defined
+        by the start/end times below. The fan can still turn OFF during night
+        hours (safe direction — you want it to finish, not get stuck on).
+        Has no effect when disabled (default).
+      default: false
+      selector:
+        boolean:
+
+    night_start:
+      name: Night window — start time
+      description: >
+        Time at which the night quiet window begins. Only relevant when night
+        mode is enabled. Supports overnight spans (e.g. 22:00 → 07:00).
+      default: "22:00:00"
+      selector:
+        time:
+
+    night_end:
+      name: Night window — end time
+      description: >
+        Time at which the night quiet window ends. Only relevant when night
+        mode is enabled. May be earlier than the start time for an overnight
+        span (e.g. start 22:00, end 07:00).
+      default: "07:00:00"
+      selector:
+        time:
+
+    ha_start_allow_turn_on:
+      name: Allow HA restart to turn fan ON
+      description: >
+        On HA restart the automation re-evaluates humidity and corrects the fan
+        state. By default only a turn-OFF correction is permitted — this is the
+        safe direction and avoids the fan running unexpectedly (or waking
+        anyone up) after a restart. Enable this if you also want the fan turned
+        ON automatically when humidity is already elevated at restart time.
+        Night mode is respected even when this is enabled.
+      default: false
+      selector:
+        boolean:
+
 mode: restart
+
+# Blueprint inputs captured as variables so Jinja templates in action steps
+# can reference them by name.  _in_night_window is NOT computed here because
+# it depends on now() and must be re-evaluated on every run.
+variables:
+  _night_mode: !input night_mode_enabled
+  _night_start: !input night_start
+  _night_end: !input night_end
+  _ha_start_allow_turn_on: !input ha_start_allow_turn_on
 
 triggers:
   - trigger: numeric_state
@@ -132,18 +190,42 @@ triggers:
     id: ha_start
 
 actions:
+  # Compute whether we are currently inside the night quiet window.
+  # This is an action-step variable so now() is always the real current
+  # time for this run, not the time the automation was last loaded.
+  # Result: true  = inside quiet window → suppress turn-on
+  #         false = outside quiet window (or night mode disabled) → allow turn-on
+  - variables:
+      _in_night_window: >
+        {% if not _night_mode %}
+          false
+        {% else %}
+          {% set s = _night_start %}
+          {% set e = _night_end %}
+          {% set t = now().strftime('%H:%M:%S') %}
+          {% if s <= e %}
+            {{ (s <= t) and (t < e) }}
+          {% else %}
+            {{ (t >= s) or (t < e) }}
+          {% endif %}
+        {% endif %}
+
   - choose:
+      # ── Turn ON ──────────────────────────────────────────────────────────
       - conditions:
           - condition: trigger
             id: turn_on
           - condition: state
             entity_id: !input fan_entity
             state: "off"
+          - condition: template
+            value_template: "{{ not _in_night_window }}"
         sequence:
           - action: homeassistant.turn_on
             target:
               entity_id: !input fan_entity
 
+      # ── Turn OFF (hysteresis + min-runtime guard) ─────────────────────
       - conditions:
           - condition: trigger
             id: turn_off
@@ -157,6 +239,7 @@ actions:
             target:
               entity_id: !input fan_entity
 
+      # ── Failsafe max runtime ──────────────────────────────────────────
       - conditions:
           - condition: trigger
             id: failsafe
@@ -165,15 +248,37 @@ actions:
             target:
               entity_id: !input fan_entity
 
+      # ── HA restart: re-evaluate and correct fan state ─────────────────
       - conditions:
           - condition: trigger
             id: ha_start
         sequence:
-          # Re-evaluate conditions after HA restarts so the fan reaches the
-          # correct state without waiting for the next humidity change.
+          # Allow sensors and the rest of HA to finish starting up before
+          # we read any state.
           - delay:
               seconds: 30
+
+          # After the settling delay, attempt a turn-ON if permitted.
+          # The night-window check is re-evaluated here (inline) so it
+          # reflects the actual time after the 30-second wait rather than
+          # the time the automation triggered.
           - if:
+              - condition: template
+                value_template: >
+                  {% if not _ha_start_allow_turn_on %}
+                    false
+                  {% elif not _night_mode %}
+                    true
+                  {% else %}
+                    {% set s = _night_start %}
+                    {% set e = _night_end %}
+                    {% set t = now().strftime('%H:%M:%S') %}
+                    {% if s <= e %}
+                      {{ not ((s <= t) and (t < e)) }}
+                    {% else %}
+                      {{ not ((t >= s) or (t < e)) }}
+                    {% endif %}
+                  {% endif %}
               - condition: numeric_state
                 entity_id: !input delta_sensor
                 above: !input on_threshold
@@ -185,6 +290,8 @@ actions:
                 target:
                   entity_id: !input fan_entity
             else:
+              # Always attempt a turn-OFF correction regardless of the flags
+              # above — bringing the fan off is always the safe direction.
               - if:
                   - condition: numeric_state
                     entity_id: !input delta_sensor

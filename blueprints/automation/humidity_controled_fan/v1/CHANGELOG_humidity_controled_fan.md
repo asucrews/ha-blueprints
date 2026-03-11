@@ -4,6 +4,41 @@
 
 ## humidity_controled_fan.yaml
 
+### v1.1.0 — 2026-03-10
+
+#### New features
+
+- **Night mode** (`night_mode_enabled`, `night_start`, `night_end`).
+  When enabled, the fan will not turn ON during the configured quiet window.
+  The fan can still turn OFF during night hours — this is intentional, because
+  if a shower ran right before the window started you want the fan to finish
+  clearing the room rather than get stuck on until morning.
+  Supports overnight spans (e.g. 22:00 → 07:00) via the standard
+  `s ≤ e` / `s > e` comparison pattern.
+
+- **HA restart guard** (`ha_start_allow_turn_on`).
+  The `ha_start` branch previously could turn the fan ON if humidity was
+  already elevated at restart time. This is now disabled by default — only a
+  turn-OFF correction fires automatically. Set `ha_start_allow_turn_on: true`
+  to restore the previous behaviour. Night mode is respected even when
+  `ha_start_allow_turn_on` is enabled.
+
+#### Implementation notes
+
+- Added top-level `variables:` block to capture blueprint boolean/time inputs
+  under readable names (`_night_mode`, `_night_start`, `_night_end`,
+  `_ha_start_allow_turn_on`). These are plain scalar captures — no `now()`
+  calls — so they are safe at automation-load scope.
+- `_in_night_window` is computed as an **action-step variable** (first step
+  in `actions:`) so `now()` is always evaluated fresh per run, not once at
+  load time.
+- The `ha_start` branch **re-evaluates the night window inline** (after the
+  30-second settling delay) via a template condition rather than relying on
+  the earlier `_in_night_window` value. This ensures a restart at e.g. 21:59
+  that takes 30 seconds to settle cannot accidentally turn the fan on at 22:00.
+
+---
+
 ### v1.0.2 — 2026-02-26
 
 #### Bug fixes
