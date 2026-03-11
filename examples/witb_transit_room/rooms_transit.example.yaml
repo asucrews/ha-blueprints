@@ -1,0 +1,25 @@
+# rooms.yaml — Transit Room Helper Packages
+# Template: transit_helpers_package_template.yaml
+#
+# Generates helpers for pass-through spaces (hallways, stairs, landings)
+# that need occupancy tracking but have no primary device control.
+#
+# No external tokens required — all entity IDs are derived from room_slug.
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_transit.yaml
+
+template: transit_helpers_package_template.yaml
+out: ./packages/transit
+areas_script: ./assign_areas_transit.py
+key_suffix: _witb_transit_room
+
+rooms:
+  - name: "Upstairs Hall"
+    area: "Upstairs Hall"
+
+  - name: "Stairs"
+    area: "Stairs"
+
+  - name: "Entry"
+    area: "Entry"

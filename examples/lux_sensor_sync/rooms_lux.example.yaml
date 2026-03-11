@@ -1,0 +1,52 @@
+# rooms.yaml — Lux Baseline + Delta Packages
+# Template: room_lux_baseline_delta_package_template.yaml
+#
+# Generates adaptive lux baseline and delta sensors for light state inference:
+#   sensor.room_slug_lux_baseline   (EWA adaptive baseline — tracks ambient only)
+#   sensor.room_slug_lux_delta      (lux above baseline — proxy for artificial light)
+#   input_boolean.room_slug_lux_freeze_while_light_on
+#   input_number.room_slug_lux_*    (tuning helpers: alpha_up, alpha_down, bands)
+#
+# Why delta instead of absolute thresholds?
+#   Ambient lux shifts constantly (blinds, time of day, clouds). A fixed threshold
+#   that works at noon fails at dusk. The adaptive baseline tracks ambient; the
+#   delta isolates the artificial light contribution regardless of ambient level.
+#
+# EXTERNAL TOKEN REQUIRED — assigned by HA when you pair the physical device.
+# Find it in Developer Tools > States (look for illuminance or lux in the name).
+#
+#   __LUX_SENSOR__  The illuminance sensor on your motion/multi-sensor device
+#                   e.g. sensor.office_motion_illuminance
+#
+# If you run the generator with a FIXME placeholder still in place, it will
+# warn on stderr:
+#   WARNING: Office: unsubstituted token(s): __LUX_SENSOR__
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_lux.yaml
+
+template: room_lux_baseline_delta_package_template.yaml
+out: ./packages/lux
+areas_script: ./assign_areas_lux.py
+key_suffix: _lux_delta
+
+rooms:
+  - name: "Office"
+    area: "Office"
+    tokens:
+      __LUX_SENSOR__: sensor.office_motion_illuminance
+
+  - name: "Living Room"
+    area: "Living Room"
+    tokens:
+      __LUX_SENSOR__: sensor.living_room_motion_illuminance
+
+  - name: "Kitchen"
+    area: "Kitchen"
+    tokens:
+      __LUX_SENSOR__: sensor.kitchen_motion_illuminance
+
+  - name: "Master Bedroom"
+    area: "Master Bedroom"
+    tokens:
+      __LUX_SENSOR__: sensor.master_bedroom_motion_illuminance

@@ -1,0 +1,48 @@
+# rooms.yaml — Humidity Baseline + Delta Packages
+# Template: bathroom_humidity_baseline_delta_package_template.yaml
+#
+# Generates adaptive humidity baseline and delta sensors for fan automation:
+#   sensor.room_slug_humidity_baseline  (EWA adaptive baseline)
+#   sensor.room_slug_humidity_delta     (humidity above baseline)
+#   input_number.room_slug_humidity_*   (tuning helpers)
+#
+# EXTERNAL TOKENS REQUIRED — these entity IDs cannot be derived from room_slug.
+# They are assigned by HA when you pair the physical device. Find them in
+# Developer Tools > States and fill them in below.
+#
+#   __HUMIDITY_SENSOR__  The humidity sensor on your motion/multi-sensor device
+#                        e.g. sensor.bathroom_motion_humidity
+#
+#   __FAN_ENTITY__       The fan switch or relay HA controls
+#                        e.g. switch.bathroom_fan  OR  fan.bathroom_exhaust
+#
+# If you run the generator with a FIXME placeholder still in place, it will
+# warn on stderr:
+#   WARNING: Guest Bathroom: unsubstituted token(s): __HUMIDITY_SENSOR__
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_humidity.yaml
+
+template: bathroom_humidity_baseline_delta_package_template.yaml
+out: ./packages/humidity
+areas_script: ./assign_areas_humidity.py
+key_suffix: _humidity_delta
+
+rooms:
+  - name: "Guest Bathroom"
+    area: "Guest Bathroom"
+    tokens:
+      __HUMIDITY_SENSOR__: sensor.guest_bathroom_motion_humidity
+      __FAN_ENTITY__: switch.guest_bathroom_fan
+
+  - name: "Master Bathroom"
+    area: "Master Bathroom"
+    tokens:
+      __HUMIDITY_SENSOR__: sensor.master_bathroom_motion_humidity
+      __FAN_ENTITY__: switch.master_bathroom_fan
+
+  - name: "Laundry"
+    area: "Laundry"
+    tokens:
+      __HUMIDITY_SENSOR__: sensor.laundry_motion_humidity
+      __FAN_ENTITY__: switch.laundry_exhaust_fan

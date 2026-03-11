@@ -1,0 +1,30 @@
+# rooms.yaml — Vacuum Job Manager Helper Packages
+# Template: vacuum_job_manager_package_template.yaml
+#
+# Generates scheduling and job management helpers per vacuum unit:
+#   input_boolean.unit_slug_vacuum_enabled
+#   input_datetime.unit_slug_vacuum_last_run
+#   ... and more depending on template feature blocks
+#
+# No external tokens required — all entity IDs are derived from the unit slug.
+#
+# Note: name is the vacuum unit identifier, not a room.
+#       area maps it to the primary area the unit covers.
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_vacuum.yaml
+
+template: vacuum_job_manager_package_template.yaml
+out: ./packages/vacuum
+areas_script: ./assign_areas_vacuum.py
+key_suffix: _vacuum
+
+rooms:
+  - name: "F1 Roomba"
+    area: "Living Room"
+
+  - name: "F2 Roomba"
+    area: "Upstairs Hall"
+
+  - name: "F1 Braava Jet"
+    area: "Kitchen"

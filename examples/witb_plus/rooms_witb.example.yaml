@@ -1,0 +1,43 @@
+# rooms.yaml — WITB+ Standard Helper Packages
+# Template: witb_plus_package_template.yaml
+#
+# Generates occupancy detection helpers for each room:
+#   input_boolean.room_slug_occupied
+#   input_boolean.room_slug_manual_occupied
+#   input_boolean.room_slug_force_occupied
+#   input_boolean.room_slug_automation_override
+#   input_datetime.room_slug_last_motion
+#   timer.room_slug_exit_eval
+#   ... and more depending on enabled feature blocks
+#
+# No external tokens required — all entity IDs are derived from room_slug.
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_witb.yaml
+#
+# Disable feature blocks per-room with no_X: true, e.g.:
+#   - name: "Storage Closet"
+#     area: "Storage Closet"
+#     no_failsafe: true
+#     no_latched: true
+
+template: witb_plus_package_template.yaml
+out: ./packages/witb
+areas_script: ./assign_areas_witb.py
+key_suffix: _witb
+
+rooms:
+  - name: "Living Room"
+    area: "Living Room"
+
+  - name: "Kitchen"
+    area: "Kitchen"
+
+  - name: "Guest Bathroom"
+    area: "Guest Bathroom"
+
+  - name: "Office"
+    area: "Office"
+
+  - name: "Garage"
+    area: "Garage"

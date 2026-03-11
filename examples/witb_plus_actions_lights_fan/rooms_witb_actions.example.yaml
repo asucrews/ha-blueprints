@@ -1,0 +1,46 @@
+# rooms.yaml — WITB+ Actions Helper Packages
+# Template: witb_plus_actions_lights_fan_package_template.yaml
+#
+# Generates device control helpers for each room:
+#   input_boolean.room_slug_auto_lights_on
+#   input_boolean.room_slug_auto_fan_on
+#   input_number.room_slug_brightness_day
+#   input_number.room_slug_fan_speed_occupied
+#   timer.room_slug_actions_cooldown
+#   timer.room_slug_fan_runon
+#   ... and more depending on enabled feature blocks
+#
+# No external tokens required — all entity IDs are derived from room_slug.
+#
+# Disable feature blocks per-room with no_X: true, e.g.:
+#   - name: "Living Room"
+#     area: "Living Room"
+#     no_fan: true      # room has no fan
+#     no_lux: true      # no lux gating needed
+#
+# Run with:
+#   python generate_witb_packages_templated.py --config rooms_witb_actions.yaml
+
+template: witb_plus_actions_lights_fan_package_template.yaml
+out: ./packages/witb_actions
+areas_script: ./assign_areas_witb_actions.py
+key_suffix: _witb_actions
+
+rooms:
+  - name: "Living Room"
+    area: "Living Room"
+
+  - name: "Kitchen"
+    area: "Kitchen"
+    no_fan: true
+
+  - name: "Guest Bathroom"
+    area: "Guest Bathroom"
+    no_lux: true
+
+  - name: "Office"
+    area: "Office"
+
+  - name: "Garage"
+    area: "Garage"
+    no_night: true
