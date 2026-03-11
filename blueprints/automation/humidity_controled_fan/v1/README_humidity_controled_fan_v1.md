@@ -105,7 +105,7 @@ These defaults work well for typical shower detection:
 ```yaml
 automation:
   - use_blueprint:
-      path: asucrews/bathroom_fan_from_humidity_delta.yaml
+      path: asucrews/humidity_controled_fan.yaml
       input:
         delta_sensor: sensor.master_bathroom_toilet_humidity_delta
         fan_entity: switch.master_bathroom_toilet_fan

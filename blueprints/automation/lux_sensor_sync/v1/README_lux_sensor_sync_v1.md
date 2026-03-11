@@ -38,7 +38,7 @@ position, or season.
 
 You must already have:
 - A **lux delta sensor** (`sensor.*`) produced by the companion package template
-  (`room_lux_baseline_delta_package_template.yaml`).
+  (`lux_sensor_sync_package_template.yaml`).
 - An **`input_boolean`** to track the inferred light state.
 - The **baseline freeze boolean** (`input_boolean.room_slug_lux_freeze_while_light_on`)
   must be set to `on` for the baseline to hold when the light is inferred on.
@@ -133,7 +133,7 @@ For a dim nightlight or lamp, lower `on_threshold` to 15–20 lx and
 ```yaml
 automation:
   - use_blueprint:
-      path: asucrews/lux_light_inferred_from_delta.yaml
+      path: asucrews/lux_sensor_sync.yaml
       input:
         delta_sensor: sensor.master_bedroom_lux_delta
         light_boolean: input_boolean.master_bedroom_fan_light_inferred
@@ -148,7 +148,7 @@ automation:
 ## Companion package generator
 
 Use `generate_witb_packages_templated.py` with
-`room_lux_baseline_delta_package_template.yaml` to generate helper packages.
+`lux_sensor_sync_package_template.yaml` to generate helper packages.
 
 The generator expects two additional substitution tokens beyond `room_slug`
 and `Room Friendly Name`:
@@ -163,8 +163,8 @@ Run from repo root:
 ```bash
 python blueprints/generate_witb_packages_templated.py \
   --rooms "Master Bedroom" \
-  --template blueprints/automation/lux_light_inferred/v1/room_lux_baseline_delta_package_template.yaml \
-  --out blueprints/automation/lux_light_inferred/v1/packages
+  --template blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync_package_template.yaml \
+  --out blueprints/automation/lux_sensor_sync/v1/packages
 ```
 
 ### Deployment note on `template:` vs `binary_sensor: platform: template`
