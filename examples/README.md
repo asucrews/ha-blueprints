@@ -16,6 +16,10 @@ Copy-ready examples for the active blueprints in this repository.
   - Transit room (hallway) package and automation examples (WITB Transit Room Driver v1).
 - `witb_plus_bed_sensor/`
   - Bed sensor automation example (WITB+ Bed → Force Occupied v1; reuses existing WITB+ v4 helpers).
+- `humidity_controlled/`
+  - Humidity baseline/delta package and fan automation example (Humidity Controlled Fan v1 blueprint).
+- `lux_sensor_sync/`
+  - Lux baseline/delta package and light-inference automation example (Lux Sensor Sync v1 blueprint).
 - `car_tag/`
   - BLE-based garage door automation example (Car Tag v1 blueprint).
 - `flair/`

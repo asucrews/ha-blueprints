@@ -1,0 +1,40 @@
+- id: lux_sensor_sync_v1_office
+  alias: Lux Sync - Office
+  description: >
+    Infers whether the office light is on or off by comparing the lux delta
+    sensor against configurable thresholds, and updates an input_boolean
+    that other automations (e.g. WITB+ Actions light_gating_entity) can consume.
+    Requires sensor.office_lux_delta from the companion package.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/lux_sensor_sync/v1/lux_sensor_sync.yaml
+    input:
+      # --- Required ---
+
+      # The lux delta sensor produced by the companion package template.
+      # sensor.<room_slug>_lux_delta
+      delta_sensor: sensor.office_lux_delta
+
+      # The input_boolean that tracks the inferred light state.
+      # This is the output consumed by WITB+ Actions as light_gating_entity.
+      # input_boolean.<room_slug>_fan_light_inferred
+      light_boolean: input_boolean.office_fan_light_inferred
+
+      # --- Thresholds ---
+
+      # Infer light ON when delta reaches this value (lx).
+      # Set well below the lux contribution of the dimmest light you want to
+      # detect, but above typical sensor noise (~5 lx). 40 lx is a safe default.
+      on_threshold: 40
+
+      # Delta must stay above on_threshold for this many seconds before inferring ON.
+      # Short values (5–15 s) work well — light switches change lux near-instantly.
+      on_for_seconds: 10
+
+      # Infer light OFF when delta falls to this value (lx).
+      # Lower than on_threshold creates a hysteresis band to prevent rapid toggling.
+      off_threshold: 15
+
+      # Delta must stay below off_threshold for this many seconds before inferring OFF.
+      # Prevents the boolean flipping during brief sensor dips while the light is on.
+      off_for_seconds: 15

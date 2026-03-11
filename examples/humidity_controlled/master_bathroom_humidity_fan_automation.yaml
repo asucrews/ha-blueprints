@@ -1,0 +1,47 @@
+- id: humidity_controlled_fan_v1_master_bathroom
+  alias: Humidity Fan - Master Bathroom
+  description: >
+    Turns the exhaust fan on when the humidity delta (above adaptive baseline)
+    exceeds the ON threshold, and off again once it drops below the OFF threshold
+    and has been running for the minimum runtime.
+    Requires sensor.master_bathroom_humidity_delta from the companion package.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/humidity_controled_fan/v1/humidity_controled_fan.yaml
+    input:
+      # --- Required ---
+
+      # The humidity delta sensor produced by the companion package template.
+      # sensor.<room_slug>_humidity_delta
+      delta_sensor: sensor.master_bathroom_humidity_delta
+
+      # The fan switch or relay HA controls for this room.
+      fan_entity: switch.master_bathroom_fan
+
+      # --- Thresholds ---
+
+      # Turn fan ON when delta reaches this value (%).
+      # A shower raises humidity by 8–15%; 8% is a good default.
+      on_threshold: 8
+
+      # Delta must stay above on_threshold for this many seconds before fan turns on.
+      # Prevents brief spikes (steam kettle, hot drink) from triggering the fan.
+      on_for_seconds: 120
+
+      # Turn fan OFF when delta falls back to this value (%).
+      # Lower than on_threshold creates hysteresis — prevents rapid cycling.
+      off_threshold: 3
+
+      # Delta must stay below off_threshold for this many seconds before fan turns off.
+      # Prevents the fan cycling off prematurely while humidity is still falling.
+      off_for_seconds: 600
+
+      # --- Runtime limits ---
+
+      # Fan will not turn off until it has run for at least this many seconds.
+      # Ensures the bathroom ventilates fully even if the sensor normalizes quickly.
+      min_run_seconds: 300
+
+      # Failsafe: always turn the fan off after this many seconds.
+      # Guards against the sensor going unavailable while the fan is running.
+      max_run_seconds: 5400
