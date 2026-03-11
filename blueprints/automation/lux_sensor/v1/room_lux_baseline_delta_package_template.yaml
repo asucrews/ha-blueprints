@@ -1,7 +1,17 @@
-# Lux baseline + delta (package template) v1.0
+# Lux baseline + delta (package template) v1.1
 # Block markers supported:
 #   tuning_helpers — input_boolean + input_number tuning entities
 #                    omit with --no-tuning-helpers in the generator
+#
+# Token substitutions performed by the generator:
+#   room_slug          → HA entity slug  (e.g. office)
+#   Room Friendly Name → Human name      (e.g. Office)
+#   __LUX_SENSOR__     → physical lux sensor entity_id (per-room, from rooms.yaml tokens:)
+#
+# The light boolean uses the naming convention directly:
+#   input_boolean.room_slug_fan_light_inferred
+# room_slug is substituted by the generator in the normal pass — no custom
+# token needed, exactly like how humidity references the fan entity.
 
 # --- BEGIN tuning_helpers ---
 input_boolean:
@@ -58,23 +68,10 @@ input_number:
     unit_of_measurement: "lx"
 # --- END tuning_helpers ---
 
-binary_sensor:
-  - platform: template
-    sensors:
-      room_slug_lux_baseline:
-        # This is NOT the real baseline sensor — see the trigger-based template
-        # sensor below. This binary_sensor block is a placeholder comment only.
-        # HA packages cannot use the newer `template:` list syntax, so the
-        # trigger-based sensors are defined under `template:` below using the
-        # older platform syntax workaround via a separate automation if needed.
-        # See README for deployment notes.
-        value_template: "{{ false }}"
-        friendly_name: "placeholder - see template block below"
-
 template:
   # Adaptive lux baseline (trigger-based template sensor)
-  # Freezes when the inferred light is on so the baseline does not drift
-  # upward and erode the delta signal over time.
+  # Freezes when the inferred light boolean is on so the baseline does not
+  # drift upward and erode the delta signal over time.
   - trigger:
       - platform: state
         entity_id: __LUX_SENSOR__
@@ -88,7 +85,7 @@ template:
         state_class: measurement
         variables:
           s: __LUX_SENSOR__
-          light: __LIGHT_BOOLEAN__
+          light: input_boolean.room_slug_fan_light_inferred
         availability: >
           {{ is_number(states(s)) }}
         state: >-
