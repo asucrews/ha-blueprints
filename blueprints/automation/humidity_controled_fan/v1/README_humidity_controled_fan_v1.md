@@ -119,13 +119,13 @@ automation:
 
 ## Companion package generator
 
-Use `blueprints/generate_witb_packages_templated.py` with `room_humidity_baseline_delta_package_template.yaml` to generate helper packages.
+Use `blueprints/generate_witb_packages_templated.py` with `humidity_controled_fan_package_template.yaml` to generate helper packages.
 
 Run from repo root:
 
 ```bash
 python blueprints/generate_witb_packages_templated.py \
   --rooms "Half Bathroom" \
-  --template blueprints/automation/bathroom_fan_from_humidity/v1/room_humidity_baseline_delta_package_template.yaml \
-  --out blueprints/automation/bathroom_fan_from_humidity/v1/packages
+  --template blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan_package_template.yaml \
+  --out blueprints/automation/humidity_controled_fan/v1/packages
 ```
