@@ -1,8 +1,8 @@
-# Changelog
+# CHANGELOG — Humidity Controlled Fan
 
 ---
 
-## bathroom_fan_from_humidity_delta.yaml
+## humidity_controled_fan.yaml
 
 ### v1.0.2 — 2026-02-26
 
@@ -35,7 +35,7 @@
 
 ---
 
-## room_humidity_baseline_delta_package_template.yaml
+## humidity_controled_fan_package_template.yaml
 
 ### v1.1 — 2026-02-26
 

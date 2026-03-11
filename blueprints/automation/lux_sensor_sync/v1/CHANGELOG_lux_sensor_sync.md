@@ -1,8 +1,8 @@
-# Changelog
+# CHANGELOG — Lux Sensor Sync
 
 ---
 
-## lux_light_inferred_from_delta.yaml
+## lux_sensor_sync.yaml
 
 ### v1.0.0 — 2026-03-09
 
@@ -24,7 +24,7 @@
 
 ---
 
-## room_lux_baseline_delta_package_template.yaml
+## lux_sensor_sync_package_template.yaml
 
 ### v1.0 — 2026-03-09
 

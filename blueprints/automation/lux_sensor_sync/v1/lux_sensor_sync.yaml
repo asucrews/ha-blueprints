@@ -11,8 +11,8 @@ blueprint:
     Also re-evaluates state on Home Assistant restart.
 
     Requires a lux delta sensor produced by the companion package template
-    (room_lux_baseline_delta_package_template.yaml).
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/lux_light_inferred/v1/lux_light_inferred_from_delta.yaml
+    (lux_sensor_sync_package_template.yaml).
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync.yaml
   domain: automation
   author: asucrews
   homeassistant:

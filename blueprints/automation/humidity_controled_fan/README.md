@@ -1,10 +1,10 @@
-# bathroom_fan_from_humidity/
+# humidity_controled_fan/
 
-Bathroom Fan From Humidity Delta blueprint.
+Humidity Controlled Fan blueprint.
 
 ## Current version
 
-**v1** — see [`v1/README_bathroom_fan_from_humidity_delta_v1.md`](v1/README_bathroom_fan_from_humidity_delta_v1.md)
+**v1** — see [`v1/README_humidity_controled_fan_v1.md`](v1/README_humidity_controled_fan_v1.md)
 
 ## Summary
 
