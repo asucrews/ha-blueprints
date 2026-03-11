@@ -4,6 +4,32 @@ All notable changes to this blueprint are documented here.
 
 ---
 
+## [1.3.0] - 2026-03-10
+
+### Added
+- **WiFi backup trigger (`esphome_node_status`):** Optional binary sensor input
+  for the ESPHome node's connectivity status. When the node comes online and BLE
+  has not already detected the tag, the door opens as a fallback. Handles the
+  case where the car enters BLE range while the scanner is mid-boot and misses
+  the initial advertisement window.
+- **Dedup guard on WiFi backup branch:** Checks that no BLE sensor is currently
+  `on` before acting. Prevents the WiFi trigger from double-firing milliseconds
+  after BLE has already opened the door.
+
+### Safety Notes
+- The WiFi backup branch enforces a **hard `person_entity` requirement**: if no
+  person entity is configured, the branch is skipped entirely. Node reboots,
+  power blips, and firmware OTA events all cause the node status sensor to
+  transition `off → on`; without the person gate this would open the door
+  unsafely. This is intentionally stricter than the BLE branches, which allow
+  operation without a person gate.
+
+### Changed
+- `esphome_ble` added to `variables` block (required to evaluate the dedup guard
+  template across all action branches).
+
+---
+
 ## [1.2.0] - 2026-03-09
 
 ### Added

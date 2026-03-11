@@ -1,5 +1,5 @@
 blueprint:
-  name: Car Tag (1.2.0)
+  name: Car Tag (1.3.0)
   homeassistant:
     min_version: 2024.6.0
   description: >
@@ -8,9 +8,14 @@ blueprint:
     Uses asymmetric debounce: short delay on open (fast entry) and long delay
     on close (confirms departure). Both delays are configurable inputs.
 
-    Supports multiple BLE sensors (multiple cars), optional person/device tracker
-    gate, optional time-of-day window, optional notifications, and unavailable
-    state protection.
+    Supports multiple BLE sensors (multiple cars), optional WiFi/node-status
+    backup trigger, optional person/device tracker gate, optional time-of-day
+    window, optional notifications, and unavailable state protection.
+
+    WiFi backup: if BLE misses the car tag but the ESPHome node detects it
+    coming online (WiFi join), the door will still open. The backup branch
+    requires person_entity to be configured and is not_home — it is not safe
+    to use without the person gate.
 
     Note: A companion automation triggered by the Garage Door Timer Helper is
     required to actually close the door when the timer fires.
@@ -64,12 +69,31 @@ blueprint:
             Optional. When set, the door will only open if this entity is
             'not_home', and the close timer will only start if this entity
             is 'home'. Prevents acting on stale BLE state when already inside.
+            Required for the WiFi backup trigger to be safe.
           default: []
           selector:
             entity:
               filter:
                 - domain: person
                 - domain: device_tracker
+              multiple: false
+        esphome_node_status:
+          name: ESPHome Node Status (WiFi Backup Trigger)
+          description: >
+            Optional. Binary sensor for the ESPHome node's connectivity status
+            (e.g. binary_sensor.garage_ble_scanner_status). When the node
+            connects to WiFi and BLE has not already detected the tag, this
+            fires as a fallback open trigger.
+
+            WARNING: This branch requires person_entity to be configured. If
+            no person entity is set, the WiFi backup trigger is skipped entirely
+            to prevent the door from opening on node reboots or power blips.
+          default: []
+          selector:
+            entity:
+              filter:
+                - domain: binary_sensor
+                - integration: esphome
               multiple: false
         notify_target:
           name: Notification Target
@@ -123,6 +147,8 @@ variables:
   garage_door_cover: !input garage_door_cover
   garage_door_timer_helper: !input garage_door_timer_helper
   person_entity: !input person_entity
+  esphome_node_status: !input esphome_node_status
+  esphome_ble: !input esphome_ble
   notify_target: !input notify_target
   open_after: !input open_after
   open_before: !input open_before
@@ -141,6 +167,12 @@ trigger:
     to: "off"
     for: !input close_debounce
     id: ESPHome BLE Not Found
+
+  - trigger: state
+    entity_id: !input esphome_node_status
+    from: "off"
+    to: "on"
+    id: ESPHome Node Online
 
 action:
   - choose:
@@ -223,6 +255,58 @@ action:
                   message: >
                     Garage door close timer started — BLE tag lost
                     ({{ trigger.entity_id }}).
+
+      # WiFi backup — node came online and BLE hasn't already fired
+      - conditions:
+          - condition: trigger
+            id: ESPHome Node Online
+          # Guard: cover must not be unavailable
+          - condition: template
+            value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
+          # Guard: door must currently be closed
+          - condition: template
+            value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
+          # Safety gate: person_entity MUST be configured and not_home.
+          # This branch is not safe without it — node reboots and power blips
+          # would open the door. No person entity = skip entirely.
+          - condition: template
+            value_template: >
+              {{ person_entity | length > 0
+                 and is_state(person_entity, 'not_home') }}
+          # Dedup guard: skip if BLE already detected the tag (don't double-fire)
+          - condition: template
+            value_template: >
+              {{ expand(esphome_ble) | selectattr('state', 'eq', 'on') | list | length == 0 }}
+          # Gate: within allowed time window (passes if both times are 00:00:00)
+          - condition: template
+            value_template: >
+              {% if open_after == '00:00:00' and open_before == '00:00:00' %}
+                true
+              {% else %}
+                {% set after = strptime(open_after, '%H:%M:%S').time() %}
+                {% set before = strptime(open_before, '%H:%M:%S').time() %}
+                {% set t = now().time() %}
+                {% if after <= before %}
+                  {{ t >= after and t <= before }}
+                {% else %}
+                  {{ t >= after or t <= before }}
+                {% endif %}
+              {% endif %}
+        sequence:
+          - action: cover.open_cover
+            data: {}
+            target:
+              entity_id: !input garage_door_cover
+          - if:
+              - condition: template
+                value_template: "{{ notify_target | length > 0 }}"
+            then:
+              - action: "{{ notify_target }}"
+                data:
+                  title: "Garage Door"
+                  message: >
+                    Garage door opened — WiFi backup trigger
+                    ({{ trigger.entity_id }} came online, BLE not yet detected).
 
 mode: single
 max_exceeded: silent
