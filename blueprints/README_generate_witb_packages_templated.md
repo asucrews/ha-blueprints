@@ -168,9 +168,9 @@ so that `template:` and `out:` paths in your config files resolve correctly:
 ha-packages/
   generate_witb_packages_templated.py
   witb_plus_package_template.yaml
-  room_witb_actions_package_template.yaml
-  transit_helpers_package_template.yaml
-  room_humidity_baseline_delta_package_template.yaml
+  witb_plus_actions_lights_fan_package_template.yaml
+  witb_transit_room_package_template.yaml
+  humidity_controled_fan_package_template.yaml
   rooms_witb_plus.yaml        ← one config per template
   rooms_witb_actions.yaml
   rooms_transit.yaml
@@ -230,10 +230,10 @@ CLI --no-X  >  per-room no_X: true  >  config emit_X: false  >  default (on)
 | Template file | Key suffix convention | Feature blocks |
 |---|---|---|
 | `witb_plus_package_template.yaml` | `_witb_plus` | helpers, controls, latched, exit_close, failsafe, entry_gating |
-| `room_witb_actions_package_template.yaml` | `_witb_actions` | lights, fan, lux, humidity, night |
-| `room_humidity_baseline_delta_package_template.yaml` | `_humidity` | tuning_helpers |
-| `transit_helpers_package_template.yaml` | `_transit` | *(flat — no feature blocks)* |
-| `vacuum_job_helpers.yaml` | `_vacuum` | *(flat — no feature blocks)* |
+| `witb_plus_actions_lights_fan_package_template.yaml` | `_witb_actions` | lights, fan, lux, humidity, night |
+| `humidity_controled_fan_package_template.yaml` | `_humidity` | tuning_helpers |
+| `witb_transit_room_package_template.yaml` | `_transit` | *(flat — no feature blocks)* |
+| `vacuum_job_manager_package_template.yaml` | `_vacuum` | *(flat — no feature blocks)* |
 
 ---
 

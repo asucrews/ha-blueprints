@@ -19,4 +19,4 @@ Blueprint source:
 
 - The dummy keepalive and instant-off booleans are required by the blueprint even if those features are unused. Select them in the blueprint inputs when not using keepalive or instant-off.
 - The suppress timer is required even if `instant_off_rearm_timeout_seconds` is `0`.
-- Pair `binary_sensor`-compatible `occupied_effective` output with a WITB+ Actions v2 automation using `input_boolean.hallway_occupied_effective` (the blueprint drives this boolean directly).
+- Pair `binary_sensor`-compatible `occupied_effective` output with a WITB+ Actions automation using `input_boolean.hallway_occupied_effective` (the blueprint drives this boolean directly).

@@ -3,7 +3,7 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights/v3/witb_plus_actions_lights.yaml
-  name: V3 WITB+ Actions - Lights v3.0.0
+  name: V3 WITB+ Actions - Lights (3.0.0)
   description: |
     Version: 3.0.0 — see CHANGELOG.md for full version history.
 

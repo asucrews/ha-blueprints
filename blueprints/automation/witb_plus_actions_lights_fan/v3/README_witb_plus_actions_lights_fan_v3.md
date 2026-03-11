@@ -10,7 +10,7 @@ safety tags, external gating, and fully event-driven execution.
 
 ## 1. Blueprints
 
-### `v3_witb_plus_actions_lights_fan.yaml` — main actions blueprint (v3.0.3)
+### `witb_plus_actions_lights_fan.yaml` — main actions blueprint (v3.0.3)
 
 Controls lights and fan for a single room based on occupancy state changes from
 `binary_sensor.<slug>_occupied_effective`. Key behaviors:
@@ -37,7 +37,7 @@ Controls lights and fan for a single room based on occupancy state changes from
 - **Auto-tag helpers** (`input_boolean`) track automation ownership of lights and fan
   for safe "only turn off what we turned on" behavior.
 
-### `v3_witb_plus_actions_lights.yaml` — lights-only variant
+### `witb_plus_actions_lights.yaml` — lights-only variant
 
 Same as above but with fan control removed. Use for rooms with no fan.
 
@@ -148,8 +148,8 @@ independently of ambient conditions.
 | Blueprint | Role | Instance count |
 |---|---|---|
 | `witb_plus/v4` | Occupancy inference | One per room |
-| `v3_witb_plus_actions_lights_fan` | Light + fan control | One per room |
-| `v3_witb_plus_actions_lights` | Light-only control | One per room (no fan) |
+| `witb_plus_actions_lights_fan` | Light + fan control | One per room |
+| `witb_plus_actions_lights` | Light-only control | One per room (no fan) |
 | `witb_plus_actions_cleanup` | Tag stuck-ON recovery (optional) | One per room |
 
 ## v3 vs v2 Helper Differences

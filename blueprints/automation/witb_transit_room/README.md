@@ -8,4 +8,4 @@ WITB Transit Room Driver blueprint.
 
 ## Summary
 
-PIR-only occupancy driver for transit areas (hallways, stairs, open connectors). Uses a decay hold timer instead of door triggers. Outputs a WITB-compatible `occupied_effective` boolean consumed by WITB+ Actions v2.
+PIR-only occupancy driver for transit areas (hallways, stairs, open connectors). Uses a decay hold timer instead of door triggers. Outputs a WITB-compatible `occupied_effective` boolean consumed by WITB+ Actions automations.

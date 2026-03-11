@@ -28,12 +28,12 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/witb_plus/v4/README_witb_plus_v4.md`](blueprints/automation/witb_plus/v4/README_witb_plus_v4.md)
    - Purpose: room occupancy inference from doors + motion (+ optional mmWave).
 
-2. [`blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v2/witb_plus_actions_lights_fan.yaml)
-   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v2/README_witb_plus_actions_lights_fan_v2.md`](blueprints/automation/witb_plus_actions_lights_fan/v2/README_witb_plus_actions_lights_fan_v2.md)
-   - Purpose: occupancy-driven light/fan actions with safety tags, run-on, and optional humidity/lux tuning.
+2. [`blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml`](blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml)
+   - Docs: [`blueprints/automation/witb_plus_actions_lights_fan/v3/README_witb_plus_actions_lights_fan_v3.md`](blueprints/automation/witb_plus_actions_lights_fan/v3/README_witb_plus_actions_lights_fan_v3.md)
+   - Purpose: occupancy-driven light/fan actions with safety tags, timer-driven run-on/soft-off flows, and external light/fan gating hooks.
 
-3. [`blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml`](blueprints/automation/bathroom_fan_from_humidity/v1/bathroom_fan_from_humidity_delta.yaml)
-   - Docs: [`blueprints/automation/bathroom_fan_from_humidity/v1/README_bathroom_fan_from_humidity_delta_v1.md`](blueprints/automation/bathroom_fan_from_humidity/v1/README_bathroom_fan_from_humidity_delta_v1.md)
+3. [`blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan.yaml`](blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan.yaml)
+   - Docs: [`blueprints/automation/humidity_controled_fan/v1/README_humidity_controled_fan_v1.md`](blueprints/automation/humidity_controled_fan/v1/README_humidity_controled_fan_v1.md)
    - Purpose: humidity-delta-based bathroom fan control with hysteresis and runtime safety limits.
 
 4. [`blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml`](blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager.yaml)
@@ -74,8 +74,8 @@ python blueprints/generate_witb_packages_templated.py \
 ```bash
 python blueprints/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
-  --template blueprints/automation/witb_plus_actions_lights_fan/v2/room_witb_actions_package_template.yaml \
-  --out blueprints/automation/witb_plus_actions_lights_fan/v2/packages
+  --template blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan_package_template.yaml \
+  --out blueprints/automation/witb_plus_actions_lights_fan/v3/packages
 ```
 
 3. Generate bathroom humidity helper packages:
@@ -83,8 +83,8 @@ python blueprints/generate_witb_packages_templated.py \
 ```bash
 python blueprints/generate_witb_packages_templated.py \
   --rooms "Half Bathroom" \
-  --template blueprints/automation/bathroom_fan_from_humidity/v1/room_humidity_baseline_delta_package_template.yaml \
-  --out blueprints/automation/bathroom_fan_from_humidity/v1/packages
+  --template blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan_package_template.yaml \
+  --out blueprints/automation/humidity_controled_fan/v1/packages
 ```
 
 Generated files are helper/package YAML files. Automations are created in the Home Assistant UI from blueprints.
@@ -93,12 +93,12 @@ Generated files are helper/package YAML files. Automations are created in the Ho
 
 ```bash
 # POSIX shell example:
-cp blueprints/automation/vacuum_job_manager/v1/vacuum_job_helpers.yaml packages/roomba_vacjob.yaml
+cp blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager_package_template.yaml packages/roomba_vacjob.yaml
 ```
 
 ```powershell
 # PowerShell example:
-Copy-Item "blueprints/automation/vacuum_job_manager/v1/vacuum_job_helpers.yaml" "packages/roomba_vacjob.yaml"
+Copy-Item "blueprints/automation/vacuum_job_manager/v1/vacuum_job_manager_package_template.yaml" "packages/roomba_vacjob.yaml"
 ```
 
 ```yaml

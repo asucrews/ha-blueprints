@@ -5,7 +5,7 @@ This folder contains a Home Assistant automation blueprint that manages vacuum r
 ## Files
 
 - `vacuum_job_manager.yaml`: automation blueprint.
-- `vacuum_job_helpers.yaml`: helper package template for required entities.
+- `vacuum_job_manager_package_template.yaml`: helper package template for required entities.
 
 ## What It Does
 
@@ -23,7 +23,7 @@ This folder contains a Home Assistant automation blueprint that manages vacuum r
 
 ## Setup
 
-1. Load helpers from `vacuum_job_helpers.yaml` (or create equivalent helpers manually).
+1. Load helpers from `vacuum_job_manager_package_template.yaml` (or create equivalent helpers manually).
 2. Create automation from `vacuum_job_manager.yaml` in Home Assistant UI.
 3. Bind:
    - Vacuum entity

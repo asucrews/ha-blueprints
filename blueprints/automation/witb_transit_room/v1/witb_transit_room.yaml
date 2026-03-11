@@ -11,7 +11,7 @@
 #   at least one entity to validate.
 
 blueprint:
-  name: WITB Transit Room Driver v1
+  name: WITB Transit Room Driver (1.0.0)
   description: |
     Version: 1 — see CHANGELOG.md for full version history.
 

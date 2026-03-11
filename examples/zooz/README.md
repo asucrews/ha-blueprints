@@ -14,7 +14,7 @@ Supports: ZEN71, ZEN72, ZEN76, ZEN77 (and 800LR variants)
 1. Copy `zooz_automation.yaml` and update:
    - `use_blueprint.path` with your namespace
    - `zooz-switch` — find your device ID in HA under **Settings > Devices & Services > Z-Wave JS > your device**
-   - `on_hook_script` / `off_hook_script` — script instances from the WITB Lights ON/OFF Hook blueprints (see `witb_lights/` examples). Remove or set to `""` if not using WITB.
+   - `on_hook_script` / `off_hook_script` — script instances from the WITB Lights ON/OFF Hook blueprints (see `examples/witb_lights/`). Remove or set to `""` if not using WITB.
    - Fill in `button_a`, `button_b`, and multi-tap actions as needed
 2. Paste into your `automations.yaml` or HA YAML editor.
 

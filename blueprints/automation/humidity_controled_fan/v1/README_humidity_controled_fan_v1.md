@@ -16,6 +16,8 @@ This blueprint **does not** compute the baseline or delta itself. It expects you
 - **Turns fan OFF** when `delta <= OFF threshold` for a longer time (to avoid chattering).
 - Enforces a **minimum runtime** so the fan stays on long enough to matter.
 - Enforces a **failsafe maximum runtime** so the fan can’t run forever.
+- Optional **night mode** to suppress turn-on during a quiet window.
+- On **Home Assistant restart**, re-evaluates humidity and can safely correct state.
 
 This is standard “event + hysteresis + safety” control.
 
@@ -28,6 +30,7 @@ You must already have:
 - A fan entity to control:
   - `fan.*` (preferred)
   - or `switch.*` (if your fan is a switch)
+  - or `light.*` (if the exhaust relay is exposed as a light)
 
 ---
 
@@ -59,6 +62,16 @@ You must already have:
 
 - **max_run_seconds** (default: 5400s / 90m)  
   Failsafe: if the fan stays ON this long, it will be turned OFF.
+
+### Night and restart behavior
+- **night_mode_enabled** (default: `false`)  
+  Enables a quiet window where ON actions are suppressed.
+
+- **night_start** / **night_end** (defaults: `22:00:00` / `07:00:00`)  
+  Defines the quiet window; supports overnight spans.
+
+- **ha_start_allow_turn_on** (default: `false`)  
+  On HA restart, OFF correction is always allowed; this flag optionally allows ON correction too.
 
 ---
 

@@ -1,11 +1,11 @@
 # WITB Transit Room Driver v1
 
-Occupancy driver for transit areas (hallways, stairs, open connectors) using PIR-only decay logic. Outputs a WITB-compatible `input_boolean.*_occupied_effective` signal that WITB+ Actions v2 consumes.
+Occupancy driver for transit areas (hallways, stairs, open connectors) using PIR-only decay logic. Outputs a WITB-compatible `input_boolean.*_occupied_effective` signal consumed by WITB+ Actions automations.
 
 ## Files
 
 - `witb_transit_room.yaml` — automation blueprint.
-- `transit_helpers_package_template.yaml` — helper package template for required entities.
+- `witb_transit_room_package_template.yaml` — helper package template for required entities.
 
 ## What the Blueprint Does
 
@@ -21,7 +21,7 @@ Transit rooms have no doors to anchor state, so occupancy decays via a hold time
 
 ## Required Helpers
 
-Copy `transit_helpers_package_template.yaml`, replace `room_slug` / `Friendly Name`, and load it as a package:
+Copy `witb_transit_room_package_template.yaml`, replace `room_slug` / `Friendly Name`, and load it as a package:
 
 ```yaml
 homeassistant:
@@ -30,7 +30,7 @@ homeassistant:
 
 | Helper | Entity ID pattern | Purpose |
 |---|---|---|
-| `input_boolean` | `<slug>_occupied_effective` | Occupancy output (feed into Actions v2) |
+| `input_boolean` | `<slug>_occupied_effective` | Occupancy output (feed into WITB+ Actions) |
 | `input_boolean` | `<slug>_maintenance_override` | Forces occupied ON indefinitely |
 | `input_boolean` | `<slug>_keepalive_dummy` | Dummy — select if not using keepalive |
 | `input_boolean` | `<slug>_instant_off_dummy` | Dummy — select if not using instant off |
@@ -65,11 +65,11 @@ homeassistant:
 
 ## Setup
 
-1. Copy `transit_helpers_package_template.yaml` → rename with your room slug → load as HA package.
+1. Copy `witb_transit_room_package_template.yaml` → rename with your room slug → load as HA package.
 2. Reload Home Assistant so the helpers exist.
 3. Create an automation from `WITB Transit Room Driver v1` in the HA UI.
 4. Bind all required entities; select dummy booleans/timer for features you don't use.
-5. Optionally bind `binary_sensor.*_occupied_effective` as input to a WITB+ Actions v2 automation.
+5. Optionally bind `binary_sensor.*_occupied_effective` as input to a WITB+ Actions automation.
 
 ## Differences from WITB+ v4
 

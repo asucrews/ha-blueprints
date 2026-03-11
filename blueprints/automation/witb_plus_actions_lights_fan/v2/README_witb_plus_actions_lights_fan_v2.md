@@ -10,7 +10,7 @@ safety tags, external gating, and automatic tag cleanup.
 
 ## 1. Blueprints
 
-### `witb_plus_actions_lights_fan.yaml` — main actions blueprint (v2.3.1)
+### `witb_plus_actions_lights_fan.yaml` — main actions blueprint (v2.3.3)
 
 Controls lights and fan for a single room based on occupancy state changes from
 `binary_sensor.<slug>_occupied_effective`. Key behaviors:
@@ -86,20 +86,20 @@ homeassistant:
 
 ## 3. Generator Script
 
-**File:** `generate_witb_packages_templated.py`
+**File:** `blueprints/generate_witb_packages_templated.py`
 
 Generates per-room helper package YAML files from the template. Does **not**
 generate automations — those are created from blueprints in the HA UI.
 
 ```bash
 # Generate packages for specific rooms
-python3 generate_witb_packages_templated.py \
+python blueprints/generate_witb_packages_templated.py \
   --rooms "Office" "Master Bathroom Toilet" \
   --template witb_plus_actions_lights_fan_package_template.yaml \
   --out ./packages
 
 # Dry run to preview output
-python3 generate_witb_packages_templated.py \
+python blueprints/generate_witb_packages_templated.py \
   --rooms "Office" \
   --template witb_plus_actions_lights_fan_package_template.yaml \
   --out ./packages \
