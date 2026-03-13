@@ -1,0 +1,21 @@
+# Example: Master Bedroom ceiling fan light instance.
+# Add to your configuration.yaml template: section (or an included template file).
+#
+# Prerequisites:
+#   1. Blueprint placed at: config/blueprints/template/local/rf_toggle_fan_light.yaml
+#   2. input_number.master_bedroom_ceiling_fan_light_brightness created in HA (range 0–100, step 1)
+
+template:
+  - use_blueprint:
+      path: local/rf_toggle_fan_light.yaml
+      input:
+        brightness_helper: input_number.master_bedroom_ceiling_fan_light_brightness
+        esphome_service: esphome.master_bedroom_esp360_remote_send_rf_raw
+        rf_command:
+          - 278
+          - -3358
+          - 878
+          - -347
+          # ... paste your full RF command list here
+    name: Master Bedroom Ceiling Fan Light
+    unique_id: master_bedroom_ceiling_fan_light

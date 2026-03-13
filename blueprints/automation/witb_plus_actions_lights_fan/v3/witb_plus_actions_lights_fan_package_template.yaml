@@ -23,7 +23,7 @@ room_witb_actions:
       name: "Room Friendly Name auto lights on (tag)"
       icon: mdi:lightbulb-auto
 
-    room_slug_keep_on:
+    room_slug_keep_on: 
       name: "Room Friendly Name keep on (block off)"
       icon: mdi:lock-open-variant-outline
     # --- END lights ---

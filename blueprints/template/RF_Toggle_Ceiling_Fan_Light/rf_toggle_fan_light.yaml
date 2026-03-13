@@ -1,0 +1,70 @@
+blueprint:
+  name: RF Toggle Ceiling Fan Light
+  description: >
+    Template light entity for RF-controlled ceiling fan lights with a single
+    toggle button (no discrete on/off). Includes a toggle guard — RF is only
+    transmitted when the state actually needs to change — and correct ordering
+    (RF fires before HA state updates to keep physical and tracked state in sync).
+
+    Place this file at: config/blueprints/template/local/rf_toggle_fan_light.yaml
+
+    Each instance also needs a companion input_number helper (range 0–100) created
+    in HA before the template entity will load cleanly.
+  domain: template
+  input:
+    brightness_helper:
+      name: Brightness State Helper
+      description: >
+        input_number entity (range 0–100) that tracks the light's on/off state.
+        0 = off, 100 = on. Must be created separately in HA before using this blueprint.
+      selector:
+        entity:
+          domain: input_number
+    esphome_service:
+      name: ESPHome RF Service
+      description: >
+        The ESPHome action used to transmit the RF signal.
+        Example: esphome.master_bedroom_esp360_remote_send_rf_raw
+      selector:
+        text: {}
+    rf_command:
+      name: RF Command
+      description: >
+        The RF raw command list captured from your fan remote. Since this is a
+        toggle-only remote, the same command is used for both turn_on and turn_off.
+        Paste your full integer list here.
+      selector:
+        object: {}
+
+light:
+  - state: "{{ states(brightness_helper) | int(0) > 0 }}"
+    level: "{{ states(brightness_helper) | int(0) }}"
+    turn_on:
+      # Toggle guard: only send RF if light is currently tracked as off.
+      # Prevents double-toggle if HA calls turn_on on an already-on light.
+      - condition: template
+        value_template: "{{ states(brightness_helper) | int(0) == 0 }}"
+      # RF fires first — physical state changes before HA state updates.
+      - action: !input esphome_service
+        data:
+          command: !input rf_command
+      # HA state updates after RF is sent.
+      - action: input_number.set_value
+        target:
+          entity_id: !input brightness_helper
+        data:
+          value: 100
+    turn_off:
+      # Toggle guard: only send RF if light is currently tracked as on.
+      - condition: template
+        value_template: "{{ states(brightness_helper) | int(0) > 0 }}"
+      # RF fires first.
+      - action: !input esphome_service
+        data:
+          command: !input rf_command
+      # HA state updates after RF is sent.
+      - action: input_number.set_value
+        target:
+          entity_id: !input brightness_helper
+        data:
+          value: 0

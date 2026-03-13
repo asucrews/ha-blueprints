@@ -4,7 +4,7 @@
 # Run with: python generate_witb_packages_templated.py --config rooms_witb_actions.yaml
 
 template: witb_plus_actions_lights_fan_package_template.yaml
-out: ./packages/witb_actions
+out: ./packages
 areas_script: ./assign_areas_witb_actions.py
 key_suffix: _witb_actions
 
