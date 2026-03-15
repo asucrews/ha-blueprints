@@ -36,11 +36,11 @@ A WiFi backup trigger fires when the ESPHome node comes back online after being 
 
 ## Use Cases
 
-See [use-cases.md](USE-CASES_car_tag.md) for the full list of supported scenarios.
+See [use_cases_car_tag.md](use_cases_car_tag.md) for the full list of supported scenarios.
 
 ## Rules
 
-See [rules.md](RULES_car_tag.md) for the full rule set governing this automation.
+See [rules_car_tag.md](rules_car_tag.md) for the full rule set governing this automation.
 
 ## Race Condition Handling
 
@@ -48,7 +48,7 @@ When BLE and WiFi backup signals arrive close together, double-action is prevent
 
 ## Version History
 
-See [CHANGELOG.md](CHANGELOG_car_tag.md) for full version history and release notes.
+See [CHANGELOG_car_tag.md](CHANGELOG_car_tag.md) for full version history and release notes.
 
 ## Notes
 
@@ -60,8 +60,8 @@ See [CHANGELOG.md](CHANGELOG_car_tag.md) for full version history and release no
 
 ```
 car_tag.yaml        # Blueprint
-rules.md            # Automation rules
-use-cases.md        # Supported use cases
-README.md           # This file
-CHANGELOG.md        # Version history
+rules_car_tag.md          # Automation rules
+use_cases_car_tag.md      # Supported use cases
+README_car_tag_v1.md   # This file
+CHANGELOG_car_tag.md   # Version history
 ```

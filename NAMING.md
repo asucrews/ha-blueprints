@@ -137,6 +137,38 @@ Examples:
 
 ---
 
+## Supplementary Docs Files
+
+Blueprints may include supplementary documentation files for rules and use cases. These follow the same `<prefix>_<blueprint_slug>.md` pattern so they are unambiguous when multiple blueprints share a directory.
+
+### Rules files
+
+```
+rules_<blueprint_slug>.md
+```
+
+Documents the behavioral rules governing the blueprint — trigger conditions, gate logic, ordering rules, and invariants.
+
+Examples:
+- `rules_car_tag.md`
+- `rules_vacuum_job_manager.md`
+
+### Use case files
+
+```
+use_cases_<blueprint_slug>.md
+```
+
+Documents the supported use cases with expected pass/fail outcomes for each branch and race condition.
+
+Examples:
+- `use_cases_car_tag.md`
+- `use_cases_vacuum_job_manager.md`
+
+Both files are placed in the same versioned directory as the blueprint YAML.
+
+---
+
 ## Helper Package Templates
 
 ```
@@ -251,6 +283,8 @@ blueprints/
         README_<blueprint_slug>_v<N>.md      # descriptive version doc
         <blueprint_slug>.yaml
         CHANGELOG_<blueprint_slug>.md
+        rules_<blueprint_slug>.md            # behavioral rules
+        use_cases_<blueprint_slug>.md        # supported use cases
         <descriptive>_package_template.yaml
         packages/
           README.md
@@ -262,6 +296,8 @@ blueprints/
         README_<slug>_v<N>.md
         <blueprint_slug>.yaml
         CHANGELOG_<slug>.md
+        rules_<slug>.md                      # behavioral rules (if applicable)
+        use_cases_<slug>.md                  # supported use cases (if applicable)
         <descriptive>_package_template.yaml  (if applicable)
   generate_witb_packages_templated.py        # single shared generator
 
