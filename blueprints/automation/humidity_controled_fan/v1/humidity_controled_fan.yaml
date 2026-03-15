@@ -1,7 +1,7 @@
 blueprint:
-  name: Bathroom Fan From Humidity Delta (1.1.0)
+  name: Bathroom Fan From Humidity Delta (1.1.1)
   description: |
-    Version: 1.1.0 — see CHANGELOG.md for full version history.
+    Version: 1.1.1 — see CHANGELOG_humidity_controled_fan.md for full version history.
 
     Humidity-delta bathroom fan controller for a single room.
 
@@ -16,11 +16,17 @@ blueprint:
       • On Home Assistant restart, re-evaluates humidity and corrects fan state.
       • OFF correction is always allowed; ON correction is opt-in.
 
+    SENSOR RESTORE SUPPRESSION
+      • By default, the fan will not turn ON if the delta sensor just restored
+        from unknown/unavailable (e.g. HA restart or sensor reconnect). This
+        prevents the fan from turning on unexpectedly after a reboot. Disable
+        this if you want the fan to respond immediately to a sensor reconnect.
+
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/humidity_controled_fan/v1/humidity_controled_fan.yaml
   domain: automation
   author: asucrews
   homeassistant:
-    min_version: 2023.4.0
+    min_version: 2024.4.0
   input:
     delta_sensor:
       name: Humidity delta sensor (%)
@@ -155,6 +161,20 @@ blueprint:
       selector:
         boolean:
 
+    suppress_turn_on_after_sensor_restore:
+      name: Suppress turn-on after sensor restore
+      description: >
+        When enabled (default), the fan will NOT turn on if the delta sensor
+        just transitioned from unknown or unavailable — which happens on HA
+        restart or when the sensor reconnects after a drop. This prevents the
+        fan from turning on unexpectedly after a reboot when humidity was
+        already elevated before the restart.
+        Disable if you want the fan to turn on immediately when the sensor
+        reconnects and humidity is high.
+      default: true
+      selector:
+        boolean:
+
 mode: restart
 
 # Blueprint inputs captured as variables so Jinja templates in action steps
@@ -165,6 +185,7 @@ variables:
   _night_start: !input night_start
   _night_end: !input night_end
   _ha_start_allow_turn_on: !input ha_start_allow_turn_on
+  _suppress_restore: !input suppress_turn_on_after_sensor_restore
 
 triggers:
   - trigger: numeric_state
@@ -223,6 +244,13 @@ actions:
             state: "off"
           - condition: template
             value_template: "{{ not _in_night_window }}"
+          # Suppress turn-on when the sensor just restored from unknown/unavailable
+          # (HA restart or sensor reconnect). trigger.from_state.state will be
+          # 'unknown' or 'unavailable' in that scenario.
+          - condition: template
+            value_template: >
+              {{ not _suppress_restore or
+                 trigger.from_state.state not in ['unknown', 'unavailable'] }}
         sequence:
           - action: homeassistant.turn_on
             target:

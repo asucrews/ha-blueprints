@@ -1,20 +1,53 @@
-# CHANGELOG — Humidity Controlled Fan
+# CHANGELOG — humidity_controled_fan
+
+All notable changes to `humidity_controled_fan.yaml` are documented here.
+Versioning follows [Semantic Versioning](https://semver.org/).
+
+For changes to the companion package template and generator script,
+see the sections at the bottom of this file.
 
 ---
 
-## humidity_controled_fan.yaml
+## [1.1.1] — Unreleased
 
-### v1.1.0 — 2026-03-10
+### Added
+- **`suppress_turn_on_after_sensor_restore` input** (boolean, default `true`).
+  Prevents the fan from turning on when the delta sensor just transitioned from
+  `unknown` or `unavailable` — which occurs on HA restart or sensor reconnect.
+  Uses `trigger.from_state.state` to detect this condition at trigger-fire time.
+  Disable if you want the fan to respond immediately when a sensor reconnects
+  and humidity is already elevated. Fixes the reported behavior of fans turning
+  on unexpectedly after HA restarts.
 
-#### New features
+### Fixed
+- **`min_version` raised from `2023.4.0` to `2024.4.0`** — blueprint uses
+  plural `triggers:`/`actions:` syntax which requires HA 2024.4+. Previous
+  value incorrectly claimed compatibility with versions that reject this YAML.
+  (Issue #2)
 
+### Changed
+- `description` field updated to reference `CHANGELOG_humidity_controled_fan.md`
+  instead of `CHANGELOG.md`. (Issue #3)
+
+### Retracted (was listed as Issue #1 — not a bug)
+- ~~`ha_start` turn-off correction skipped when `ha_start_allow_turn_on: true`~~
+  — on closer review the `else` block is reachable whenever condition 2 (delta
+  above on_threshold) or condition 3 (fan off) fails. The only scenario where
+  `else` is not reached is when all three conditions pass simultaneously, which
+  is the correct turn-on path. No code change needed.
+
+---
+
+## [1.1.0] — 2026-03-10
+
+### Added
 - **Night mode** (`night_mode_enabled`, `night_start`, `night_end`).
   When enabled, the fan will not turn ON during the configured quiet window.
   The fan can still turn OFF during night hours — this is intentional, because
   if a shower ran right before the window started you want the fan to finish
   clearing the room rather than get stuck on until morning.
   Supports overnight spans (e.g. 22:00 → 07:00) via the standard
-  `s ≤ e` / `s > e` comparison pattern.
+  `s <= e` / `s > e` comparison pattern.
 
 - **HA restart guard** (`ha_start_allow_turn_on`).
   The `ha_start` branch previously could turn the fan ON if humidity was
@@ -23,8 +56,7 @@
   to restore the previous behaviour. Night mode is respected even when
   `ha_start_allow_turn_on` is enabled.
 
-#### Implementation notes
-
+### Implementation notes
 - Added top-level `variables:` block to capture blueprint boolean/time inputs
   under readable names (`_night_mode`, `_night_start`, `_night_end`,
   `_ha_start_allow_turn_on`). These are plain scalar captures — no `now()`
@@ -39,15 +71,15 @@
 
 ---
 
-### v1.0.2 — 2026-02-26
+## [1.0.2] — 2026-02-26
 
-#### Bug fixes
+### Fixed
 - **Removed duplicate condition in `turn_off` branch.** The branch previously
   checked `state: "on"` twice — once bare and once with `for: seconds:
   min_run_seconds`. The bare check was entirely redundant (the timed check
   already implies the current state) and has been removed.
 
-#### Changes
+### Changed
 - **Lowered `min_version` from `2026.3.0` to `2023.4.0`.** The features used
   (trigger `id:`, `choose:`, `numeric_state`, `homeassistant` trigger) have
   been stable since early 2023. The previous value was a future release date
@@ -57,24 +89,35 @@
   a new trigger will always be acted on rather than silently dropped if the
   automation happened to be mid-run.
 
-#### New features
-- **Added `ha_start` trigger (`homeassistant: event: start`).** On HA restart,
+### Added
+- **`ha_start` trigger (`homeassistant: event: start`).** On HA restart,
   the automation now re-evaluates current conditions after a 30-second settling
   delay and turns the fan on or off as appropriate. This prevents the fan from
   being stuck in the wrong state until the next humidity change.
 
-#### Documentation
+### Documentation
 - Added `description:` fields to `on_for_seconds`, `off_for_seconds`,
   `min_run_seconds`, and `max_run_seconds` inputs explaining the purpose of
   each debounce/guard parameter.
 
 ---
 
+## [1.0.1] — Initial tracked version
+
+- Core turn-on / turn-off / failsafe / ha_start logic established.
+- `mode: single`, `max_exceeded: silent`.
+
+---
+
+---
+
+# Companion file changelogs
+
 ## humidity_controled_fan_package_template.yaml
 
 ### v1.1 — 2026-02-26
 
-#### Bug fixes
+#### Fixed
 - **Added `# --- BEGIN tuning_helpers ---` / `# --- END tuning_helpers ---`
   block markers** around the `input_boolean` and `input_number` sections.
   Previously the `--no-tuning-helpers` flag in the generator had no effect
@@ -93,11 +136,11 @@
 
 ### v1.1.0 — 2026-02-26
 
-#### New features
-- **Added `__version__ = "1.1.0"`** module-level constant.
-- **Added `--version` CLI flag** that prints the version string and exits.
+#### Added
+- **`__version__ = "1.1.0"`** module-level constant.
+- **`--version` CLI flag** that prints the version string and exits.
 
-#### Changes
+#### Changed
 - **`--no-tuning-helpers` now works as documented.** The corresponding template
   (`room_humidity_baseline_delta_package_template.yaml` v1.1) now contains the
   required `# --- BEGIN/END tuning_helpers ---` markers. Updated the flag's
