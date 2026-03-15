@@ -1,162 +1,87 @@
 blueprint:
-  name: Car Tag (1.4.0)
-  homeassistant:
-    min_version: 2024.6.0
-  description: |
-    Version: 1.4.0 — see CHANGELOG_car_tag.md for full version history.
-
-    Garage-door arrival/departure automation using ESPHome BLE tag presence.
-
-    CORE BEHAVIOR
-      • Asymmetric debounce: fast open confirmation, slower close confirmation.
-      • Supports multiple BLE sensors (multiple vehicles).
-      • Optional person/device tracker gate for additional safety validation.
-      • Optional time window and notifications.
-
-    WIFI BACKUP (OPTIONAL)
-      • Secondary trigger path when BLE misses a tag.
-      • Supports ESPHome node-status binary_sensor or router device_tracker.
-      • Requires person_entity to be configured; otherwise backup path is skipped.
-
-    IMPORTANT
-      • A companion automation driven by the Garage Door Timer Helper is required
-        to perform the actual close action when timer expires.
+  name: Car Tag v1.5.0
+  description: >
+    BLE car tag based garage door automation with WiFi backup trigger.
+    See CHANGELOG_car_tag.md v1.5.0
   domain: automation
-  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/main/automations/car_tag/car_tag.yaml
-  author: Jeremy Crews
   input:
-    required_entities:
-      name: Required Entities
-      description: The required entities for this automation
-      collapsed: false
-      input:
-        esphome_ble:
-          name: ESPHome BLE Sensor(s)
-          description: >
-            Binary sensor(s) indicating BLE tag presence. Supports multiple
-            sensors for multiple vehicles — any detected tag will trigger.
-          selector:
-            entity:
-              filter:
-                - domain: binary_sensor
-              multiple: true
-        garage_door_cover:
-          name: Garage Door Cover
-          description: The cover entity for the garage door
-          selector:
-            entity:
-              filter:
-                - domain: cover
-              multiple: false
+    esphome_ble:
+      name: ESPHome BLE Tag Sensor(s)
+      description: Binary sensor(s) for BLE iBeacon group detection.
+      selector:
+        entity:
+          domain: binary_sensor
+          multiple: true
 
-    optional_entities:
-      name: Optional Entities
-      description: The optional entities for this automation
-      collapsed: true
-      input:
-        garage_door_timer_helper:
-          name: Garage Door Timer Helper
-          description: >
-            Timer used to delay closing after BLE loss. When this fires, a
-            companion automation should close the garage door.
-          default: []
-          selector:
-            entity:
-              filter:
-                - domain: timer
-              multiple: false
-        person_entity:
-          name: Person / Device Tracker (Confirmation Gate)
-          description: >
-            Optional. When set, the door will only open if this entity is
-            'not_home', and the close timer will only start if this entity
-            is 'home'. Prevents acting on stale BLE state when already inside.
-            Required for the WiFi backup trigger to be safe.
-          default: []
-          selector:
-            entity:
-              filter:
-                - domain: person
-                - domain: device_tracker
-              multiple: false
-        wifi_backup_entity:
-          name: WiFi Backup Trigger Entity
-          description: >
-            Optional. A secondary signal used as a fallback open trigger when
-            BLE has not already detected the tag. Supports two entity types:
+    garage_door_cover:
+      name: Garage Door Cover
+      selector:
+        entity:
+          domain: cover
 
-            - binary_sensor: ESPHome node status sensor (e.g.
-              binary_sensor.garage_ble_scanner_status). Fires when the node
-              comes online (off -> on).
+    garage_door_timer_helper:
+      name: Garage Door Close Timer
+      selector:
+        entity:
+          domain: timer
 
-            - device_tracker: A Firewalla or router-based device tracker for
-              the car's infotainment WiFi or a device that joins your home
-              network when the car arrives (e.g.
-              device_tracker.my_car_infotainment). Fires when the device joins
-              the network (not_home -> home).
+    person_entity:
+      name: Person Entity
+      description: Person entity to confirm presence for WiFi backup arriving case. Leave empty to disable.
+      default: ""
+      selector:
+        entity:
+          domain: person
 
-            To find your Firewalla device_tracker: open the Firewalla app,
-            note the car device name under Devices, then find the matching
-            entity under HA Settings -> Devices & Services -> Entities.
+    wifi_backup_entity:
+      name: WiFi Backup Entity
+      description: >
+        Binary sensor for ESPHome node connectivity. Fires when node comes
+        back online and BLE rising edge may have been missed.
+      selector:
+        entity:
+          domain: binary_sensor
 
-            WARNING: This branch requires person_entity to be configured. If
-            no person entity is set, the WiFi backup trigger is skipped entirely
-            to prevent the door from opening on node reboots, power blips, or
-            device reconnects.
-          default: []
-          selector:
-            entity:
-              filter:
-                - domain: binary_sensor
-                - domain: device_tracker
-              multiple: false
-        notify_target:
-          name: Notification Target
-          description: >
-            Optional. Notify service to call on door events, e.g.
-            notify.mobile_app_iphone. Leave blank to disable notifications.
-          default: ""
-          selector:
-            text:
+    open_debounce:
+      name: Open Debounce
+      description: How long BLE tag must be detected before opening.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 5
+      selector:
+        duration:
 
-    timing:
-      name: Debounce Timing
-      description: Controls how long BLE state must be sustained before acting
-      collapsed: true
-      input:
-        open_debounce:
-          name: Open Debounce
-          description: >
-            How long BLE must be detected before opening the door. Short (5-15s)
-            filters signal noise without a noticeable delay when arriving.
-          default: "00:00:10"
-          selector:
-            duration:
-        close_debounce:
-          name: Close Debounce
-          description: >
-            How long BLE must be absent before starting the close timer. Longer
-            values (3-5 min) confirm actual departure vs. brief signal loss.
-          default: "00:05:00"
-          selector:
-            duration:
-        open_after:
-          name: Open After (Time Window Start)
-          description: >
-            Earliest time the door will auto-open. Overnight windows are
-            supported (e.g. 22:00 to 06:00). Set both open_after and
-            open_before to 00:00:00 to disable the time restriction entirely.
-          default: "00:00:00"
-          selector:
-            time:
-        open_before:
-          name: Open Before (Time Window End)
-          description: >
-            Latest time the door will auto-open. Set both open_after and
-            open_before to 00:00:00 to disable the time restriction entirely.
-          default: "00:00:00"
-          selector:
-            time:
+    close_debounce:
+      name: Close Debounce
+      description: How long BLE tag must be absent before starting close timer.
+      default:
+        hours: 0
+        minutes: 0
+        seconds: 30
+      selector:
+        duration:
+
+    open_after:
+      name: Open After (time window start)
+      description: Earliest time door will auto-open. Set both to 00:00:00 to disable.
+      default: "00:00:00"
+      selector:
+        time:
+
+    open_before:
+      name: Open Before (time window end)
+      description: Latest time door will auto-open. Set both to 00:00:00 to disable.
+      default: "00:00:00"
+      selector:
+        time:
+
+    notify_target:
+      name: Notification Target (optional)
+      description: Notification service to call, e.g. notify.mobile_app_phone. Leave empty to disable.
+      default: ""
+      selector:
+        text:
 
 variables:
   garage_door_cover: !input garage_door_cover
@@ -168,7 +93,11 @@ variables:
   open_after: !input open_after
   open_before: !input open_before
 
-trigger:
+mode: single
+max_exceeded: silent
+
+triggers:
+  # UC1 (arriving) and UC2 (departing): car turned on, BLE rising edge detected
   - trigger: state
     entity_id: !input esphome_ble
     from: "off"
@@ -176,6 +105,7 @@ trigger:
     for: !input open_debounce
     id: ESPHome BLE Found
 
+  # UC3 (parked): car turned off, BLE falling edge detected
   - trigger: state
     entity_id: !input esphome_ble
     from: "on"
@@ -183,8 +113,8 @@ trigger:
     for: !input close_debounce
     id: ESPHome BLE Not Found
 
-  # WiFi backup: fires on binary_sensor off->on (ESPHome node status)
-  # OR device_tracker not_home->home (Firewalla / router device_tracker)
+  # UC5 (arriving backup) and UC6 (departing backup):
+  # Node came back online, BLE rising edge may have been missed
   - trigger: state
     entity_id: !input wifi_backup_entity
     to:
@@ -192,24 +122,24 @@ trigger:
       - "home"
     id: WiFi Backup Online
 
-action:
+actions:
   - choose:
-      # BLE detected (sustained) — open door if currently closed
+
+      # -----------------------------------------------------------------------
+      # Branch 1 — BLE Found → Open door
+      # UC1: Arriving (person not_home, door closed)
+      # UC2: Departing (person home, door closed)
+      # No person gate — car on + door closed = open intent regardless of direction
+      # RC2: If WiFi fires first and opens door, door will no longer be closed,
+      #      so this branch is naturally blocked. No double-action.
+      # -----------------------------------------------------------------------
       - conditions:
           - condition: trigger
             id: ESPHome BLE Found
-          # Guard: cover must not be unavailable
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
-          # Guard: door must currently be closed
           - condition: template
             value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
-          # Gate: person not home (passes if no person entity configured)
-          - condition: template
-            value_template: >
-              {{ person_entity | length == 0
-                 or is_state(person_entity, 'not_home') }}
-          # Gate: within allowed time window (passes if both times are 00:00:00)
           - condition: template
             value_template: >
               {% if open_after == '00:00:00' and open_before == '00:00:00' %}
@@ -235,25 +165,22 @@ action:
             then:
               - action: "{{ notify_target }}"
                 data:
-                  title: "Garage Door"
+                  title: Garage Door
                   message: >
-                    Garage door opened — BLE tag detected
-                    ({{ trigger.entity_id }}).
+                    Garage door opened — BLE tag detected ({{ trigger.entity_id }}).
 
-      # BLE lost (sustained) — start close timer if door is open
+      # -----------------------------------------------------------------------
+      # Branch 2 — BLE Not Found → Start close timer
+      # UC3: Car turned off, person home, door open → start close timer
+      # UC4: Car turned off, door already closed → blocked by door state check
+      # -----------------------------------------------------------------------
       - conditions:
           - condition: trigger
             id: ESPHome BLE Not Found
-          # Guard: cover must not be unavailable
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
-          # Guard: door must currently be open
           - condition: template
             value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
-          # Guard: timer helper must be configured
-          - condition: template
-            value_template: "{{ garage_door_timer_helper | length > 0 }}"
-          # Gate: person home (passes if no person entity configured)
           - condition: template
             value_template: >
               {{ person_entity | length == 0
@@ -269,34 +196,34 @@ action:
             then:
               - action: "{{ notify_target }}"
                 data:
-                  title: "Garage Door"
+                  title: Garage Door
                   message: >
-                    Garage door close timer started — BLE tag lost
-                    ({{ trigger.entity_id }}).
+                    Garage door close timer started — BLE tag lost ({{ trigger.entity_id }}).
 
-      # WiFi backup — backup entity came online and BLE hasn't already fired
+      # -----------------------------------------------------------------------
+      # Branch 3 — WiFi Backup → Open door
+      # UC5: Arriving — node back online, person not_home, BLE still off
+      # UC6: Departing — node back online, BLE on (car is on = intent to leave)
+      # UC7: Node bounce, car off — BLE off + person home → neither condition
+      #      passes, branch blocked naturally
+      # RC1: If BLE fired first and opened door, door will no longer be closed,
+      #      so this branch is naturally blocked. No double-action.
+      # -----------------------------------------------------------------------
       - conditions:
           - condition: trigger
             id: WiFi Backup Online
-          # Guard: cover must not be unavailable
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
-          # Guard: door must currently be closed
           - condition: template
             value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
-          # Safety gate: person_entity MUST be configured and not_home.
-          # This branch is not safe without it — node reboots, power blips,
-          # and device reconnects (including Firewalla reconnects after sleep)
-          # would open the door unsafely. No person entity = skip entirely.
           - condition: template
             value_template: >
-              {{ person_entity | length > 0
-                 and is_state(person_entity, 'not_home') }}
-          # Dedup guard: skip if BLE already detected the tag (don't double-fire)
-          - condition: template
-            value_template: >
-              {{ expand(esphome_ble) | selectattr('state', 'eq', 'on') | list | length == 0 }}
-          # Gate: within allowed time window (passes if both times are 00:00:00)
+              {% set ble_on = expand(esphome_ble)
+                              | selectattr('state', 'eq', 'on')
+                              | list | length > 0 %}
+              {% set arriving = person_entity | length > 0
+                                and is_state(person_entity, 'not_home') %}
+              {{ ble_on or arriving }}
           - condition: template
             value_template: >
               {% if open_after == '00:00:00' and open_before == '00:00:00' %}
@@ -322,10 +249,7 @@ action:
             then:
               - action: "{{ notify_target }}"
                 data:
-                  title: "Garage Door"
+                  title: Garage Door
                   message: >
                     Garage door opened — WiFi backup trigger
-                    ({{ trigger.entity_id }} came online, BLE not yet detected).
-
-mode: single
-max_exceeded: silent
+                    ({{ trigger.entity_id }} came online).
