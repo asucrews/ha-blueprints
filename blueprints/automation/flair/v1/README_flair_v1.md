@@ -1,23 +1,25 @@
-# Smart Vents - Flair
+# README — flair v1
 
-**Version:** 1.0.4
-**Author:** Jeremy Crews
+**Blueprint:** `flair.yaml`
+**Version:** 1.0.4 (see `CHANGELOG_flair.md`)
 **Domain:** automation
-**Min HA version:** 2025.6.0
+**Path:** `blueprints/automation/flair/v1/flair.yaml`
+**Author:** Jeremy Crews
+**Min HA version:** 2026.3.0
 
 ---
 
 ## Overview
 
-Controls Flair smart vents for a single room based on the WITB+ `occupied_effective`
-occupancy signal. When the room becomes occupied the vent is set to Active and any
-hold is cleared. When the room becomes unoccupied the vent is set to Inactive and
-any hold is cleared.
+Controls Flair smart vents for a single room based on the WITB+
+`occupied_effective` occupancy signal. When the room becomes occupied the vent
+is set to Active and any hold is cleared. When the room becomes unoccupied the
+vent is set to Inactive and any hold is cleared.
 
-This blueprint is a thin translation layer between the WITB+ occupancy ecosystem and
-the Flair integration. All occupancy reasoning — door events, PIR motion, exit
-evaluation, debounce — lives upstream in the WITB+ occupancy blueprint. This
-blueprint reacts only to the final binary result.
+This blueprint is a thin translation layer between the WITB+ occupancy
+ecosystem and the Flair integration. All occupancy reasoning — door events,
+PIR motion, exit evaluation, debounce — lives upstream in the WITB+ occupancy
+blueprint. This blueprint reacts only to the final binary result.
 
 ---
 
@@ -32,17 +34,18 @@ blueprint reacts only to the final binary result.
 
 ### Reconciliation
 
-If `flair_activity_status` changes for any reason (manual Flair app change, cloud
-state reset, integration hiccup) and does not match `occupied_effective`, the
-blueprint corrects it after `reconciliation_delay` seconds (default 5 s). The short
-delay prevents fighting intentional manual changes or brief cloud state churn.
+If `flair_activity_status` changes for any reason (manual Flair app change,
+cloud state reset, integration hiccup) and does not match `occupied_effective`,
+the blueprint corrects it after `reconciliation_delay` seconds (default 5 s).
+The short delay prevents fighting intentional manual changes or brief cloud
+state churn.
 
 A pre-delay mismatch check prevents unnecessary reconciliation cycles when this
 automation's own service calls trigger the reconciliation path — if the status
-already matches after the trigger fires, the branch exits immediately.
+already matches at trigger time, the branch exits immediately.
 
-`unknown` and `unavailable` transitions on HA restart are filtered out and do not
-trigger reconciliation.
+`unknown` and `unavailable` transitions on HA restart are filtered out and do
+not trigger reconciliation.
 
 ### Startup sync
 
@@ -53,70 +56,63 @@ offline.
 
 ---
 
-## Required Entities
-
-Create one automation instance per room. Each instance requires:
-
-| Entity | Example | Notes |
-|---|---|---|
-| `binary_sensor` | `binary_sensor.office_occupied_effective` | WITB+ output — **not** the raw `input_boolean` |
-| `select` | `select.office_flair_activity_status` | Flair activity status for this room |
-| `button` | `button.office_flair_clear_hold` | Flair clear hold button for this room |
-
----
-
-## Configuration
+## Inputs
 
 ### Required
 
-- **WITB+ Occupied Effective** — `binary_sensor.room_slug_occupied_effective` from
-  the WITB+ occupancy blueprint for this room.
-- **Flair Activity Status** — The Flair activity status select entity for this room.
-- **Flair Clear Hold Button** — The Flair clear hold button entity for this room.
+| Input | Domain | Example | Notes |
+|---|---|---|---|
+| `occupied_effective` | `binary_sensor` | `binary_sensor.office_occupied_effective` | WITB+ output — **not** the raw `input_boolean` |
+| `flair_activity_status` | `select` | `select.office_flair_activity_status` | Flair activity status for this room |
+| `flair_clear_hold` | `button` | `button.office_flair_clear_hold` | Flair clear hold button for this room |
 
 ### Optional
 
-- **Flair Status Reconciliation Delay** (default: `5` seconds, range: `0–60`) —
-  How long to wait before correcting a mismatched Flair status. Increase if your
-  Flair integration takes longer to settle after a manual change. Set to `0` to
-  correct immediately.
+| Input | Default | Range | Notes |
+|---|---|---|---|
+| `reconciliation_delay` | `5` seconds | `0–60` | Wait before correcting a mismatched Flair status |
 
 ---
 
-## Design Notes
+## Architecture notes
 
-- **`mode: restart`** — If a new event fires while a reconciliation delay is in
-  progress, the run restarts and the delay resets. This naturally handles rapid Flair
-  cloud state churn without oscillating.
-
-- **WITB+ as single source of truth** — Do not wire a raw door sensor, motion sensor,
-  or `input_boolean.room_slug_occupied` directly into this blueprint. Those inputs are
+- **`mode: restart`** — if a new event fires while a reconciliation delay is
+  in progress, the run restarts and the delay resets. This naturally handles
+  rapid Flair cloud state churn without oscillating. Latest state always wins.
+- **WITB+ as single source of truth** — do not wire a raw door sensor, motion
+  sensor, or `input_boolean.room_slug_occupied` directly. Those inputs are
   evaluated upstream by WITB+. Using `occupied_effective` ensures this blueprint
   always sees the fully evaluated, debounced occupancy state.
-
-- **Startup delay is intentionally blocking** — The 30-second delay in the startup
-  sync sequence fires once per HA restart. Converting it to an event-driven timer
-  helper is not justified for a one-time-per-restart path.
-
----
-
-## Rooms
-
-This blueprint is designed to be instantiated once per room that has a Flair vent.
-Typical rooms in a WITB+ deployment:
-
-- Garage
-- Half Bathroom
-- Master Bedroom
-- Master Bedroom Closet
-- Master Bathroom
-- Master Bathroom Toilet
-- Laundry
-- Office
+- **Startup delay is intentionally blocking** — the 30-second delay fires once
+  per HA restart. Converting it to an event-driven timer helper is not justified
+  for a one-time-per-restart path.
+- **No `variables` block needed** — `!input` values are consumed directly in
+  `state` conditions. No Jinja2 computation is required.
 
 ---
 
-## Related Blueprints
+## Known limitations
+
+- **Startup sync abandoned on early occupancy change** — if `occupied_effective`
+  changes during the 30-second startup delay, `mode: restart` cancels the
+  startup sync and runs the occupancy branch instead. The new occupancy state
+  is correctly applied but no startup reconciliation occurs. This is acceptable
+  because the primary control branch handles the transition correctly.
+
+---
+
+## Files in this directory
+
+| File | Purpose |
+|---|---|
+| `flair.yaml` | Blueprint |
+| `CHANGELOG_flair.md` | Version history |
+| `rules_flair.md` | Behavioral rules and invariants |
+| `use_cases_flair.md` | Supported use cases with pass/fail outcomes |
+
+---
+
+## Related blueprints
 
 | Blueprint | Purpose |
 |---|---|

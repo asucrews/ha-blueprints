@@ -272,6 +272,25 @@ blueprints/generate_witb_packages_templated.py
 
 ---
 
+## Tool and Generator Docs
+
+Scripts and tools that live outside a versioned blueprint directory may have companion docs colocated with the script file, following the same prefix conventions:
+
+```
+README_<script_slug>.md
+CHANGELOG_<script_slug>.md
+```
+
+- `README_` and `CHANGELOG_` prefixes are uppercase, matching the blueprint conventions.
+- `<script_slug>` matches the script filename without the extension.
+- These files are placed in the same directory as the script (e.g., `blueprints/` for repo-level generators).
+
+Examples:
+- `blueprints/README_generate_witb_packages_templated.md`
+- `blueprints/CHANGELOG_generate_witb_packages_templated.md`
+
+---
+
 ## Directory Structure Summary
 
 ```

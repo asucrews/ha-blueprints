@@ -56,6 +56,30 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/script/witb_switch_light_profiles/v1/README_witb_lights_hooks_vzw31sn_v1.md`](blueprints/script/witb_switch_light_profiles/v1/README_witb_lights_hooks_vzw31sn_v1.md)
    - Purpose: resilient OFF hook for bulbs behind VZW31-SN (recovery, rechecks, notifications).
 
+9. [`blueprints/automation/car_tag/v1/car_tag.yaml`](blueprints/automation/car_tag/v1/car_tag.yaml)
+   - Docs: [`blueprints/automation/car_tag/v1/README_car_tag_v1.md`](blueprints/automation/car_tag/v1/README_car_tag_v1.md)
+   - Purpose: BLE car tag + WiFi backup garage door automation; rising/falling BLE edges drive open/close with asymmetric debounce, time window, person gate, and notification support.
+
+10. [`blueprints/automation/air_purifier/v1/air_purifier.yaml`](blueprints/automation/air_purifier/v1/air_purifier.yaml)
+    - Docs: [`blueprints/automation/air_purifier/v1/README_air_purifier_v1.md`](blueprints/automation/air_purifier/v1/README_air_purifier_v1.md)
+    - Purpose: twice-daily boost schedule for air purifier groups with periodic reconciler and HA-restart guard.
+
+11. [`blueprints/automation/ratgdo/v2/ratgdo_2.5i.yaml`](blueprints/automation/ratgdo/v2/ratgdo_2.5i.yaml)
+    - Docs: [`blueprints/automation/ratgdo/v2/README_ratgdo_v2.md`](blueprints/automation/ratgdo/v2/README_ratgdo_v2.md)
+    - Purpose: Ratgdo 2.5i garage door mechanics — auto-close, obstruction safety, bypass, physical button session cancel, and notifications.
+
+12. [`blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync.yaml`](blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync.yaml)
+    - Docs: [`blueprints/automation/lux_sensor_sync/v1/README_lux_sensor_sync_v1.md`](blueprints/automation/lux_sensor_sync/v1/README_lux_sensor_sync_v1.md)
+    - Purpose: infers light on/off state from an adaptive lux-delta sensor; writes to an `input_boolean` for use as a WITB+ `light_gating_entity`.
+
+13. [`blueprints/automation/flair/v1/flair.yaml`](blueprints/automation/flair/v1/flair.yaml)
+    - Docs: [`blueprints/automation/flair/v1/README_flair_v1.md`](blueprints/automation/flair/v1/README_flair_v1.md)
+    - Purpose: WITB+ `occupied_effective` → Flair smart vent Active/Inactive control with reconciliation and startup sync.
+
+14. [`blueprints/automation/zooz_all_light_switch_modified/v1/zooz-all.yaml`](blueprints/automation/zooz_all_light_switch_modified/v1/zooz-all.yaml)
+    - Docs: [`blueprints/automation/zooz_all_light_switch_modified/v1/README_zooz_all_light_switch_modified_v1.md`](blueprints/automation/zooz_all_light_switch_modified/v1/README_zooz_all_light_switch_modified_v1.md)
+    - Purpose: maps 1x–5x press and held events on Zooz ZEN71/72/76/77 switches to configurable actions with optional WITB+ ON/OFF hook script routing.
+
 ## Helper Packages and Generators
 
 Run from repo root.

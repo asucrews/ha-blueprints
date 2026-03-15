@@ -1,10 +1,22 @@
-# Changelog — Smart Vents - Flair
+# CHANGELOG — flair
 
-All notable changes to this blueprint are documented here.
+All notable changes to `flair.yaml` are documented here.
+Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
-## v1.0.4 — Reconciliation hardening
+## [1.0.5] — Unreleased
+
+### Changed
+- `trigger:` / `action:` singular keys updated to `triggers:` / `actions:`
+  plural syntax. Required for `min_version: 2026.3.0` to avoid deprecation
+  warnings in HA 2026.x. (Issue #2)
+- Blueprint `description` field updated to reference `CHANGELOG_flair.md`
+  instead of `CHANGELOG.md` to match NAMING.md conventions. (Issue #3)
+
+---
+
+## [1.0.4] — Reconciliation hardening
 
 ### Added
 - `homeassistant: start` trigger with 30-second blocking startup sync. On HA
@@ -25,7 +37,7 @@ All notable changes to this blueprint are documented here.
 
 ---
 
-## v1.0.3 — Reconciliation
+## [1.0.3] — Reconciliation
 
 ### Added
 - `flair_activity_status` state change trigger (`Flair Status Changed`). Fires
@@ -39,7 +51,7 @@ All notable changes to this blueprint are documented here.
 
 ---
 
-## v1.0.2 — WITB+ integration and simplification
+## [1.0.2] — WITB+ integration and simplification
 
 ### Changed
 - `room_occupancy_sensor` input replaced by purpose-named `occupied_effective`
@@ -63,7 +75,7 @@ All notable changes to this blueprint are documented here.
 
 ---
 
-## v1.0.1 — Bug fixes and mode correction
+## [1.0.1] — Bug fixes and mode correction
 
 ### Fixed
 - **`Room Unoccupied` branch set `Active` instead of `Inactive`** — critical
@@ -87,7 +99,7 @@ All notable changes to this blueprint are documented here.
 
 ---
 
-## v1.0.0 — Initial release
+## [1.0.0] — Initial release
 
 - Room occupancy → Flair activity status (Active/Inactive) + clear hold.
 - Optional HVAC smart sensor occupancy input gated on room occupancy state.
