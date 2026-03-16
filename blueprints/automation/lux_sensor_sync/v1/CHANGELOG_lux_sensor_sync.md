@@ -1,12 +1,44 @@
-# CHANGELOG — Lux Sensor Sync
+# CHANGELOG — lux_sensor_sync
+
+All notable changes to `lux_sensor_sync.yaml` are documented here.
+Versioning follows [Semantic Versioning](https://semver.org/).
+
+For changes to the companion package template, see the section at the
+bottom of this file.
 
 ---
 
-## lux_sensor_sync.yaml
+## [1.1.0] — Unreleased
 
-### v1.0.0 — 2026-03-09
+### Added
+- **`suppress_infer_on_after_sensor_restore` input** (boolean, default `true`).
+  Prevents the light from being incorrectly inferred ON when the delta sensor
+  just transitioned from `unknown` or `unavailable` — which occurs on HA
+  restart or sensor reconnect. Uses `trigger.from_state.state` to detect this
+  condition at trigger-fire time. The `ha_start` branch handles startup
+  correction via its own 30-second settling delay. Disable if you want
+  infer-ON to proceed immediately when a sensor reconnects and delta is
+  already above threshold.
+- **Input grouping** — inputs reorganized into `required_entities` and
+  `optional_settings` sections with `icon` fields for consistency with
+  other blueprints in this repo. (Issue #4)
 
-#### Initial release
+### Fixed
+- **`min_version` raised from `2023.4.0` to `2024.4.0`** — blueprint uses
+  plural `triggers:`/`actions:` syntax which requires HA 2024.4+. Previous
+  value incorrectly claimed compatibility with versions that reject this YAML.
+  (Issue #1)
+
+### Changed
+- `description` field updated to reference `CHANGELOG_lux_sensor_sync.md`
+  instead of `CHANGELOG.md`. (Issue #3)
+- Version bumped to `1.1.0` in blueprint `name` field.
+
+---
+
+## [1.0.0] — 2026-03-09
+
+### Initial release
 
 - Infers light on/off state from a lux delta sensor for lights that cannot be
   directly controlled by Home Assistant (fan-mounted lights, dumb switches, etc.).
@@ -23,6 +55,10 @@
   if the automation is mid-run.
 
 ---
+
+---
+
+# Companion file changelog
 
 ## lux_sensor_sync_package_template.yaml
 

@@ -1,7 +1,7 @@
 blueprint:
-  name: Light Inferred From Lux Delta (1.0.0)
+  name: Light Inferred From Lux Delta (1.1.0)
   description: |
-    Version: 1.0.0 — see CHANGELOG.md for full version history.
+    Version: 1.1.0 — see CHANGELOG_lux_sensor_sync.md for full version history.
 
     Light-state inference blueprint using a lux delta sensor.
 
@@ -11,94 +11,129 @@ blueprint:
       • Writes inferred state to input_boolean light_boolean.
       • Re-evaluates state on Home Assistant restart.
 
+    SENSOR RESTORE SUPPRESSION
+      • By default, infer-ON is suppressed if the delta sensor just restored
+        from unknown/unavailable (HA restart or sensor reconnect). The ha_start
+        branch handles startup correction via its 30-second settling delay.
+        Disable if you want infer-ON to proceed immediately on sensor reconnect.
+
     USE CASE
       • Designed for lights that HA cannot control directly (fan lights,
         switched outlets behind dumb switches, relay-only circuits).
       • Requires companion helpers from lux_sensor_sync_package_template.yaml.
+
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync.yaml
   domain: automation
   author: asucrews
   homeassistant:
-    min_version: 2023.4.0
+    min_version: 2024.4.0
   input:
-    delta_sensor:
-      name: Lux delta sensor (lx)
-      description: >
-        The sensor representing "lux above ambient baseline". Typically
-        sensor.room_lux_delta produced by the companion package template.
-      selector:
-        entity:
-          domain: sensor
+    required_entities:
+      name: Required Entities
+      icon: mdi:lightbulb-on
+      description: Required entities for this automation.
+      collapsed: false
+      input:
+        delta_sensor:
+          name: Lux delta sensor (lx)
+          description: >
+            The sensor representing "lux above ambient baseline". Typically
+            sensor.room_lux_delta produced by the companion package template.
+          selector:
+            entity:
+              domain: sensor
 
-    light_boolean:
-      name: Input boolean — inferred light state
-      description: >
-        The input_boolean that tracks whether the light is inferred on or off.
-        This is the output consumed by other automations (e.g. WITB+ Actions
-        light_gating_entity).
-      selector:
-        entity:
-          domain: input_boolean
+        light_boolean:
+          name: Input boolean — inferred light state
+          description: >
+            The input_boolean that tracks whether the light is inferred on or off.
+            This is the output consumed by other automations (e.g. WITB+ Actions
+            light_gating_entity).
+          selector:
+            entity:
+              domain: input_boolean
 
-    on_threshold:
-      name: Infer ON when delta ≥ (lx)
-      description: >
-        The delta must reach or exceed this value before the light is inferred
-        on. Should be well below the lux contribution of the dimmest light you
-        want to detect, but above typical sensor noise (~5 lx).
-      default: 40
-      selector:
-        number:
-          min: 1
-          max: 500
-          step: 1
-          unit_of_measurement: "lx"
+    optional_settings:
+      name: Optional Settings
+      icon: mdi:tune
+      description: Threshold, timing, and behavior configuration.
+      collapsed: true
+      input:
+        on_threshold:
+          name: Infer ON when delta ≥ (lx)
+          description: >
+            The delta must reach or exceed this value before the light is inferred
+            on. Should be well below the lux contribution of the dimmest light you
+            want to detect, but above typical sensor noise (~5 lx).
+          default: 40
+          selector:
+            number:
+              min: 1
+              max: 500
+              step: 1
+              unit_of_measurement: "lx"
 
-    on_for_seconds:
-      name: Delta must stay high for (seconds)
-      description: >
-        Debounce: the delta must remain above the ON threshold for this many
-        seconds before the light is inferred on. Short values (5–15 s) work
-        well since lux changes from a light switch are near-instantaneous.
-        Prevents brief sensor glitches or reflections from triggering a false
-        positive.
-      default: 10
-      selector:
-        number:
-          min: 0
-          max: 120
-          step: 5
-          unit_of_measurement: seconds
+        on_for_seconds:
+          name: Delta must stay high for (seconds)
+          description: >
+            Debounce: the delta must remain above the ON threshold for this many
+            seconds before the light is inferred on. Short values (5–15 s) work
+            well since lux changes from a light switch are near-instantaneous.
+            Prevents brief sensor glitches or reflections from triggering a false
+            positive.
+          default: 10
+          selector:
+            number:
+              min: 0
+              max: 120
+              step: 5
+              unit_of_measurement: seconds
 
-    off_threshold:
-      name: Infer OFF when delta ≤ (lx)
-      description: >
-        The delta must fall to or below this value before the light is inferred
-        off. Set lower than on_threshold to create a hysteresis band and prevent
-        rapid toggling.
-      default: 15
-      selector:
-        number:
-          min: 0
-          max: 500
-          step: 1
-          unit_of_measurement: "lx"
+        off_threshold:
+          name: Infer OFF when delta ≤ (lx)
+          description: >
+            The delta must fall to or below this value before the light is inferred
+            off. Set lower than on_threshold to create a hysteresis band and prevent
+            rapid toggling.
+          default: 15
+          selector:
+            number:
+              min: 0
+              max: 500
+              step: 1
+              unit_of_measurement: "lx"
 
-    off_for_seconds:
-      name: Delta must stay low for (seconds)
-      description: >
-        Debounce: the delta must remain below the OFF threshold for this many
-        seconds before the light is inferred off. Prevents the boolean from
-        flipping during brief sensor dips while the light is still on.
-      default: 15
-      selector:
-        number:
-          min: 0
-          max: 300
-          step: 5
-          unit_of_measurement: seconds
+        off_for_seconds:
+          name: Delta must stay low for (seconds)
+          description: >
+            Debounce: the delta must remain below the OFF threshold for this many
+            seconds before the light is inferred off. Prevents the boolean from
+            flipping during brief sensor dips while the light is still on.
+          default: 15
+          selector:
+            number:
+              min: 0
+              max: 300
+              step: 5
+              unit_of_measurement: seconds
+
+        suppress_infer_on_after_sensor_restore:
+          name: Suppress infer-ON after sensor restore
+          description: >
+            When enabled (default), the light will NOT be inferred ON if the
+            delta sensor just transitioned from unknown or unavailable — which
+            happens on HA restart or when the sensor reconnects after a drop.
+            The ha_start branch handles startup correction via its own 30-second
+            settling delay. Disable if you want infer-ON to proceed immediately
+            when the sensor reconnects and delta is already above threshold.
+          default: true
+          selector:
+            boolean:
 
 mode: restart
+
+variables:
+  _suppress_restore: !input suppress_infer_on_after_sensor_restore
 
 triggers:
   - trigger: numeric_state
@@ -121,17 +156,26 @@ triggers:
 
 actions:
   - choose:
+      # ── Infer ON ─────────────────────────────────────────────────────────
       - conditions:
           - condition: trigger
             id: light_on
           - condition: state
             entity_id: !input light_boolean
             state: "off"
+          # Suppress infer-ON when the sensor just restored from unknown/unavailable
+          # (HA restart or sensor reconnect). trigger.from_state.state will be
+          # 'unknown' or 'unavailable' in that scenario.
+          - condition: template
+            value_template: >
+              {{ not _suppress_restore or
+                 trigger.from_state.state not in ['unknown', 'unavailable'] }}
         sequence:
           - action: input_boolean.turn_on
             target:
               entity_id: !input light_boolean
 
+      # ── Infer OFF ────────────────────────────────────────────────────────
       - conditions:
           - condition: trigger
             id: light_off
@@ -143,6 +187,7 @@ actions:
             target:
               entity_id: !input light_boolean
 
+      # ── HA restart: re-evaluate and correct boolean state ─────────────
       - conditions:
           - condition: trigger
             id: ha_start

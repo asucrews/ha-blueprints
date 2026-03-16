@@ -1,95 +1,147 @@
-# Light Inferred From Lux Delta (Automation Blueprint)
+# README — lux_sensor_sync v1
 
-This automation blueprint infers whether a light is on or off using a
-**lux delta sensor**:
+**Blueprint:** `lux_sensor_sync.yaml`
+**Version:** 1.1.0 (see `CHANGELOG_lux_sensor_sync.md`)
+**Domain:** automation
+**Path:** `blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync.yaml`
+**Author:** asucrews
+**Min HA version:** 2024.4.0
+
+---
+
+## Overview
+
+Infers whether a light is on or off using a **lux delta sensor**:
 
 > **delta = max(lux − adaptive_baseline, 0)**
 
-The delta signal represents "how far above ambient" the current lux reading
-is. Because the baseline adapts to environmental conditions (blinds, time of
-day, cloud cover), absolute lux thresholds are never needed.
+The delta represents "how far above ambient" the current lux reading is.
+Because the baseline adapts to environmental conditions (blinds, time of day,
+cloud cover), absolute lux thresholds are never needed.
 
 Designed for lights that **cannot be controlled directly by Home Assistant**:
-fan-mounted lights, switched outlets on dumb switches, etc.
+fan-mounted lights, switched outlets on dumb switches, relay-only circuits.
+Writes inferred state to an `input_boolean` consumed by WITB+ Actions as a
+`light_gating_entity`.
 
 ---
 
-## What this blueprint does
+## How It Works
 
-- **Infers light ON** when `delta >= on_threshold` for a short debounce period.
-- **Infers light OFF** when `delta <= off_threshold` for a short debounce period.
-- Writes inferred state to an `input_boolean` for consumption by other
-  automations (e.g. WITB+ Actions `light_gating_entity`).
-- Re-evaluates state on Home Assistant restart.
+### Inference logic
 
----
+| Condition | Action |
+|---|---|
+| Delta >= `on_threshold` for `on_for_seconds` | Set `light_boolean` → `on` |
+| Delta <= `off_threshold` for `off_for_seconds` | Set `light_boolean` → `off` |
 
-## Why delta instead of absolute lux
+### Sensor restore suppression
 
-A fan light might add 200 lx. But on a bright afternoon with the blinds open
-the room might already be at 300 lx, making any fixed "light on" threshold
-ambiguous. The adaptive baseline tracks the ambient level so the delta isolates
-only the contribution of the artificial light regardless of time of day, blinds
-position, or season.
+By default (`suppress_infer_on_after_sensor_restore: true`), infer-ON is
+suppressed when the sensor just transitioned from `unknown` or `unavailable`.
+This prevents the boolean from incorrectly flipping ON after HA restarts or
+sensor reconnects. The `ha_start` branch handles startup correction
+independently via a 30-second settling delay.
 
----
+### Startup sync
 
-## Requirements
-
-You must already have:
-- A **lux delta sensor** (`sensor.*`) produced by the companion package template
-  (`lux_sensor_sync_package_template.yaml`).
-- An **`input_boolean`** to track the inferred light state.
-- The **baseline freeze boolean** (`input_boolean.room_slug_lux_freeze_while_light_on`)
-  must be set to `on` for the baseline to hold when the light is inferred on.
-  This is the default behaviour and is the most important tuning choice.
+On every HA restart the blueprint waits 30 seconds for sensors to restore,
+then corrects the `light_boolean` against current delta:
+- If delta is above `on_threshold` and boolean is `off` → set boolean `on`.
+- If delta is below `off_threshold` and boolean is `on` → set boolean `off`.
 
 ---
 
 ## Inputs
 
-### Entities
-- **delta_sensor** — `sensor.room_lux_delta` from the package template.
-- **light_boolean** — `input_boolean` written by this automation; consumed by
-  WITB+ or other automations as a binary gate.
+### Required
 
-### Thresholds & timing
-- **on_threshold** (default: 40 lx) — infer ON when delta ≥ this value.
-- **on_for_seconds** (default: 10 s) — debounce before inferring ON.
-- **off_threshold** (default: 15 lx) — infer OFF when delta ≤ this value.
-- **off_for_seconds** (default: 15 s) — debounce before inferring OFF.
+| Input | Domain | Description |
+|---|---|---|
+| `delta_sensor` | `sensor` | Lux above ambient baseline in lx. Produced by companion package template. |
+| `light_boolean` | `input_boolean` | Output boolean tracking inferred light state. Consumed by WITB+ Actions `light_gating_entity`. |
 
-The gap between `on_threshold` and `off_threshold` is the hysteresis band.
-Keep it meaningful (at least 10–20 lx) to avoid rapid toggling.
+### Thresholds and timing
+
+| Input | Default | Description |
+|---|---|---|
+| `on_threshold` | `40 lx` | Infer ON when delta reaches this value |
+| `on_for_seconds` | `10 s` | Delta must stay above threshold for this long before inferring ON |
+| `off_threshold` | `15 lx` | Infer OFF when delta drops to this value |
+| `off_for_seconds` | `15 s` | Delta must stay below threshold for this long before inferring OFF |
+
+### Behavior
+
+| Input | Default | Description |
+|---|---|---|
+| `suppress_infer_on_after_sensor_restore` | `true` | Suppress infer-ON when sensor just restored from `unknown`/`unavailable` |
 
 ---
 
-## Tuning guide
+## Architecture notes
 
-### Light not detected (false negatives)
-- Lower **on_threshold** (e.g. 40 → 25)
-- Lower **on_for_seconds** (e.g. 10 → 5)
-- Check that `big_rise_freeze` on the baseline package is *lower* than the
-  lux contribution of the light
+- **`mode: restart`** — latest trigger always wins. A lux event during the
+  startup delay cancels the startup sync and applies the new state immediately.
+- **No variables block needed** — `!input` values are consumed directly in
+  `numeric_state` and `state` conditions. No Jinja2 computation required.
+- **Hysteresis band** — `on_threshold` must be set higher than `off_threshold`
+  to create a stable hysteresis band. Recommended minimum gap: 10–20 lx.
+  Inverted thresholds cause boolean oscillation.
+- **Infer-OFF is never suppressed** — turning the boolean off is always the
+  safe direction. Sensor restore suppression applies only to infer-ON.
 
-### False positives (bright window triggers detection)
-- This usually means the baseline is not adapting correctly. Check:
-  - Is `alpha_down` large enough to track blind/curtain changes? (try 0.20)
-  - Is `alpha_up` slow enough to not drift into light territory? (keep ≤ 0.02)
-- If the false trigger is slow (sunrise), increase **on_for_seconds**
-- If the false trigger is fast (sudden sun), lower **big_rise_freeze** threshold
-  in the package so the baseline freezes on that event too
+---
 
-### Light inferred on, then drops to off while light still on
-- The baseline is drifting upward and eroding the delta. Check:
-  - Is `input_boolean.room_slug_lux_freeze_while_light_on` set to `on`?
-  - Is `alpha_up` very small? (should be 0.01 or less)
-  - Is `big_rise_freeze` lower than the light contribution? If not, the
-    initial spike is not being frozen and `alpha_up` starts chasing it
+## Known limitations
 
-### Boolean flickers
-- Increase **off_for_seconds** and **on_for_seconds**
-- Widen the hysteresis band (lower `off_threshold` or raise `on_threshold`)
+- **Sensor reconnect may delay infer-ON** (`suppress_infer_on_after_sensor_restore: true`)
+  — if the sensor drops to unavailable mid-session and reconnects with delta
+  above threshold, the first trigger fire is suppressed. Infer-ON proceeds
+  normally after the sensor makes another state change. Disable the input if
+  this is a concern.
+- **Threshold inversion not validated** — the blueprint does not check that
+  `on_threshold > off_threshold` at load time. Misconfiguration causes
+  oscillation. See `rules_lux_sensor_sync.md` rule 16.
+
+---
+
+## Companion files
+
+| File | Purpose |
+|---|---|
+| `lux_sensor_sync_package_template.yaml` | Generates adaptive lux baseline + delta sensors per room |
+| `CHANGELOG_lux_sensor_sync.md` | Version history for blueprint and companion files |
+| `rules_lux_sensor_sync.md` | Behavioral rules and invariants |
+| `use_cases_lux_sensor_sync.md` | Supported use cases with pass/fail outcomes |
+
+### Generating companion packages
+
+```bash
+python blueprints/generate_witb_packages_templated.py \
+  --rooms "Master Bedroom" \
+  --template blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync_package_template.yaml \
+  --out blueprints/automation/lux_sensor_sync/v1/packages
+```
+
+The generator requires two additional token substitutions beyond `room_slug`
+and `Room Friendly Name` — set these in `rooms.yaml` under `tokens:`:
+
+| Token | Example | Description |
+|---|---|---|
+| `__LUX_SENSOR__` | `sensor.master_bedroom_motion_illuminance` | Physical lux sensor entity ID |
+| `__LIGHT_BOOLEAN__` | `input_boolean.master_bedroom_fan_light_inferred` | Inferred light boolean entity ID |
+
+Use `--no-tuning-helpers` to omit the `input_boolean` and `input_number`
+tuning entities. Baseline logic falls back to hardcoded defaults when helpers
+are absent.
+
+### Deployment note on `template:` syntax
+
+HA packages loaded via `!include_dir_merge_named` do not support the newer
+top-level `template:` list syntax. The trigger-based baseline sensor in this
+template uses `template:` and must be loaded as a regular package file.
+If you encounter issues, move the `template:` block into your main
+`configuration.yaml` or a dedicated include file.
 
 ---
 
@@ -97,7 +149,7 @@ Keep it meaningful (at least 10–20 lx) to avoid rapid toggling.
 
 | Helper | Default | Purpose |
 |---|---|---|
-| `freeze_while_light_on` boolean | `on` | Hold baseline when light inferred on |
+| `freeze_while_light_on` boolean | `on` | Hold baseline when light is inferred on |
 | `lux_big_rise_freeze` | 50 lx | Rise ≥ this freezes the baseline for one cycle |
 | `lux_settle_band` | 10 lx | Small creep within this band follows at `alpha_up` |
 | `lux_alpha_up` | 0.01 | How fast baseline tracks upward ambient changes |
@@ -110,68 +162,16 @@ Keep it meaningful (at least 10–20 lx) to avoid rapid toggling.
 
 ## Recommended starting values
 
-These work well for a typical ceiling or fan-mounted light:
-
-| Input | Value |
-|---|---|
-| on_threshold | 40 lx |
-| on_for_seconds | 10 s |
-| off_threshold | 15 lx |
-| off_for_seconds | 15 s |
-| alpha_up | 0.01 |
-| alpha_down | 0.15 |
-| big_rise_freeze | 50 lx |
-| settle_band | 10 lx |
+| Input | Value | Notes |
+|---|---|---|
+| `on_threshold` | `40 lx` | Well above sensor noise, below dimmest light contribution |
+| `on_for_seconds` | `10 s` | Light switches are near-instantaneous |
+| `off_threshold` | `15 lx` | Creates a 25 lx hysteresis band |
+| `off_for_seconds` | `15 s` | Absorbs brief dips while light is still on |
+| `alpha_up` | `0.01` | Very slow upward drift to avoid chasing light-on levels |
+| `alpha_down` | `0.15` | Tracks blinds and sunset reasonably fast |
+| `big_rise_freeze` | `50 lx` | Must be lower than the dimmest light's lux contribution |
+| `settle_band` | `10 lx` | Absorbs small ambient creep |
 
 For a dim nightlight or lamp, lower `on_threshold` to 15–20 lx and
 `big_rise_freeze` to 20 lx.
-
----
-
-## Example automation (YAML)
-
-```yaml
-automation:
-  - use_blueprint:
-      path: asucrews/lux_sensor_sync.yaml
-      input:
-        delta_sensor: sensor.master_bedroom_lux_delta
-        light_boolean: input_boolean.master_bedroom_fan_light_inferred
-        on_threshold: 40
-        on_for_seconds: 10
-        off_threshold: 15
-        off_for_seconds: 15
-```
-
----
-
-## Companion package generator
-
-Use `generate_witb_packages_templated.py` with
-`lux_sensor_sync_package_template.yaml` to generate helper packages.
-
-The generator expects two additional substitution tokens beyond `room_slug`
-and `Room Friendly Name`:
-
-- `__LUX_SENSOR__` — entity ID of the physical lux sensor (e.g.
-  `sensor.master_bedroom_motion_illuminance`)
-- `__LIGHT_BOOLEAN__` — entity ID of the inferred light boolean (e.g.
-  `input_boolean.master_bedroom_fan_light_inferred`)
-
-Run from repo root:
-
-```bash
-python blueprints/generate_witb_packages_templated.py \
-  --rooms "Master Bedroom" \
-  --template blueprints/automation/lux_sensor_sync/v1/lux_sensor_sync_package_template.yaml \
-  --out blueprints/automation/lux_sensor_sync/v1/packages
-```
-
-### Deployment note on `template:` vs `binary_sensor: platform: template`
-
-HA packages loaded via `!include_dir_merge_named` do not support the newer
-top-level `template:` list syntax. The trigger-based baseline sensor in this
-template uses `template:` and **must be loaded as a regular package file**
-(`!include_dir_merge_named packages/`) — this works if your HA config uses
-that method. If you encounter issues, move the `template:` block into your
-main `configuration.yaml` or a dedicated include file.
