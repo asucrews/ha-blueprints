@@ -3,6 +3,7 @@ blueprint:
   description: >
     2x daily boost schedule with self-correction on boundaries, startup, and every 5 minutes.
     See CHANGELOG_air_purifier.md v1.1.0
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/air_purifier/v1/air_purifier.yaml
   domain: automation
   author: Jeremy
   homeassistant:

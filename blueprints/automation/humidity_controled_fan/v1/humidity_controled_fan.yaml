@@ -26,7 +26,7 @@ blueprint:
   domain: automation
   author: asucrews
   homeassistant:
-    min_version: 2024.4.0
+    min_version: 2026.3.0
   input:
     delta_sensor:
       name: Humidity delta sensor (%)
