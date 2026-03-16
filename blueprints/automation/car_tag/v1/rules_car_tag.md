@@ -8,9 +8,10 @@
 - Close debounce: 30 seconds
 
 ## Door
-- Must be `closed` before opening
-- Must be `open` before closing
-- Must not be `unavailable`
+- State read from `garage_door_status_entity` (binary sensor): `on` = open, `off` = closed
+- Must be `off` (closed) before opening
+- Must be `on` (open) before starting close timer
+- Cover entity must not be `unavailable` (checked separately via `garage_door_cover`)
 
 ## Person Gate
 - Confirms presence before acting

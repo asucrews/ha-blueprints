@@ -1,5 +1,24 @@
 # Car Tag Automation Changelog
 
+## [1.6.0] - 2026-03-16
+
+### Added
+- New input `garage_door_status_entity` (binary sensor) — clean binary door state: `on` = open, `off` = closed. Typically `binary_sensor.garage_main_door_status` derived from the cover entity via template sensor.
+
+### Changed
+- All branch door state checks now use `garage_door_status_entity` instead of multi-value `is_state(garage_door_cover, [...])` checks:
+  - Branch 1 & 3 (must be closed to open): `is_state(garage_door_status_entity, 'off')`
+  - Branch 2 (must be open to start close timer): `is_state(garage_door_status_entity, 'on')`
+- `unavailable` guard retained on `garage_door_cover` (correct entity for that check)
+
+### Root Cause (from trace `2026-03-16T00:02:42`)
+Cover entity states (`open`, `opening`, `closing`, `closed`) made closed/open checks ambiguous. Template sensor provides a clean binary signal, eliminating the need for multi-value state lists in conditions.
+
+### Migration
+Re-save the automation instance in the UI after deploying to wire up the new `garage_door_status_entity` input.
+
+---
+
 ## [1.5.0] - 2026-03-15
 
 ### Fixed

@@ -16,6 +16,7 @@ A WiFi backup trigger fires when the ESPHome node comes back online after being 
 - ESPHome node with BLE scanning (ESP32 or ESP32-S3 recommended)
 - BLE iBeacon tag in the car powered by the car's ignition
 - Ratgdo or compatible garage door cover entity
+- Binary sensor for clean door state (e.g. `binary_sensor.garage_main_door_status`, template: `{{ not is_state('cover.garage_ratgdo_...', 'closed') }}`)
 - HA timer helper for the close delay
 - Person entity (optional, used for WiFi backup arriving case)
 
@@ -25,6 +26,7 @@ A WiFi backup trigger fires when the ESPHome node comes back online after being 
 |---|---|---|
 | `esphome_ble` | BLE iBeacon group binary sensor(s) | required |
 | `garage_door_cover` | Garage door cover entity | required |
+| `garage_door_status_entity` | Binary sensor for clean door state: `on` = open, `off` = closed | required |
 | `garage_door_timer_helper` | Timer helper for auto-close delay | required |
 | `wifi_backup_entity` | ESPHome node connectivity sensor | required |
 | `person_entity` | Person entity for arriving confirmation | optional |
@@ -53,6 +55,7 @@ See [CHANGELOG_car_tag.md](CHANGELOG_car_tag.md) for full version history and re
 ## Notes
 
 - The `wifi_backup_entity` should be the ESPHome node's own connectivity sensor (`binary_sensor.{node}_status`), **not** a phone or Firewalla tracker. It is specifically for catching missed BLE edges when the node was temporarily offline.
+- The `garage_door_status_entity` should be a template binary sensor derived from the cover entity (`on` = open, `off` = closed). This avoids ambiguity in the cover's multi-value state (`open`, `opening`, `closing`, `closed`).
 - The physical wall button on the Ratgdo cancels the auto-close timer for the current session.
 - Time window (`open_after` / `open_before`) applies to both BLE and WiFi backup open paths. Set both to `00:00:00` to disable.
 

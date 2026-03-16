@@ -1,8 +1,8 @@
 blueprint:
-  name: Car Tag (1.5.0)
+  name: Car Tag (1.6.0)
   description: >
     BLE car tag based garage door automation with WiFi backup trigger.
-    See CHANGELOG_car_tag.md v1.5.0
+    See CHANGELOG_car_tag.md v1.6.0
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/car_tag/v1/car_tag.yaml
   domain: automation
   input:
@@ -19,6 +19,15 @@ blueprint:
       selector:
         entity:
           domain: cover
+
+    garage_door_status_entity:
+      name: Garage Door Status Sensor
+      description: >
+        Binary sensor representing door state cleanly: on = open, off = closed.
+        Typically a template sensor derived from the cover entity.
+      selector:
+        entity:
+          domain: binary_sensor
 
     garage_door_timer_helper:
       name: Garage Door Close Timer
@@ -86,6 +95,7 @@ blueprint:
 
 variables:
   garage_door_cover: !input garage_door_cover
+  garage_door_status_entity: !input garage_door_status_entity
   garage_door_timer_helper: !input garage_door_timer_helper
   person_entity: !input person_entity
   wifi_backup_entity: !input wifi_backup_entity
@@ -140,7 +150,7 @@ actions:
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
           - condition: template
-            value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
+            value_template: "{{ is_state(garage_door_status_entity, 'off') }}"
           - condition: template
             value_template: >
               {% if open_after == '00:00:00' and open_before == '00:00:00' %}
@@ -181,7 +191,7 @@ actions:
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
           - condition: template
-            value_template: "{{ is_state(garage_door_cover, ['on', 'open', 'opening']) }}"
+            value_template: "{{ is_state(garage_door_status_entity, 'on') }}"
           - condition: template
             value_template: >
               {{ person_entity | length == 0
@@ -216,7 +226,7 @@ actions:
           - condition: template
             value_template: "{{ not is_state(garage_door_cover, 'unavailable') }}"
           - condition: template
-            value_template: "{{ is_state(garage_door_cover, ['off', 'closed', 'closing']) }}"
+            value_template: "{{ is_state(garage_door_status_entity, 'off') }}"
           - condition: template
             value_template: >
               {% set ble_on = expand(esphome_ble)
