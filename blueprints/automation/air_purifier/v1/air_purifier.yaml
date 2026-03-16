@@ -1,12 +1,12 @@
 blueprint:
-  name: "Air Purifier Group Reconciler"
+  name: "Air Purifier Group Reconciler (1.1.0)"
   description: >
     2x daily boost schedule with self-correction on boundaries, startup, and every 5 minutes.
     See CHANGELOG_air_purifier.md v1.1.0
   domain: automation
   author: Jeremy
   homeassistant:
-    min_version: 2026.1.0
+    min_version: 2026.3.0
   input:
     purifier_entities:
       name: Air purifiers
