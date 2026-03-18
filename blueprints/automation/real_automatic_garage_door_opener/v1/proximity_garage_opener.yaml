@@ -1,0 +1,239 @@
+blueprint:
+  name: "Proximity Garage Opener"
+  description: >
+    Opens the garage door when a tracked person approaches within a configured
+    distance, confirmed by a Car Tag iBeacon binary sensor. Sends a notification
+    first, then opens the door. Includes a one-shot latch and cooldown to
+    prevent re-triggering.
+  domain: automation
+
+  input:
+    # ─────────────────────────────────────────
+    # GROUP 1 — Tracking
+    # ─────────────────────────────────────────
+    tracking:
+      name: "Tracking"
+      icon: mdi:map-marker-account
+      input:
+        proximity_entity:
+          name: Proximity Entity
+          description: >
+            Proximity integration entity tracking distance to your home zone.
+            Must be configured separately under Integrations > Proximity.
+          selector:
+            entity:
+              domain: proximity
+
+        tracked_person:
+          name: Tracked Person or Device
+          description: >
+            The person or device_tracker entity being monitored. Used to
+            confirm the person is not already home before triggering.
+          selector:
+            entity:
+              domain:
+                - person
+                - device_tracker
+    # ─────────────────────────────────────────
+    # GROUP 2 — Distance Threshold
+    # ─────────────────────────────────────────
+    threshold:
+      name: "Distance Threshold"
+      icon: mdi:ruler
+      input:
+        distance_threshold:
+          name: Distance Threshold (meters)
+          description: >
+            Distance in meters at which to trigger. 205 ft ≈ 62 m.
+          default: 62
+          selector:
+            number:
+              min: 10
+              max: 1000
+              step: 1
+              unit_of_measurement: m
+              mode: slider
+    # ─────────────────────────────────────────
+    # GROUP 3 — Car Tag Confirmation
+    # ─────────────────────────────────────────
+    car_tag:
+      name: "Car Tag Confirmation"
+      icon: mdi:car-wireless
+      input:
+        car_tag_entity:
+          name: Car Tag iBeacon Sensor
+          description: >
+            Binary sensor that confirms the person is in the car via iBeacon
+            region monitoring on the HA Companion app. Must be on (detected)
+            for notification and garage open to fire.
+          selector:
+            entity:
+              domain: binary_sensor
+    # ─────────────────────────────────────────
+    # GROUP 4 — Garage Door
+    # ─────────────────────────────────────────
+    garage:
+      name: "Garage Door"
+      icon: mdi:garage
+      input:
+        garage_door_entity:
+          name: Garage Door Cover
+          description: >
+            The Ratgdo cover entity controlling the garage door.
+          selector:
+            entity:
+              domain: cover
+
+        garage_door_status_entity:
+          name: Garage Door Status Sensor
+          description: >
+            Binary sensor reflecting garage door state. on = open, off = closed.
+            Used to prevent open command if already open.
+          selector:
+            entity:
+              domain: binary_sensor
+    # ─────────────────────────────────────────
+    # GROUP 5 — Arrival Guard
+    # ─────────────────────────────────────────
+    arrival_guard:
+      name: "Arrival Guard"
+      icon: mdi:shield-lock
+      input:
+        arrival_latch_entity:
+          name: Arrival Latch (input_boolean)
+          description: >
+            An input_boolean helper that prevents re-triggering after the
+            first arrival. Created via the companion package YAML. Reset
+            automatically after the cooldown expires.
+          selector:
+            entity:
+              domain: input_boolean
+
+        cooldown_minutes:
+          name: Cooldown Duration (minutes)
+          description: >
+            How long after triggering before the automation can fire again.
+            Acts as a second guard alongside the latch.
+          default: 10
+          selector:
+            number:
+              min: 1
+              max: 60
+              step: 1
+              unit_of_measurement: min
+              mode: slider
+    # ─────────────────────────────────────────
+    # GROUP 6 — Notification
+    # ─────────────────────────────────────────
+    notification:
+      name: "Notification"
+      icon: mdi:cellphone
+      input:
+        notify_device:
+          name: Mobile App Device
+          description: >
+            Device running the HA Companion app to notify.
+          selector:
+            device:
+              integration: mobile_app
+
+        notify_service:
+          name: Notify Service (override)
+          description: >
+            Optional. Override device above with a specific notify service,
+            e.g. notify.mobile_app_jeremy_iphone. Leave blank to use the
+            device selected above.
+          default: ""
+          selector:
+            text: {}
+
+        notification_title:
+          name: Notification Title
+          description: Title sent when the garage is about to open.
+          default: "Garage Opening"
+          selector:
+            text: {}
+
+        notification_message:
+          name: Notification Message
+          description: Message sent when the garage is about to open.
+          default: "Welcome home — opening the garage."
+          selector:
+            text: {}
+
+mode: single
+
+variables:
+  proximity_entity: !input proximity_entity
+  tracked_person: !input tracked_person
+  distance_threshold: !input distance_threshold
+  car_tag_entity: !input car_tag_entity
+  garage_door_entity: !input garage_door_entity
+  garage_door_status_entity: !input garage_door_status_entity
+  arrival_latch_entity: !input arrival_latch_entity
+  cooldown_minutes: !input cooldown_minutes
+  notify_device: !input notify_device
+  notify_service: !input notify_service
+
+trigger:
+  - id: approaching
+    platform: template
+    value_template: >
+      {{ state_attr(proximity_entity, 'distance') | float(-1) <= distance_threshold
+         and state_attr(proximity_entity, 'distance') | float(-1) >= 0 }}
+
+condition:
+  # Person must not already be home
+  - condition: template
+    value_template: >
+      {{ states(tracked_person) not in ['home', 'unknown', 'unavailable'] }}
+
+  # Car Tag iBeacon must confirm person is in the car
+  - condition: state
+    entity_id: !input car_tag_entity
+    state: "on"
+
+  # Arrival latch must not already be set
+  - condition: state
+    entity_id: !input arrival_latch_entity
+    state: "off"
+
+  # Garage door must be closed
+  - condition: state
+    entity_id: !input garage_door_status_entity
+    state: "off"
+
+action:
+  # Set arrival latch immediately to block any re-entry
+  - service: input_boolean.turn_on
+    target:
+      entity_id: !input arrival_latch_entity
+
+  # Resolve notify service from device selector or manual override
+  - variables:
+      resolved_service: >
+        {% if notify_service | length > 0 %}
+          {{ notify_service }}
+        {% else %}
+          notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}
+        {% endif %}
+
+  # Send notification
+  - service: "{{ resolved_service }}"
+    data:
+      title: !input notification_title
+      message: !input notification_message
+
+  # Open garage door immediately after notification
+  - service: cover.open_cover
+    target:
+      entity_id: !input garage_door_entity
+
+  # Hold cooldown — single mode drops any new triggers during this window
+  - delay:
+      minutes: !input cooldown_minutes
+
+  # Reset latch after cooldown expires — ready for next arrival
+  - service: input_boolean.turn_off
+    target:
+      entity_id: !input arrival_latch_entity

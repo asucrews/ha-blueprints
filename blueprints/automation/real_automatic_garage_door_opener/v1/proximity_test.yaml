@@ -1,0 +1,171 @@
+blueprint:
+  name: "Proximity Test"
+  description: >
+    Test blueprint for validating proximity trigger reliability.
+    Sends a notification on approach and departure only — no garage
+    door, no Car Tag gate. Remove and replace with the full
+    Proximity Garage Opener blueprint once proximity is confirmed stable.
+  domain: automation
+
+  input:
+
+    # ─────────────────────────────────────────
+    # GROUP 1 — Tracking
+    # ─────────────────────────────────────────
+    tracking:
+      name: "Tracking"
+      icon: mdi:map-marker-account
+      input:
+        proximity_entity:
+          name: Proximity Entity
+          description: >
+            Proximity integration entity tracking distance to your home zone.
+            Must be configured separately under Integrations > Proximity.
+          selector:
+            entity:
+              domain: proximity
+
+        tracked_person:
+          name: Tracked Person or Device
+          description: >
+            The person or device_tracker entity being monitored.
+          selector:
+            entity:
+              domain:
+                - person
+                - device_tracker
+
+    # ─────────────────────────────────────────
+    # GROUP 2 — Distance Threshold
+    # ─────────────────────────────────────────
+    threshold:
+      name: "Distance Threshold"
+      icon: mdi:ruler
+      input:
+        distance_threshold:
+          name: Distance Threshold (meters)
+          description: >
+            Distance in meters at which to trigger. 205 ft ≈ 62 m.
+            Recommend starting large (500 m) during testing.
+          default: 500
+          selector:
+            number:
+              min: 10
+              max: 2000
+              step: 1
+              unit_of_measurement: m
+              mode: slider
+
+    # ─────────────────────────────────────────
+    # GROUP 3 — Notification
+    # ─────────────────────────────────────────
+    notification:
+      name: "Notification"
+      icon: mdi:cellphone
+      input:
+        notify_device:
+          name: Mobile App Device
+          description: Device running the HA Companion app to notify.
+          selector:
+            device:
+              integration: mobile_app
+
+        notify_service:
+          name: Notify Service (override)
+          description: >
+            Optional. Override device above with a specific notify service,
+            e.g. notify.mobile_app_jeremy_iphone. Leave blank to use the
+            device selected above.
+          default: ""
+          selector:
+            text: {}
+
+        approaching_title:
+          name: Approaching Title
+          default: "[TEST] Approaching"
+          selector:
+            text: {}
+
+        approaching_message:
+          name: Approaching Message
+          default: "Proximity test — entered threshold. Distance: {{ state_attr(proximity_entity, 'distance') }} m"
+          selector:
+            text: {}
+
+        departing_title:
+          name: Departing Title
+          default: "[TEST] Departing"
+          selector:
+            text: {}
+
+        departing_message:
+          name: Departing Message
+          default: "Proximity test — exited threshold. Distance: {{ state_attr(proximity_entity, 'distance') }} m"
+          selector:
+            text: {}
+
+mode: single
+
+variables:
+  proximity_entity: !input proximity_entity
+  tracked_person: !input tracked_person
+  distance_threshold: !input distance_threshold
+  notify_device: !input notify_device
+  notify_service: !input notify_service
+
+trigger:
+  - id: approaching
+    platform: template
+    value_template: >
+      {{ state_attr(proximity_entity, 'distance') | float(-1) <= distance_threshold
+         and state_attr(proximity_entity, 'distance') | float(-1) >= 0 }}
+
+  - id: departing
+    platform: template
+    value_template: >
+      {{ state_attr(proximity_entity, 'distance') | float(-1) > distance_threshold }}
+
+condition:
+  - condition: template
+    value_template: >
+      {% if trigger.id == 'approaching' %}
+        {{ states(tracked_person) not in ['home', 'unknown', 'unavailable'] }}
+      {% elif trigger.id == 'departing' %}
+        {{ states(tracked_person) in ['home', 'not_home'] }}
+      {% else %}
+        false
+      {% endif %}
+
+action:
+  - variables:
+      resolved_service: >
+        {% if notify_service | length > 0 %}
+          {{ notify_service }}
+        {% else %}
+          notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}
+        {% endif %}
+
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: approaching
+        sequence:
+          - service: "{{ resolved_service }}"
+            data:
+              title: !input approaching_title
+              message: >
+                Proximity test — entered threshold.
+                Distance: {{ state_attr(proximity_entity, 'distance') | round(1) }} m
+                Person state: {{ states(tracked_person) }}
+
+      - conditions:
+          - condition: trigger
+            id: departing
+        sequence:
+          - service: "{{ resolved_service }}"
+            data:
+              title: !input departing_title
+              message: >
+                Proximity test — exited threshold.
+                Distance: {{ state_attr(proximity_entity, 'distance') | round(1) }} m
+                Person state: {{ states(tracked_person) }}

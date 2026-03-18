@@ -1,0 +1,28 @@
+# ============================================================
+# Package: Proximity Garage Opener Helpers
+# Companion to: proximity_garage_opener.yaml blueprint
+#
+# Deploy to: packages/proximity_garage_opener_helpers.yaml
+# Loaded via: !include_dir_merge_named packages/
+#
+# One entry per person being tracked. Duplicate the
+# input_boolean block and update the entity ID and name
+# for each additional person.
+# ============================================================
+
+input_boolean:
+
+  # ── Person 1 arrival latch ────────────────────────────────
+  # Rename to match the person being tracked.
+  # e.g. person1_arrival_latch, spouse_arrival_latch, etc.
+  # Set this entity in the blueprint input: Arrival Latch
+  # ─────────────────────────────────────────────────────────
+  person1_garage_arrival_latch:
+    name: "Person 1 Garage Arrival Latch"
+    icon: mdi:shield-lock
+
+  # ── Person 2 arrival latch (optional) ────────────────────
+  # Uncomment and rename if tracking a second person.
+  # person2_garage_arrival_latch:
+  #   name: "Person 2 Garage Arrival Latch"
+  #   icon: mdi:shield-lock
