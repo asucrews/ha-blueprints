@@ -4,10 +4,12 @@ blueprint:
     Opens the garage door when a tracked person approaches within a configured
     distance, confirmed by a Car Tag iBeacon binary sensor. Sends a notification
     first, then opens the door. Includes a one-shot latch and cooldown to
-    prevent re-triggering.
+    prevent re-triggering. Supports both proximity domain entities and sensor
+    domain distance entities (e.g. sensor.*_distance).
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/real_automatic_garage_door_opener/v1/proximity_garage_opener.yaml
   input:
+
     # ─────────────────────────────────────────
     # GROUP 1 — Tracking
     # ─────────────────────────────────────────
@@ -16,13 +18,16 @@ blueprint:
       icon: mdi:map-marker-account
       input:
         proximity_entity:
-          name: Proximity Entity
+          name: Proximity Distance Entity
           description: >
-            Proximity integration entity tracking distance to your home zone.
-            Must be configured separately under Integrations > Proximity.
+            The proximity distance entity for the tracked person. Accepts
+            both proximity domain entities and sensor domain distance
+            entities (e.g. sensor.lan_proximity_to_home_lan_nguyen_distance).
           selector:
             entity:
-              domain: proximity
+              domain:
+                - proximity
+                - sensor
 
         tracked_person:
           name: Tracked Person or Device
@@ -34,6 +39,7 @@ blueprint:
               domain:
                 - person
                 - device_tracker
+
     # ─────────────────────────────────────────
     # GROUP 2 — Distance Threshold
     # ─────────────────────────────────────────
@@ -53,6 +59,7 @@ blueprint:
               step: 1
               unit_of_measurement: m
               mode: slider
+
     # ─────────────────────────────────────────
     # GROUP 3 — Car Tag Confirmation
     # ─────────────────────────────────────────
@@ -69,6 +76,7 @@ blueprint:
           selector:
             entity:
               domain: binary_sensor
+
     # ─────────────────────────────────────────
     # GROUP 4 — Garage Door
     # ─────────────────────────────────────────
@@ -92,6 +100,7 @@ blueprint:
           selector:
             entity:
               domain: binary_sensor
+
     # ─────────────────────────────────────────
     # GROUP 5 — Arrival Guard
     # ─────────────────────────────────────────
@@ -122,6 +131,7 @@ blueprint:
               step: 1
               unit_of_measurement: min
               mode: slider
+
     # ─────────────────────────────────────────
     # GROUP 6 — Notification
     # ─────────────────────────────────────────
@@ -174,13 +184,20 @@ variables:
   cooldown_minutes: !input cooldown_minutes
   notify_device: !input notify_device
   notify_service: !input notify_service
+  # Resolves distance from either sensor state or proximity attribute
+  current_distance: >
+    {% set attr = state_attr(proximity_entity, 'distance') %}
+    {% if attr is not none %}
+      {{ attr | float(-1) }}
+    {% else %}
+      {{ states(proximity_entity) | float(-1) }}
+    {% endif %}
 
 trigger:
   - id: approaching
     platform: template
     value_template: >
-      {{ state_attr(proximity_entity, 'distance') | float(-1) <= distance_threshold
-         and state_attr(proximity_entity, 'distance') | float(-1) >= 0 }}
+      {{ current_distance <= distance_threshold and current_distance >= 0 }}
 
 condition:
   # Person must not already be home

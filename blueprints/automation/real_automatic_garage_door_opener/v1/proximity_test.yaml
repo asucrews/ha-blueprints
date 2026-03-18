@@ -3,8 +3,10 @@ blueprint:
   description: >
     Test blueprint for validating proximity trigger reliability.
     Sends a notification on approach and departure only — no garage
-    door, no Car Tag gate. Remove and replace with the full
-    Proximity Garage Opener blueprint once proximity is confirmed stable.
+    door, no Car Tag gate. Supports both proximity domain entities
+    and sensor domain distance entities (e.g. sensor.*_distance).
+    Remove and replace with the full Proximity Garage Opener blueprint
+    once proximity is confirmed stable.
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/real_automatic_garage_door_opener/v1/proximity_test.yaml
   input:
@@ -17,13 +19,16 @@ blueprint:
       icon: mdi:map-marker-account
       input:
         proximity_entity:
-          name: Proximity Entity
+          name: Proximity Distance Entity
           description: >
-            Proximity integration entity tracking distance to your home zone.
-            Must be configured separately under Integrations > Proximity.
+            The proximity distance entity for the tracked person. Accepts
+            both proximity domain entities and sensor domain distance
+            entities (e.g. sensor.lan_proximity_to_home_lan_nguyen_distance).
           selector:
             entity:
-              domain: proximity
+              domain:
+                - proximity
+                - sensor
 
         tracked_person:
           name: Tracked Person or Device
@@ -86,21 +91,9 @@ blueprint:
           selector:
             text: {}
 
-        approaching_message:
-          name: Approaching Message
-          default: "Proximity test — entered threshold. Distance: {{ state_attr(proximity_entity, 'distance') }} m"
-          selector:
-            text: {}
-
         departing_title:
           name: Departing Title
           default: "[TEST] Departing"
-          selector:
-            text: {}
-
-        departing_message:
-          name: Departing Message
-          default: "Proximity test — exited threshold. Distance: {{ state_attr(proximity_entity, 'distance') }} m"
           selector:
             text: {}
 
@@ -112,18 +105,25 @@ variables:
   distance_threshold: !input distance_threshold
   notify_device: !input notify_device
   notify_service: !input notify_service
+  # Resolves distance from either sensor state or proximity attribute
+  current_distance: >
+    {% set attr = state_attr(proximity_entity, 'distance') %}
+    {% if attr is not none %}
+      {{ attr | float(-1) }}
+    {% else %}
+      {{ states(proximity_entity) | float(-1) }}
+    {% endif %}
 
 trigger:
   - id: approaching
     platform: template
     value_template: >
-      {{ state_attr(proximity_entity, 'distance') | float(-1) <= distance_threshold
-         and state_attr(proximity_entity, 'distance') | float(-1) >= 0 }}
+      {{ current_distance <= distance_threshold and current_distance >= 0 }}
 
   - id: departing
     platform: template
     value_template: >
-      {{ state_attr(proximity_entity, 'distance') | float(-1) > distance_threshold }}
+      {{ current_distance > distance_threshold }}
 
 condition:
   - condition: template
@@ -155,7 +155,7 @@ action:
               title: !input approaching_title
               message: >
                 Proximity test — entered threshold.
-                Distance: {{ state_attr(proximity_entity, 'distance') | round(1) }} m
+                Distance: {{ current_distance | round(1) }} m
                 Person state: {{ states(tracked_person) }}
 
       - conditions:
@@ -167,5 +167,5 @@ action:
               title: !input departing_title
               message: >
                 Proximity test — exited threshold.
-                Distance: {{ state_attr(proximity_entity, 'distance') | round(1) }} m
+                Distance: {{ current_distance | round(1) }} m
                 Person state: {{ states(tracked_person) }}
