@@ -5,6 +5,21 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [3.0.5] — 2026-03-22 — Universal fan switch actions
+
+### Fixed
+
+- **FIX — `fan_switches` actions now use `homeassistant.turn_on/off` instead of
+  `switch.turn_on/off`.** Some manufacturers wire fan speed controls as `light`
+  domain entities rather than `switch`. The previous `switch.*` service calls were
+  no-ops for those entities, leaving the fan uncontrolled. All 6 fan_switches action
+  sites (occupied_on immediate path, fan_on_delay_done, fan_runon_done, vacancy fan-off,
+  fan_gate_cleared, startup cleanup) now use the universal `homeassistant` domain
+  services which work on any entity domain. The selector already allowed both `switch`
+  and `light` entities — the action calls now match.
+
+---
+
 ## [3.0.4] — 2026-03-22 — Rename claim inputs, flip logic
 
 ### Changed

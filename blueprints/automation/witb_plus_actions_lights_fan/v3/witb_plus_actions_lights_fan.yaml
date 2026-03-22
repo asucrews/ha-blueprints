@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
-  name: V3 WITB+ Actions - Lights + Fan (3.0.4)
+  name: V3 WITB+ Actions - Lights + Fan (3.0.5)
   description: |
-    Version: 3.0.4 — see CHANGELOG.md for full version history.
+    Version: 3.0.5 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -415,6 +415,10 @@ blueprint:
 
         fan_switches:
           name: Fan switches (optional)
+          description: >
+            Entities used to control the fan when no fan.* entity is available.
+            Accepts switch or light domain entities — homeassistant.turn_on/off
+            is used so the actual domain does not matter.
           default: []
           selector:
             entity:
@@ -994,7 +998,7 @@ actions:
                                   - condition: template
                                     value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                                 sequence:
-                                  - action: switch.turn_on
+                                  - action: homeassistant.turn_on
                                     target:
                                       entity_id: !input fan_switches
                                   - choose:
@@ -1077,7 +1081,7 @@ actions:
                   - condition: template
                     value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                 sequence:
-                  - action: switch.turn_on
+                  - action: homeassistant.turn_on
                     target:
                       entity_id: !input fan_switches
                   - choose:
@@ -1243,7 +1247,7 @@ actions:
                           - condition: template
                             value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                         sequence:
-                          - action: switch.turn_off
+                          - action: homeassistant.turn_off
                             target:
                               entity_id: !input fan_switches
                   - choose:
@@ -1488,7 +1492,7 @@ actions:
                   - condition: template
                     value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                 sequence:
-                  - action: switch.turn_off
+                  - action: homeassistant.turn_off
                     target:
                       entity_id: !input fan_switches
           - choose:
@@ -1533,7 +1537,7 @@ actions:
                   - condition: template
                     value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                 sequence:
-                  - action: switch.turn_off
+                  - action: homeassistant.turn_off
                     target:
                       entity_id: !input fan_switches
           - choose:
@@ -1658,7 +1662,7 @@ actions:
                           - condition: template
                             value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
                         sequence:
-                          - action: switch.turn_off
+                          - action: homeassistant.turn_off
                             target:
                               entity_id: !input fan_switches
                   - action: input_boolean.turn_off
