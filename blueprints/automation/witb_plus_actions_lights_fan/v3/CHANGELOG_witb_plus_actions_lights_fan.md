@@ -5,6 +5,55 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [3.0.4] — 2026-03-22 — Rename claim inputs, flip logic
+
+### Changed
+
+- **RENAME — `skip_on_if_any_light_on` → `lights_claim_if_already_on`.**
+  The old name described a side effect (skipping the ON action); the new name
+  describes the intent (claiming ownership of pre-existing light state). Default
+  changed from `true` (skip by default) to `true` (claim by default) — the
+  polarity of the input has flipped so `true` now means the opposite of what
+  `skip=true` meant. The automation now claims ownership by default, which is
+  the correct posture: if a blueprint is deployed for a room, it should control
+  that room unless explicitly told not to.
+
+  Logic in `occupied_on` updated accordingly:
+  `(not skip_on_if_any_light_on) or (not any_light_on)`
+  → `lights_claim_if_already_on or (not any_light_on)`
+
+  **Migration:** Any room that previously relied on the default (`skip_on_if_any_light_on`
+  not set, defaulting to `true` = skip) will now claim by default. If you have a room
+  where you intentionally did not want the automation to claim pre-existing light state,
+  explicitly set `lights_claim_if_already_on: false`.
+
+- **RENAME — `fan_skip_on_if_already_on` → `fan_claim_if_already_on`.**
+  Same rationale as above. Default is `true` (claim). Both the immediate-on path
+  and the `fan_on_delay_done` path updated.
+
+  Logic updated in both fan-on conditions:
+  `(not fan_skip_on_if_already_on) or (not fan_is_on)`
+  → `fan_claim_if_already_on or (not fan_is_on)`
+
+  **Migration:** Same as lights — if you had a room where you intentionally set
+  `fan_skip_on_if_already_on: false`, set `fan_claim_if_already_on: false` instead.
+  All other rooms get claim-by-default automatically.
+
+---
+
+## [3.0.1] — 2026-03-22 — Rename claim input, flip logic (lights-only variant)
+
+### Changed
+
+- **RENAME — `skip_on_if_any_light_on` → `lights_claim_if_already_on`.**
+  Same change as `lights_fan` v3.0.4 above. Applies to the lights-only blueprint.
+  Default is `true` (claim by default). Logic condition flipped identically.
+
+  **Migration:** Same as above — if you intentionally had a room not claiming
+  pre-existing state, set `lights_claim_if_already_on: false` explicitly.
+
+---
+
 ## [3.0.3] — 2026-03-09 — Post-Delay Vacancy Guard Fix
 
 ### Fixed

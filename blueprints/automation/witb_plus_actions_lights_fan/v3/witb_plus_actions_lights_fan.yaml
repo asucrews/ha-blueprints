@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
-  name: V3 WITB+ Actions - Lights + Fan (3.0.3)
+  name: V3 WITB+ Actions - Lights + Fan (3.0.4)
   description: |
-    Version: 3.0.3 — see CHANGELOG.md for full version history.
+    Version: 3.0.4 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -227,8 +227,13 @@ blueprint:
             entity:
               domain: timer
 
-        skip_on_if_any_light_on:
-          name: 'Lights: skip turning ON if already ON'
+        lights_claim_if_already_on:
+          name: 'Lights: claim ownership if already ON'
+          description: >
+            If true (default), the blueprint turns lights ON (taking ownership) even if they
+            were already on when the room became occupied. This ensures the blueprint
+            will also turn them OFF on vacancy. Set false only if you want the blueprint
+            to leave pre-existing light state alone and not take ownership.
           default: true
           selector:
             boolean: null
@@ -447,8 +452,13 @@ blueprint:
           selector:
             boolean: null
 
-        fan_skip_on_if_already_on:
-          name: 'Fan: skip ON if already ON'
+        fan_claim_if_already_on:
+          name: 'Fan: claim ownership if already ON'
+          description: >
+            If true (default), the blueprint turns the fan ON (taking ownership) even if it
+            was already running when the room became occupied. This ensures the blueprint
+            will also turn it OFF on vacancy. Set false only if you want the blueprint
+            to leave a pre-existing fan state alone and not take ownership.
           default: true
           selector:
             boolean: null
@@ -686,12 +696,12 @@ variables:
   fan_pct_night_helper: !input fan_percentage_night_helper
   fan_preset_day: !input fan_preset_day
   fan_preset_night: !input fan_preset_night
-  fan_skip_on_if_already_on: !input fan_skip_on_if_already_on
+  fan_claim_if_already_on: !input fan_claim_if_already_on
 
   startup_cleanup: !input startup_cleanup
   startup_cleanup_delay: !input startup_cleanup_delay
 
-  skip_on_if_any_light_on: !input skip_on_if_any_light_on
+  lights_claim_if_already_on: !input lights_claim_if_already_on
 
   lights_off_verify_enabled: !input lights_off_verify_enabled
   lights_off_verify_retries: !input lights_off_verify_retries
@@ -879,7 +889,7 @@ actions:
                   - condition: template
                     value_template: "{{ lights_ok_to_turn_on }}"
                   - condition: template
-                    value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
+                    value_template: "{{ lights_claim_if_already_on or (not any_light_on) }}"
                   - condition: template
                     value_template: "{{ not manual_off_hold }}"
                   - condition: template
@@ -947,7 +957,7 @@ actions:
                                   - condition: template
                                     value_template: "{{ fan_entity != '' }}"
                                   - condition: template
-                                    value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
+                                    value_template: "{{ fan_claim_if_already_on or (not fan_is_on) }}"
                                 sequence:
                                   - action: fan.turn_on
                                     target:
@@ -1030,7 +1040,7 @@ actions:
                   - condition: template
                     value_template: "{{ fan_entity != '' }}"
                   - condition: template
-                    value_template: "{{ (not fan_skip_on_if_already_on) or (not fan_is_on) }}"
+                    value_template: "{{ fan_claim_if_already_on or (not fan_is_on) }}"
                 sequence:
                   - action: fan.turn_on
                     target:

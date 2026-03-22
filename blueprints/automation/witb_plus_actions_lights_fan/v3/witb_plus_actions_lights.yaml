@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights/v3/witb_plus_actions_lights.yaml
-  name: V3 WITB+ Actions - Lights (3.0.0)
+  name: V3 WITB+ Actions - Lights (3.0.1)
   description: |
-    Version: 3.0.0 — see CHANGELOG.md for full version history.
+    Version: 3.0.1 — see CHANGELOG.md for full version history.
 
     Lights-only action orchestrator for a WITB+ room. Identical to the
     Lights + Fan blueprint but with all fan inputs and logic removed.
@@ -222,8 +222,13 @@ blueprint:
             entity:
               domain: timer
 
-        skip_on_if_any_light_on:
-          name: 'Lights: skip turning ON if already ON'
+        lights_claim_if_already_on:
+          name: 'Lights: claim ownership if already ON'
+          description: >
+            If true (default), the blueprint turns lights ON (taking ownership) even if they
+            were already on when the room became occupied. This ensures the blueprint
+            will also turn them OFF on vacancy. Set false only if you want the blueprint
+            to leave pre-existing light state alone and not take ownership.
           default: true
           selector:
             boolean: null
@@ -459,7 +464,7 @@ variables:
   startup_cleanup: !input startup_cleanup
   startup_cleanup_delay: !input startup_cleanup_delay
 
-  skip_on_if_any_light_on: !input skip_on_if_any_light_on
+  lights_claim_if_already_on: !input lights_claim_if_already_on
 
   lights_off_verify_enabled: !input lights_off_verify_enabled
   lights_off_verify_retries: !input lights_off_verify_retries
@@ -581,7 +586,7 @@ actions:
                   - condition: template
                     value_template: "{{ lights_ok_to_turn_on }}"
                   - condition: template
-                    value_template: "{{ (not skip_on_if_any_light_on) or (not any_light_on) }}"
+                    value_template: "{{ lights_claim_if_already_on or (not any_light_on) }}"
                   - condition: template
                     value_template: "{{ not manual_off_hold }}"
                   - condition: template

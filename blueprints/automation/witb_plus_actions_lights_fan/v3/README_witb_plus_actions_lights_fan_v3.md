@@ -10,7 +10,7 @@ safety tags, external gating, and fully event-driven execution.
 
 ## 1. Blueprints
 
-### `witb_plus_actions_lights_fan.yaml` — main actions blueprint (v3.0.3)
+### `witb_plus_actions_lights_fan.yaml` — main actions blueprint (v3.0.4)
 
 Controls lights and fan for a single room based on occupancy state changes from
 `binary_sensor.<slug>_occupied_effective`. Key behaviors:
@@ -22,6 +22,12 @@ Controls lights and fan for a single room based on occupancy state changes from
 - **Soft-off warning** — dims to 10% and starts `soft_off_timer` before full lights-off.
 - **Lights verify** — starts `lights_verify_timer` after turn-off and retries up to N
   times if lights are still reporting ON.
+- **Lights claim** — `lights_claim_if_already_on` (default `true`): the blueprint
+  claims ownership of lights that were already on when the room became occupied and
+  will turn them off on vacancy. Set `false` only if you want the automation to
+  leave pre-existing light state alone entirely.
+- **Fan claim** — `fan_claim_if_already_on` (default `true`): same ownership
+  semantics for the fan. Set `false` to leave a pre-existing fan state unmanaged.
 - **Manual-off hold** — if you turn lights off while occupied they stay off until
   vacancy clears `auto_tag_lights`, then re-arm next occupancy.
 - **Bed suppress** — if a bed sensor is configured and someone is in bed, occupancy
