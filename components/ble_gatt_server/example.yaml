@@ -1,0 +1,165 @@
+# =============================================================================
+# ESPHome BLE GATT Server — full example
+# =============================================================================
+# Tested on: ESP32 (any variant)
+# Pairs with: iPhone / iPad using any BLE GATT browser app
+#   e.g.  nRF Connect (App Store)  or  LightBlue (App Store)
+#   or a custom Swift/SwiftUI app using CoreBluetooth
+# =============================================================================
+
+esphome:
+  name: ble-gatt-demo
+  friendly_name: BLE GATT Demo
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino        # NimBLE-Arduino works on both Arduino and IDF
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+# Required: enable BLE + WiFi coexistence on ESP32
+# (The component sets the build flags automatically, but you can also
+#  add these manually if you have issues.)
+# esp32_ble:   <-- do NOT add this; our component initialises NimBLE itself
+
+logger:
+api:
+ota:
+
+# =============================================================================
+# External component path
+# =============================================================================
+external_components:
+  - source:
+      type: local
+      path: components      # folder containing ble_gatt_server/
+
+# =============================================================================
+# GATT Server
+# =============================================================================
+ble_gatt_server:
+  id: my_gatt
+  device_name: "ESPHome BLE"          # Appears in iOS BLE scan list
+
+  # Replace these UUIDs with your own (generate at https://www.uuidgenerator.net/)
+  service_uuid: "12345678-1234-1234-1234-123456789ABC"
+
+  # ---- Security ------------------------------------------------------------
+  # pairing: false   -> open, no PIN — easy for dev/testing
+  # pairing: true    -> bonding + MITM; iOS shows a numeric passkey to confirm
+  pairing: false
+  passkey: 123456     # 6-digit code shown in logs when pairing: true
+
+  max_connections: 3  # allow up to 3 simultaneous BLE clients
+
+  # ---- Characteristics -----------------------------------------------------
+  characteristics:
+
+    # 1. Read-only: current temperature (update via automation below)
+    - uuid: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+      properties: [read, notify]
+      initial_value: "0.0"
+
+    # 2. Read-only: current humidity
+    - uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB"
+      properties: [read, notify]
+      initial_value: "0.0"
+
+    # 3. Read/Write: a command channel — iPhone writes a command string,
+    #    the device acts on it via on_write automation
+    - uuid: "CCCCCCCC-CCCC-CCCC-CCCC-CCCCCCCCCCCC"
+      properties: [read, write, write_nr]
+      initial_value: "idle"
+
+    # 4. Read/Write: LED brightness (0-255 as a decimal string)
+    - uuid: "DDDDDDDD-DDDD-DDDD-DDDD-DDDDDDDDDDDD"
+      properties: [read, write, notify]
+      initial_value: "0"
+
+  # ---- Triggers ------------------------------------------------------------
+
+  # Fires whenever ANY characteristic is written by a BLE client.
+  # 'uuid'  = UUID of the written characteristic
+  # 'value' = new value as a string
+  on_write:
+    - lambda: |-
+        ESP_LOGI("ble_demo", "on_write  uuid=%s  value=%s",
+                 uuid.c_str(), value.c_str());
+
+        // Command channel
+        if (uuid == "cccccccc-cccc-cccc-cccc-cccccccccccc") {
+          if (value == "reboot")   App.safe_reboot();
+          if (value == "led_on")   id(onboard_led).turn_on();
+          if (value == "led_off")  id(onboard_led).turn_off();
+        }
+
+        // LED brightness channel
+        if (uuid == "dddddddd-dddd-dddd-dddd-dddddddddddd") {
+          int brightness = atoi(value.c_str());
+          auto call = id(onboard_led).turn_on();
+          call.set_brightness(brightness / 255.0f);
+          call.perform();
+        }
+
+  on_connect:
+    - logger.log: "iPhone/BLE client connected!"
+
+  on_disconnect:
+    - logger.log: "BLE client disconnected"
+
+# =============================================================================
+# Sensors — push values over BLE every 30 seconds
+# =============================================================================
+sensor:
+  - platform: dht
+    pin: GPIO4
+    model: DHT22
+    temperature:
+      name: "Temperature"
+      id: temp_sensor
+      on_value:
+        # Notify the temperature characteristic whenever the sensor updates
+        - ble_gatt_server.notify:
+            id: my_gatt
+            uuid: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+            value: !lambda 'return to_string(x);'
+    humidity:
+      name: "Humidity"
+      id: hum_sensor
+      on_value:
+        - ble_gatt_server.notify:
+            id: my_gatt
+            uuid: "BBBBBBBB-BBBB-BBBB-BBBB-BBBBBBBBBBBB"
+            value: !lambda 'return to_string(x);'
+    update_interval: 30s
+
+# =============================================================================
+# Outputs / lights controlled via BLE
+# =============================================================================
+output:
+  - platform: ledc
+    pin: GPIO2
+    id: led_output
+
+light:
+  - platform: monochromatic
+    output: led_output
+    name: "Onboard LED"
+    id: onboard_led
+
+# =============================================================================
+# Optional: time-based automation to push a heartbeat notify
+# =============================================================================
+time:
+  - platform: sntp
+    on_time:
+      - seconds: 0
+        minutes: /1     # every minute
+        then:
+          - ble_gatt_server.notify:
+              id: my_gatt
+              uuid: "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA"
+              value: !lambda 'return to_string(id(temp_sensor).state);'
