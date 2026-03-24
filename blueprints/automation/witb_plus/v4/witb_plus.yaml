@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ (4.2.4)
+  name: WITB+ (4.3.0)
   description: |
-    Version: 4.2.4 — see CHANGELOG.md for full version history.
+    Version: 4.3.0 — see CHANGELOG.md for full version history.
 
     Occupancy inference for a single room using doors, PIR motion, and optional
     mmWave presence. Drives an input_boolean occupancy helper that downstream
@@ -274,6 +274,18 @@ blueprint:
               max: 600
               unit_of_measurement: seconds
               mode: slider
+
+        allow_idle_when_sealed:
+          name: Allow idle when sealed
+          description: >
+            When enabled, the room can go idle (clear occupancy) on motion timeout even
+            if the seal door is currently closed. Use for ACTIVITY rooms (garage, laundry)
+            where motion off reliably means the room is empty regardless of door state.
+            Leave disabled for PRESENCE rooms (bedroom, bathroom, closet) where a closed
+            door may mean someone is still inside and standing still.
+          default: false
+          selector:
+            boolean: {}
 
     controls:
       name: Controls (optional)
@@ -558,6 +570,9 @@ variables:
     {% endif %}
   seconds_since_exit: "{{ now().timestamp() - last_exit_ts }}"
   exit_recent: "{{ exit_enabled and (seconds_since_exit | float) <= (exit_win_s | int) }}"
+  # v4.3.0: Activity rooms (garage, laundry) can idle out even when sealed.
+  # Presence rooms (bedroom, bathroom, closet) leave this false to protect still occupants.
+  idle_when_sealed: !input allow_idle_when_sealed
 
 trigger:
   # ---- Presence signals ----
@@ -1045,8 +1060,9 @@ action:
           # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
           # exit_recent must NOT override this — a sleeping occupant must be protected
           # even when a second person leaves and the door closes behind them.
+          # v4.3.0: allow_idle_when_sealed bypasses the seal guard for activity rooms.
           - condition: template
-            value_template: "{{ not sealed_now_rt }}"
+            value_template: "{{ (not sealed_now_rt) or idle_when_sealed }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
@@ -1109,8 +1125,10 @@ action:
             value_template: "{{ any_transition_open or exit_recent }}"
           # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
           # exit_recent must NOT override this guard.
+          # v4.3.0: allow_idle_when_sealed bypasses the seal guard for activity rooms
+          # (garage, laundry) where motion off reliably means the room is empty.
           - condition: template
-            value_template: "{{ not sealed_now }}"
+            value_template: "{{ (not sealed_now) or idle_when_sealed }}"
           - condition: template
             value_template: "{{ mm_clear_ok }}"
           - action: input_boolean.turn_off
@@ -1175,8 +1193,9 @@ action:
             value_template: "{{ any_transition_open or exit_recent }}"
           # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
           # exit_recent must NOT override this guard.
+          # v4.3.0: allow_idle_when_sealed bypasses the seal guard for activity rooms.
           - condition: template
-            value_template: "{{ not sealed_now }}"
+            value_template: "{{ (not sealed_now) or idle_when_sealed }}"
           - condition: template
             value_template: "{{ is_state(motion, 'off') }}"
           - condition: template
@@ -1276,11 +1295,13 @@ action:
                   - condition: template
                     value_template: "{{ not manual_on }}"
                   # exit_recent can substitute for a currently-open door only.
+                  # v4.3.0: allow_idle_when_sealed also satisfies this condition for activity rooms.
                   - condition: template
-                    value_template: "{{ (not sealed_now) or exit_recent }}"
+                    value_template: "{{ (not sealed_now) or exit_recent or idle_when_sealed }}"
                   # FIX #11 (v4.2.4): Seal door closed ALWAYS blocks clearing.
+                  # v4.3.0: allow_idle_when_sealed bypasses the seal guard for activity rooms.
                   - condition: template
-                    value_template: "{{ not sealed_now }}"
+                    value_template: "{{ (not sealed_now) or idle_when_sealed }}"
                   - condition: template
                     value_template: "{{ is_state(motion, 'off') }}"
                   - condition: template
