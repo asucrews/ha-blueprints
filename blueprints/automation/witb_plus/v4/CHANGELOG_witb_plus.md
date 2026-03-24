@@ -5,6 +5,56 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [4.3.0] — 2026-03-24 — Activity Room Idle Support (`allow_idle_when_sealed`)
+
+### Added
+
+- **`allow_idle_when_sealed` input (boolean, default `false`)** — new input in the
+  `Clearing & Timeouts` section. When `true`, the room is allowed to clear occupancy
+  on motion timeout even if the seal door is currently closed. Designed for **activity
+  rooms** (garage, laundry) where motion off reliably means the room is empty
+  regardless of door state.
+
+  Leave `false` (default) for **presence rooms** (bedroom, bathroom, closet, toilet)
+  where a closed door signals a still occupant and PIR may miss them.
+
+  Recommended per-room settings:
+  | Room | `allow_idle_when_sealed` |
+  |---|---|
+  | Garage | `true` — passing through or working; motion off = gone |
+  | Laundry | `true` — nobody stands still in laundry |
+  | Half Bath | `false` — sealed = privacy, PIR may miss stillness |
+  | Closet | `false` — sealed = someone may be browsing quietly |
+  | Master Bath Toilet | `false` — small sealed space, stillness is normal |
+  | Master Bedroom | `false` — sleeping = zero motion + sealed |
+
+### Fixed
+
+- **BUG: `motion_off_for` never cleared a sealed room with `exit_recent` active.**
+  In `motion_off_for` (block 6), `exit_recent` was correctly satisfying the
+  "door seen open" condition but a subsequent unconditional `not sealed_now` check
+  was blocking the clear — even though the door had already closed behind the
+  departing person. This caused rooms like the garage to stay occupied indefinitely
+  after a normal exit until the failsafe fired (up to 2 hours). Fixed by replacing
+  the bare `not sealed_now` guard with `(not sealed_now) or idle_when_sealed` across
+  all four clearing paths.
+
+### Changed
+
+- **All four clearing paths updated** to respect `idle_when_sealed`:
+  - `motion_off_for` (block 6) — `not sealed_now` → `(not sealed_now) or idle_when_sealed`
+  - `exit_eval_done` (block 5b) — same, on `sealed_now_rt`
+  - `mmwave_off_for` (block 6b) — same
+  - Failsafe Condition A (block 8) — both the `exit_recent` substitute check and the
+    unconditional seal guard updated
+
+### No package template changes
+
+- `allow_idle_when_sealed` is a blueprint input set in the automation UI, not a
+  runtime helper. No new package helpers are required.
+
+---
+
 ## [4.2.4] — 2026-03-09 — Seal Door Guard Hardening
 
 ### Fixed

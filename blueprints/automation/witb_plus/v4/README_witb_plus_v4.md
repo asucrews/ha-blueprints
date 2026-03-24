@@ -21,7 +21,10 @@ Core behavior:
 - event-driven occupancy inference (no polling loop),
 - optional entry window gating,
 - optional failsafe timer behavior,
-- optional per-room control helpers (`automation_override`, `force_occupied`, `manual_occupied`).
+- optional per-room control helpers (`automation_override`, `force_occupied`, `manual_occupied`),
+- `allow_idle_when_sealed` — activity rooms (garage, laundry) can idle out on motion
+  timeout even when the seal door is closed; presence rooms (bedroom, bathroom, closet)
+  leave this `false` to protect still or sleeping occupants.
 
 Create automations from this blueprint in the Home Assistant UI.
 
