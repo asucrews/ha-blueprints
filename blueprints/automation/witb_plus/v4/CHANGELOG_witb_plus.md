@@ -5,6 +5,59 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [4.4.0] — 2026-03-25 — Enum Door Sensor Support
+
+### Added
+
+- **Dual door sensor type support** — `seal_door` and `transition_doors` inputs now
+  accept both the classic `binary_sensor` (device_class: door, `on`/`off`) and the
+  new HA `sensor` enum type (device_class: enum, states: `Open` / `Tilted` / `Closed`).
+
+  Mapping used throughout the blueprint:
+  | Sensor type | Closed | Open / Tilted |
+  |---|---|---|
+  | `binary_sensor` | `off` | `on` |
+  | `sensor` (enum) | `Closed` | `Open` or `Tilted` |
+
+  `Tilted` is treated as open everywhere — a tilted door is not sealed, so occupancy
+  clearing is not blocked and the door-open exit path fires normally.
+
+### Changed
+
+- **Input selectors updated** — `seal_door` and `transition_doors` now use `filter:`
+  with two entries (`binary_sensor / device_class: door` and `sensor / device_class: enum`)
+  so both sensor types appear in the entity picker.
+
+- **13 state-check locations updated** across the blueprint:
+  - Top-level `variables:` — `sealed_now` and `any_transition_open`
+  - Block 1 (latch sync action template)
+  - Block 1c (exit mark `trigger.to_state.state` check)
+  - Block 2 (force_occupied latch condition)
+  - Block 3 (manual_occupied latch condition)
+  - Block 4 (motion_on — entry gating seal check + latch condition)
+  - Block 4b (mmwave_on — entry gating seal check + latch condition)
+  - Block 5 (door-open exit timer start — `trigger.to_state.state` check)
+  - Block 5b runtime recompute — `sealed_now_rt` and `any_transition_open_rt`
+
+  Pattern used everywhere:
+  ```jinja
+  {# sealed (door closed) #}
+  states(seal) in ['off', 'Closed']
+
+  {# open (door open or tilted) #}
+  states(d) in ['on', 'Open', 'Tilted']
+
+  {# trigger fired on door opening #}
+  trigger.to_state.state in ['on', 'Open', 'Tilted']
+  ```
+
+### No package template changes
+
+- Door sensor type is an automation input concern only. Package helpers
+  (`input_boolean`, `input_datetime`, `timer`, template sensors) are unaffected.
+
+---
+
 ## [4.3.0] — 2026-03-24 — Activity Room Idle Support (`allow_idle_when_sealed`)
 
 ### Added

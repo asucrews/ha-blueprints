@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ (4.3.0)
+  name: WITB+ (4.4.0)
   description: |
-    Version: 4.3.0 — see CHANGELOG.md for full version history.
+    Version: 4.4.0 — see CHANGELOG.md for full version history.
 
     Occupancy inference for a single room using doors, PIR motion, and optional
     mmWave presence. Drives an input_boolean occupancy helper that downstream
@@ -74,20 +74,34 @@ blueprint:
           description: >
             The room's MAIN door used for "sealed" semantics (failsafe / still-occupant protection).
             Sealed means this door is CLOSED. This door does NOT have to be the only transition door.
+
+            Supports both sensor types:
+              - binary_sensor (device_class: door): on = open, off = closed
+              - sensor (device_class: enum): "Open"/"Tilted" = open, "Closed" = closed
           selector:
             entity:
-              domain: binary_sensor
-              device_class: door
+              filter:
+                - domain: binary_sensor
+                  device_class: door
+                - domain: sensor
+                  device_class: enum
 
         transition_doors:
           name: Transition Doors (1+)
           description: >
             Doors that represent leaving/entering this room's zone (movement/transition semantics).
             Select one or more. Include the seal door here if it is also a transition door.
+
+            Supports both sensor types:
+              - binary_sensor (device_class: door): on = open, off = closed
+              - sensor (device_class: enum): "Open"/"Tilted" = open, "Closed" = closed
           selector:
             entity:
-              domain: binary_sensor
-              device_class: door
+              filter:
+                - domain: binary_sensor
+                  device_class: door
+                - domain: sensor
+                  device_class: enum
               multiple: true
 
         motion_sensor:
@@ -467,12 +481,15 @@ variables:
   fs_min: "{{ states(failsafe_timeout_input) | int(180) }}"
 
   # Door semantics
-  sealed_now: "{{ is_state(seal, 'off') }}"
+  # v4.4.0: supports both binary_sensor (on/off) and sensor enum (Open/Tilted/Closed).
+  # door open  = binary_sensor 'on'  OR sensor state in ['Open', 'Tilted']
+  # door closed = binary_sensor 'off' OR sensor state == 'Closed'
+  sealed_now: "{{ states(seal) in ['off', 'Closed'] }}"
   any_transition_open: >-
     {% set ds = doors if doors is not string else [doors] %}
     {% set ns = namespace(open=false) %}
     {% for d in ds %}
-      {% if is_state(d, 'on') %}
+      {% if states(d) in ['on', 'Open', 'Tilted'] %}
         {% set ns.open = true %}
       {% endif %}
     {% endfor %}
@@ -683,7 +700,7 @@ action:
             value_template: "{{ latch_enabled }}"
         sequence:
           - action: >-
-              input_boolean.{{ 'turn_on' if is_state(seal, 'off') and is_state(occ, 'on') else 'turn_off' }}
+              input_boolean.{{ 'turn_on' if states(seal) in ['off', 'Closed'] and is_state(occ, 'on') else 'turn_off' }}
             target:
               entity_id: !input latched_helper
     default: []
@@ -713,7 +730,7 @@ action:
           - condition: template
             value_template: >-
               {{ trigger.id in ['transition_change','seal_change']
-                 and trigger.to_state.state == 'on'
+                 and trigger.to_state.state in ['on', 'Open', 'Tilted']
                  and exit_enabled }}
           - condition: state
             entity_id: !input occupancy_helper
@@ -750,7 +767,7 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ latch_enabled and is_state(seal, 'off') }}"
+                    value_template: "{{ latch_enabled and states(seal) in ['off', 'Closed'] }}"
                 sequence:
                   - action: input_boolean.turn_on
                     target:
@@ -794,7 +811,7 @@ action:
           - choose:
               - conditions:
                   - condition: template
-                    value_template: "{{ latch_enabled and is_state(seal, 'off') }}"
+                    value_template: "{{ latch_enabled and states(seal) in ['off', 'Closed'] }}"
                 sequence:
                   - action: input_boolean.turn_on
                     target:
@@ -829,7 +846,7 @@ action:
                       {% if not require_door %}
                         true
                       {% else %}
-                        {{ is_state(seal,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
+                        {{ states(seal) in ['off', 'Closed'] or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
                       {% endif %}
                 sequence:
                   - action: input_boolean.turn_on
@@ -843,7 +860,7 @@ action:
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ latch_enabled and is_state(seal,'off') }}"
+                            value_template: "{{ latch_enabled and states(seal) in ['off', 'Closed'] }}"
                         sequence:
                           - action: input_boolean.turn_on
                             target:
@@ -889,7 +906,7 @@ action:
                               {% if not require_door %}
                                 true
                               {% else %}
-                                {{ is_state(seal,'off') or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
+                                {{ states(seal) in ['off', 'Closed'] or (seconds_since_door <= (entry_s | int)) or is_state(occ,'on') }}
                               {% endif %}
                         sequence:
                           - action: input_boolean.turn_on
@@ -913,7 +930,7 @@ action:
                   - choose:
                       - conditions:
                           - condition: template
-                            value_template: "{{ latch_enabled and is_state(seal,'off') }}"
+                            value_template: "{{ latch_enabled and states(seal) in ['off', 'Closed'] }}"
                         sequence:
                           - action: input_boolean.turn_on
                             target:
@@ -961,7 +978,7 @@ action:
           - condition: template
             value_template: >-
               {{ trigger.id in ['transition_change','seal_change']
-                 and trigger.to_state.state == 'on' }}
+                 and trigger.to_state.state in ['on', 'Open', 'Tilted'] }}
           - condition: state
             entity_id: !input occupancy_helper
             state: "on"
@@ -992,12 +1009,13 @@ action:
         sequence:
           # Recompute all relevant state NOW (after the timer delay).
           - variables:
-              sealed_now_rt: "{{ is_state(seal, 'off') }}"
+              # v4.4.0: supports binary_sensor (off/on) and sensor enum (Closed/Open/Tilted)
+              sealed_now_rt: "{{ states(seal) in ['off', 'Closed'] }}"
               any_transition_open_rt: >-
                 {% set ds = doors if doors is not string else [doors] %}
                 {% set ns = namespace(open=false) %}
                 {% for d in ds %}
-                  {% if is_state(d, 'on') %}
+                  {% if states(d) in ['on', 'Open', 'Tilted'] %}
                     {% set ns.open = true %}
                   {% endif %}
                 {% endfor %}
