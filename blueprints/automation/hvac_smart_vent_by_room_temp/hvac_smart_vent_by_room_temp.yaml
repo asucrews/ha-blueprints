@@ -1,11 +1,27 @@
 blueprint:
   name: HVAC Smart Vent by Room Temperature
   description: >
-    Controls a room vent based on the actual HVAC action from a thermostat
-    and the room temperature. Designed for Ecobee Auto mode where the
-    thermostat may switch between heating, cooling, and idle.
+    Controls a room smart vent based on the actual HVAC action from a thermostat
+    and the room temperature.
 
-    Idle does nothing and preserves the current vent state.
+    Designed for Ecobee Auto mode where the thermostat may switch between
+    heating, cooling, and idle.
+
+    Logic:
+      Cooling:
+        - Open vent if room temperature is at or above cooling_open_temp.
+        - Close vent if room temperature is at or below cooling_close_temp.
+
+      Heating:
+        - Open vent if room temperature is at or below heating_open_temp.
+        - Close vent if room temperature is at or above heating_close_temp.
+
+      Idle:
+        - Do nothing. The vent stays in its current position.
+
+    This version controls the vent using cover.set_cover_tilt_position:
+      - 100 = fully open
+      - 0 = fully closed
 
   domain: automation
 
@@ -26,7 +42,7 @@ blueprint:
 
     vent_cover:
       name: Smart Vent
-      description: Vent cover entity to open or close.
+      description: Flair smart vent cover entity.
       selector:
         entity:
           domain: cover
@@ -101,7 +117,7 @@ variables:
   hvac_action: "{{ state_attr(climate_entity, 'hvac_action') }}"
   room_temp_raw: "{{ states(room_temperature_sensor) }}"
   room_temp: "{{ room_temp_raw | float(0) }}"
-  vent_state: "{{ states(vent_cover) }}"
+  vent_tilt: "{{ state_attr(vent_cover, 'current_tilt_position') | int(-1) }}"
 
 condition:
   - condition: template
@@ -110,50 +126,66 @@ condition:
 
 action:
   - choose:
-      # Cooling: room is warm, open vent
+      # ======================================================================
+      # COOLING: Room is warm, open vent
+      # ======================================================================
       - conditions:
           - condition: template
             value_template: >
               {{ hvac_action == 'cooling'
                  and room_temp >= cooling_open_temp
-                 and vent_state != 'open' }}
+                 and vent_tilt < 100 }}
         sequence:
-          - service: cover.open_cover_tilt
+          - action: cover.set_cover_tilt_position
             target:
               entity_id: !input vent_cover
+            data:
+              tilt_position: 100
 
-      # Cooling: room is cool enough, close vent
+      # ======================================================================
+      # COOLING: Room is cool enough, close vent
+      # ======================================================================
       - conditions:
           - condition: template
             value_template: >
               {{ hvac_action == 'cooling'
                  and room_temp <= cooling_close_temp
-                 and vent_state != 'closed' }}
+                 and vent_tilt > 0 }}
         sequence:
-          - service: cover.close_cover_tilt
+          - action: cover.set_cover_tilt_position
             target:
               entity_id: !input vent_cover
+            data:
+              tilt_position: 0
 
-      # Heating: room is cold, open vent
+      # ======================================================================
+      # HEATING: Room is cold, open vent
+      # ======================================================================
       - conditions:
           - condition: template
             value_template: >
               {{ hvac_action == 'heating'
                  and room_temp <= heating_open_temp
-                 and vent_state != 'open' }}
+                 and vent_tilt < 100 }}
         sequence:
-          - service: cover.open_cover_tilt
+          - action: cover.set_cover_tilt_position
             target:
               entity_id: !input vent_cover
+            data:
+              tilt_position: 100
 
-      # Heating: room is warm enough, close vent
+      # ======================================================================
+      # HEATING: Room is warm enough, close vent
+      # ======================================================================
       - conditions:
           - condition: template
             value_template: >
               {{ hvac_action == 'heating'
                  and room_temp >= heating_close_temp
-                 and vent_state != 'closed' }}
+                 and vent_tilt > 0 }}
         sequence:
-          - service: cover.close_cover_tilt
+          - action: cover.set_cover_tilt_position
             target:
               entity_id: !input vent_cover
+            data:
+              tilt_position: 0
