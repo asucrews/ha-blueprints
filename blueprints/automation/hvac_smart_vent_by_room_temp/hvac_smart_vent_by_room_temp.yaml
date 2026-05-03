@@ -1,0 +1,159 @@
+blueprint:
+  name: HVAC Smart Vent by Room Temperature
+  description: >
+    Controls a room vent based on the actual HVAC action from a thermostat
+    and the room temperature. Designed for Ecobee Auto mode where the
+    thermostat may switch between heating, cooling, and idle.
+
+    Idle does nothing and preserves the current vent state.
+
+  domain: automation
+
+  input:
+    climate_entity:
+      name: Thermostat
+      description: Thermostat climate entity, such as Ecobee.
+      selector:
+        entity:
+          domain: climate
+
+    room_temperature_sensor:
+      name: Room Temperature Sensor
+      description: Temperature sensor for this room.
+      selector:
+        entity:
+          domain: sensor
+
+    vent_cover:
+      name: Smart Vent
+      description: Vent cover entity to open or close.
+      selector:
+        entity:
+          domain: cover
+
+    cooling_close_temp:
+      name: Cooling - Close Vent At Or Below
+      default: 77.5
+      selector:
+        number:
+          min: 60
+          max: 90
+          step: 0.5
+          unit_of_measurement: "°F"
+          mode: box
+
+    cooling_open_temp:
+      name: Cooling - Open Vent At Or Above
+      default: 78.5
+      selector:
+        number:
+          min: 60
+          max: 90
+          step: 0.5
+          unit_of_measurement: "°F"
+          mode: box
+
+    heating_open_temp:
+      name: Heating - Open Vent At Or Below
+      default: 70.5
+      selector:
+        number:
+          min: 50
+          max: 80
+          step: 0.5
+          unit_of_measurement: "°F"
+          mode: box
+
+    heating_close_temp:
+      name: Heating - Close Vent At Or Above
+      default: 71.5
+      selector:
+        number:
+          min: 50
+          max: 80
+          step: 0.5
+          unit_of_measurement: "°F"
+          mode: box
+
+mode: restart
+
+trigger:
+  - platform: state
+    entity_id: !input climate_entity
+    attribute: hvac_action
+
+  - platform: state
+    entity_id: !input room_temperature_sensor
+
+  - platform: homeassistant
+    event: start
+
+variables:
+  climate_entity: !input climate_entity
+  room_temperature_sensor: !input room_temperature_sensor
+  vent_cover: !input vent_cover
+
+  cooling_close_temp: !input cooling_close_temp
+  cooling_open_temp: !input cooling_open_temp
+  heating_open_temp: !input heating_open_temp
+  heating_close_temp: !input heating_close_temp
+
+  hvac_action: "{{ state_attr(climate_entity, 'hvac_action') }}"
+  room_temp_raw: "{{ states(room_temperature_sensor) }}"
+  room_temp: "{{ room_temp_raw | float(0) }}"
+  vent_state: "{{ states(vent_cover) }}"
+
+condition:
+  - condition: template
+    value_template: >
+      {{ room_temp_raw not in ['unknown', 'unavailable', 'none', ''] }}
+
+action:
+  - choose:
+      # Cooling: room is warm, open vent
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ hvac_action == 'cooling'
+                 and room_temp >= cooling_open_temp
+                 and vent_state != 'open' }}
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input vent_cover
+
+      # Cooling: room is cool enough, close vent
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ hvac_action == 'cooling'
+                 and room_temp <= cooling_close_temp
+                 and vent_state != 'closed' }}
+        sequence:
+          - service: cover.close_cover
+            target:
+              entity_id: !input vent_cover
+
+      # Heating: room is cold, open vent
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ hvac_action == 'heating'
+                 and room_temp <= heating_open_temp
+                 and vent_state != 'open' }}
+        sequence:
+          - service: cover.open_cover
+            target:
+              entity_id: !input vent_cover
+
+      # Heating: room is warm enough, close vent
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ hvac_action == 'heating'
+                 and room_temp >= heating_close_temp
+                 and vent_state != 'closed' }}
+        sequence:
+          - service: cover.close_cover
+            target:
+              entity_id: !input vent_cover
