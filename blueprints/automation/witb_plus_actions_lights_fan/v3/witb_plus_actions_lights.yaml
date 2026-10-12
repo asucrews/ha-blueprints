@@ -639,7 +639,7 @@ actions:
                     data:
                       duration: !input cooldown_duration
 
-# ==========================================================================
+      # ==========================================================================
       # VACANT -> LIGHTS OFF
       # ==========================================================================
       - conditions:
@@ -656,7 +656,7 @@ actions:
                     value_template: "{{ lights_control_enabled and tag_lights_ok_to_off }}"
                 sequence:
                   - choose:
-                      # --- If lights are ALREADY off, do not soft-off; just clear tag & timers ---
+                      # --- If lights are ALREADY off, do not soft-off; clean up tag & timers ---
                       - conditions:
                           - condition: template
                             value_template: "{{ not any_light_on }}"
@@ -669,6 +669,25 @@ actions:
                                   - action: input_boolean.turn_off
                                     target:
                                       entity_id: "{{ auto_tag_lights }}"
+                            default: []
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ soft_off_t != '' }}"
+                                sequence:
+                                  - action: timer.cancel
+                                    target:
+                                      entity_id: "{{ soft_off_t }}"
+                            default: []
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ lights_verify_t != '' }}"
+                                sequence:
+                                  - action: timer.cancel
+                                    target:
+                                      entity_id: "{{ lights_verify_t }}"
+                            default: []
 
                       # --- Soft-off path (ONLY if lights are currently ON) ---
                       - conditions:
@@ -710,7 +729,7 @@ actions:
                                     data:
                                       transition: !input transition_off
 
-                          # Start verify timer or clear tag immediately.
+                          # Start verify timer or clear tag immediately
                           - choose:
                               - conditions:
                                   - condition: template
@@ -744,6 +763,7 @@ actions:
                                           - action: input_boolean.turn_off
                                             target:
                                               entity_id: "{{ auto_tag_lights }}"
+                                    default: []
             default: []
 
       # ==========================================================================
@@ -813,7 +833,7 @@ actions:
                           - action: input_boolean.turn_off
                             target:
                               entity_id: "{{ auto_tag_lights }}"
-            default: []
+                    default: []
 
       # ==========================================================================
       # LIGHTS VERIFY DONE -> CHECK / RETRY / EXHAUST
@@ -939,9 +959,6 @@ actions:
 
       # ==========================================================================
       # STARTUP — VALIDATION + CLEANUP
-      # Validation fires immediately (before cleanup delay) to surface config
-      # issues as persistent notifications on every HA restart.
-      # Cleanup runs after startup_cleanup_delay + 15 s double-tap.
       # ==========================================================================
       - conditions:
           - condition: trigger
