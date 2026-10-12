@@ -5,7 +5,7 @@ blueprint:
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights/v3/witb_plus_actions_lights.yaml
   name: V3 WITB+ Actions - Lights (3.0.2)
   description: |
-    Version: 3.0.1 — see CHANGELOG.md for full version history.
+    Version: 3.0.2 — see CHANGELOG.md for full version history.
 
     Lights-only action orchestrator for a WITB+ room. Identical to the
     Lights + Fan blueprint but with all fan inputs and logic removed.
