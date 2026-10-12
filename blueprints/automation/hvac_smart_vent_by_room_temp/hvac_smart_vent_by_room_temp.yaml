@@ -117,7 +117,22 @@ variables:
   hvac_action: "{{ state_attr(climate_entity, 'hvac_action') }}"
   room_temp_raw: "{{ states(room_temperature_sensor) }}"
   room_temp: "{{ room_temp_raw | float(0) }}"
-  vent_tilt: "{{ state_attr(vent_cover, 'current_tilt_position') | int(-1) }}"
+
+  # Check tilt first, fall back to standard position, or infer from state
+  vent_tilt: >-
+    {% set tilt = state_attr(vent_cover, 'current_tilt_position') %}
+    {% set pos = state_attr(vent_cover, 'current_position') %}
+    {% if tilt is not none %}
+      {{ tilt | int(0) }}
+    {% elif pos is not none %}
+      {{ pos | int(0) }}
+    {% elif is_state(vent_cover, 'open') %}
+      100
+    {% else %}
+      0
+    {% endif %}
+  is_open: "{{ is_state(vent_cover, 'open') or vent_tilt > 0 }}"
+  is_fully_open: "{{ vent_tilt >= 100 }}"
 
 condition:
   - condition: template
@@ -133,8 +148,8 @@ action:
           - condition: template
             value_template: >
               {{ hvac_action == 'cooling'
-                 and room_temp >= cooling_open_temp
-                 and vent_tilt < 100 }}
+                  and room_temp >= cooling_open_temp
+                  and not is_fully_open }}
         sequence:
           - action: cover.set_cover_tilt_position
             target:
@@ -149,8 +164,8 @@ action:
           - condition: template
             value_template: >
               {{ hvac_action == 'cooling'
-                 and room_temp <= cooling_close_temp
-                 and vent_tilt > 0 }}
+                  and room_temp <= cooling_close_temp
+                  and is_open }}
         sequence:
           - action: cover.set_cover_tilt_position
             target:
@@ -165,8 +180,8 @@ action:
           - condition: template
             value_template: >
               {{ hvac_action == 'heating'
-                 and room_temp <= heating_open_temp
-                 and vent_tilt < 100 }}
+                  and room_temp <= heating_open_temp
+                  and not is_fully_open }}
         sequence:
           - action: cover.set_cover_tilt_position
             target:
@@ -181,8 +196,8 @@ action:
           - condition: template
             value_template: >
               {{ hvac_action == 'heating'
-                 and room_temp >= heating_close_temp
-                 and vent_tilt > 0 }}
+                  and room_temp >= heating_close_temp
+                  and is_open }}
         sequence:
           - action: cover.set_cover_tilt_position
             target:
