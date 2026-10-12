@@ -639,10 +639,8 @@ actions:
                     data:
                       duration: !input cooldown_duration
 
-      # ==========================================================================
+# ==========================================================================
       # VACANT -> LIGHTS OFF
-      # Fires after lights_off_delay. Starts soft-off dim+timer, OR turns lights
-      # off directly and starts the verify timer.
       # ==========================================================================
       - conditions:
           - condition: trigger
@@ -658,10 +656,24 @@ actions:
                     value_template: "{{ lights_control_enabled and tag_lights_ok_to_off }}"
                 sequence:
                   - choose:
-                      # --- Soft-off path ---
+                      # --- If lights are ALREADY off, do not soft-off; just clear tag & timers ---
                       - conditions:
                           - condition: template
-                            value_template: "{{ lights_soft_off_enabled and (lights | length > 0) and soft_off_t != '' }}"
+                            value_template: "{{ not any_light_on }}"
+                        sequence:
+                          - choose:
+                              - conditions:
+                                  - condition: template
+                                    value_template: "{{ auto_tag_lights != '' }}"
+                                sequence:
+                                  - action: input_boolean.turn_off
+                                    target:
+                                      entity_id: "{{ auto_tag_lights }}"
+
+                      # --- Soft-off path (ONLY if lights are currently ON) ---
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ any_light_on and lights_soft_off_enabled and (lights | length > 0) and soft_off_t != '' }}"
                         sequence:
                           - action: light.turn_on
                             target:
@@ -678,7 +690,7 @@ actions:
                       # --- Direct-off path ---
                       - conditions:
                           - condition: template
-                            value_template: "{{ true }}"
+                            value_template: "{{ any_light_on }}"
                         sequence:
                           - choose:
                               - conditions:
