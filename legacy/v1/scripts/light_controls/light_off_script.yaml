@@ -9,7 +9,7 @@ blueprint:
   domain: script
   homeassistant:
     min_version: 2024.8.0
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/scripts/light_controls/light_off_script.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/script/witb_switch_light_profiles/v1/witb_lights_on_hook_vzw31sn.yaml
   author: Jeremy Crews
 
   input:
