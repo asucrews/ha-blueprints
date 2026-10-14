@@ -96,7 +96,7 @@ blueprint:
         cover_blind:
           name: Blind or Blind Group
           description: <br/>
-          default: cover.none
+          default: ''
           selector:
             entity:
               domain:
@@ -105,7 +105,7 @@ blueprint:
         cover_curtain:
           name: Curtain or Curtain group
           description: <br/>
-          default: cover.none
+          default: ''
           selector:
             entity:
               domain:
@@ -168,9 +168,13 @@ action:
           - condition: or
             conditions:
               - condition: template
-                value_template: "{{ cover_blind != 'cover.none' and is_state(cover_blind, 'close') }}"
+                value_template: >-
+                  {{ cover_blind | default('', true) | length > 0 
+                     and is_state(cover_blind, 'closed') }}
               - condition: template
-                value_template: "{{ cover_curtain != 'cover.none' and is_state(cover_curtain, 'close') }}"
+                value_template: >-
+                  {{ cover_curtain | default('', true) | length > 0 
+                     and is_state(cover_curtain, 'closed') }}
         then:
           - choose:
               - conditions:
