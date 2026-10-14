@@ -1545,8 +1545,8 @@ actions:
               _room_id: >-
                 {{ occ | replace('binary_sensor.', '') | replace('_occupied_effective', '') }}
               _issues: >-
-  {% set ns = namespace(items=[]) %}
-  {% if lights_soft_off_enabled and soft_off_t == '' %}
-    {% set ns.items = ns.items + ['lights_soft_off_enabled is true but soft_off_timer is not configured (soft-off will be skipped)'] %}
-  {% endif %}
-  {{ ns.items | join('\n• ') }}
+                {% set ns = namespace(items=[]) %}
+                {% if lights_soft_off_enabled and soft_off_t == '' %}
+                  {% set ns.items = ns.items + ['lights_soft_off_enabled is true but soft_off_timer is not configured (soft-off will be skipped)'] %}
+                {% endif %}
+                {{ ns.items | join('\n• ') }}
