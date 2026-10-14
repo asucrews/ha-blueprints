@@ -1,4 +1,4 @@
-loopblueprint:
+blueprint:
   homeassistant:
     min_version: 2026.3.0
   domain: automation
