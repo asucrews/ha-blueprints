@@ -1,10 +1,11 @@
 blueprint:
-  name: Turn Light Off Script (2.0.1)
+  name: Turn Light Off Script (2.0.2)
   description: >
     Smart script to turn off lights based on automation bypass and device availability.
     If 'automation_bypass' is ON, all automation logic is skipped and the lights are not affected by the automation.
     If OFF, the script checks if any lights in 'lights_to_check' are unavailable for over 1 minute, and if so,
-    sets a Z-Wave parameter before turning off the specified switch.
+    optionally sets a Z-Wave parameter (disables Smart Bulb Mode) before turning off the specified switch,
+    then re-enables Smart Bulb Mode.
   domain: script
   homeassistant:
     min_version: 2024.8.0
@@ -13,10 +14,11 @@ blueprint:
 
   input:
     automation_bypass:
-      name: Automation Bypass
+      name: Automation Bypass (optional)
       description: >
-        When ON, bypasses availability checks and disables automation logic,
-        allowing lights to be turned off directly without evaluating device conditions.
+        When ON, bypasses availability checks and disables automation logic.
+        Leave blank if you do not use a bypass helper.
+      default: ''
       selector:
         entity:
           domain:
@@ -33,17 +35,20 @@ blueprint:
           multiple: true
 
     light_switch:
-      name: Light Switch
-      default: []
+      name: Light Switch (optional)
+      description: The physical wall switch/dimmer to turn off when bulbs are unavailable.
+      default: {}
       selector:
         target:
           entity:
             - domain:
                 - light
+                - switch
 
     light_group:
       name: Light Group
-      default: []
+      description: The smart bulb group/entities to turn off under normal operation.
+      default: {}
       selector:
         target:
           entity:
@@ -51,78 +56,126 @@ blueprint:
                 - light
 
     fan:
-      name: Fan
-      default: []
+      name: Fan (optional)
+      default: {}
       selector:
         target:
           entity:
             - domain:
                 - fan
                 - light
+                - switch
 
     zwave_switch:
-      name: Z-Wave Device ID
-      description: Device ID for setting Z-Wave parameters
-      default: []
+      name: Z-Wave Device ID (optional)
+      description: >
+        Optional Z-Wave device (e.g., Inovelli VZW31-SN) to toggle Smart Bulb Mode (Parameter 52)
+        when bulbs are unavailable for over 1 minute.
+      default: ''
       selector:
         device:
           filter:
             - integration: zwave_js
           multiple: false
 
+    smart_bulb_mode_param:
+      name: Smart Bulb Mode Parameter (optional)
+      description: Z-Wave parameter number for Smart Bulb Mode (52 for Inovelli VZW31-SN).
+      default: 52
+      selector:
+        number:
+          min: 1
+          max: 255
+          mode: box
+
 variables:
+  automation_bypass: !input automation_bypass
+  lights_to_check: !input lights_to_check
   light_switch: !input light_switch
   light_group: !input light_group
   fan_switch: !input fan
   zwave_switch: !input zwave_switch
-  light_switch_entity_id: "{{ light_switch.entity_id if 'entity_id' in light_switch else 'light.none' }}"
-  light_group_entity_id: "{{ light_group.entity_id if 'entity_id' in light_group else 'light.none' }}"
-  fan_entity_id: "{{ fan_switch.entity_id if 'entity_id' in fan_switch else 'fan.none' }}"
+  smart_bulb_mode_param: !input smart_bulb_mode_param
+
+  # Normalize optional Z-Wave device ID
+  _zwave_device_id: "{{ zwave_switch if zwave_switch is string else '' }}"
+
+  # Check if bypass is OFF (or not configured)
+  _bypass_off: >-
+    {{ (automation_bypass | default('', true) | length == 0)
+       or is_state(automation_bypass, 'off') }}
+
+  # Check if any light in lights_to_check has been 'unavailable' for > 60 seconds
+  unavailable_detected: >-
+    {% set ns = namespace(found=false) %}
+    {% for light_id in lights_to_check | default([], true) %}
+      {% if states[light_id] is not none
+            and is_state(light_id, 'unavailable')
+            and (now() - states[light_id].last_changed).total_seconds() > 60 %}
+        {% set ns.found = true %}
+      {% endif %}
+    {% endfor %}
+    {{ ns.found }}
 
 sequence:
-  - variables:
-      unavailable_detected: false
-
-  - repeat:
-      for_each: !input lights_to_check
-      sequence:
-        - condition: template
-          value_template: >
-            {{ is_state(repeat.item, 'unavailable') and
-               (now() - states[repeat.item].last_changed).total_seconds() > 60 }}
-        - variables:
-            unavailable_detected: true
+  - condition: template
+    value_template: "{{ _bypass_off }}"
 
   - choose:
+      # BRANCH 1: Unavailable bulb(s) detected for > 60s
       - conditions:
-          - condition: state
-            entity_id: !input automation_bypass
-            state: "off"
+          - condition: template
+            value_template: "{{ unavailable_detected }}"
         sequence:
-          - choose:
-              - conditions:
-                  - condition: template
-                    value_template: "{{ unavailable_detected }}"
-                sequence:
-                  - service: light.turn_off
-                    target:
-                      entity_id: "{{ light_group_entity_id }}"
-                  - if:
-                      - condition: template
-                        value_template: "{{ fan_switch | length > 0 }}"
-                    then:
-                      - service: homeassistant.turn_off
-                        target:
-                          entity_id: "{{ fan_entity_id }}"
-
-            default:
-              - service: light.turn_off
+          # 1. If optional Z-Wave device is provided, disable Smart Bulb Mode (Param 52 = 0)
+          - if:
+              - condition: template
+                value_template: "{{ _zwave_device_id | length > 0 }}"
+            then:
+              - action: zwave_js.set_config_parameter
                 target:
-                  entity_id: "{{ light_group_entity_id }}"
-              - if:
-                  - condition: template
-                    value_template: "{{ fan_switch | length > 0 }}"
-                then:
-                  - service: homeassistant.turn_off
-                    target:
-                      entity_id: "{{ fan_entity_id }}"
+                  device_id: "{{ _zwave_device_id }}"
+                data:
+                  parameter: "{{ smart_bulb_mode_param | int(52) }}"
+                  value: 0
+                continue_on_error: true
+
+          # 2. Turn off the physical switch (if configured)
+          - if:
+              - condition: template
+                value_template: "{{ light_switch is mapping and (light_switch | length > 0) }}"
+            then:
+              - action: homeassistant.turn_off
+                target: "{{ light_switch }}"
+
+          # 3. Also attempt to turn off the light group (in case only some bulbs were unavailable)
+          - if:
+              - condition: template
+                value_template: "{{ light_group is mapping and (light_group | length > 0) }}"
+            then:
+              - action: light.turn_off
+                target: "{{ light_group }}"
+
+          # 4. Turn off fan (if configured)
+          - if:
+              - condition: template
+                value_template: "{{ fan_switch is mapping and (fan_switch | length > 0) }}"
+            then:
+              - action: homeassistant.turn_off
+                target: "{{ fan_switch }}"
+
+    # BRANCH 2: Normal operation (all bulbs available)
+    default:
+      - if:
+          - condition: template
+            value_template: "{{ light_group is mapping and (light_group | length > 0) }}"
+        then:
+          - action: light.turn_off
+            target: "{{ light_group }}"
+
+      - if:
+          - condition: template
+            value_template: "{{ fan_switch is mapping and (fan_switch | length > 0) }}"
+        then:
+          - action: homeassistant.turn_off
+            target: "{{ fan_switch }}"
