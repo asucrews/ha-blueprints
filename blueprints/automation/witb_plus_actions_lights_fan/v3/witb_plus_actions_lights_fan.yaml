@@ -1604,6 +1604,9 @@ actions:
 
       # ==========================================================================
       # STARTUP — VALIDATION + CLEANUP
+      # Validation fires immediately (before cleanup delay) to surface config
+      # issues as persistent notifications on every HA restart.
+      # Cleanup runs after startup_cleanup_delay + 15 s double-tap.
       # ==========================================================================
       - conditions:
           - condition: trigger
@@ -1620,4 +1623,101 @@ actions:
                 {% if lights_soft_off_enabled and soft_off_t == '' %}
                   {% set ns.items = ns.items + ['lights_soft_off_enabled is true but soft_off_timer is not configured (soft-off will be skipped)'] %}
                 {% endif %}
+                {% if lights_off_verify_enabled and lights_verify_t == '' %}
+                  {% set ns.items = ns.items + ['lights_off_verify_enabled is true but lights_verify_timer is not configured (verify will be skipped)'] %}
+                {% endif %}
+                {% if (lights_off_verify_retries | int(0)) > 0 and lights_verify_attempts == '' %}
+                  {% set ns.items = ns.items + ['lights_off_verify_retries > 0 but lights_verify_attempts_helper is not configured (single check only, no retries)'] %}
+                {% endif %}
+                {% if fan_turn_on_on_occupy and (fan_on_delay_seconds | float(0)) > 0 and fan_on_delay_t == '' %}
+                  {% set ns.items = ns.items + ['fan_on_delay > 0 but fan_on_delay_timer is not configured (on-delay will be skipped, fan turns on immediately)'] %}
+                {% endif %}
+                {% if (fan_turn_on_on_occupy or fan_turn_off_on_vacant) and fan_entity == '' and (fan_switches | length == 0) %}
+                  {% set ns.items = ns.items + ['fan_turn_on_on_occupy or fan_turn_off_on_vacant is true but no fan_entity or fan_switches configured (fan actions are no-ops)'] %}
+                {% endif %}
                 {{ ns.items | join('\n• ') }}
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ _issues | length > 0 }}"
+                sequence:
+                  - action: persistent_notification.create
+                    data:
+                      title: "WITB+ Actions: Config Warning [{{ _room_id }}]"
+                      message: "• {{ _issues }}"
+                      notification_id: "witb_actions_config_{{ _room_id }}"
+            default: []
+
+          # ---- Cleanup sequence ----
+          - delay: !input startup_cleanup_delay
+
+          - condition: template
+            value_template: >-
+              {{ override_b == '' or is_state(override_b, 'off') }}
+          - condition: template
+            value_template: >-
+              {{ expand(blocking_entities) | selectattr('state','eq','on') | list | count == 0 }}
+          - condition: template
+            value_template: >-
+              {{ has_value(occ) and is_state(occ, 'off') }}
+
+          - delay: 00:00:15
+
+          - condition: template
+            value_template: >-
+              {{ has_value(occ) and is_state(occ, 'off') }}
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ auto_tag_lights != '' and is_state(auto_tag_lights,'on')
+                         and (lights_off_script != '' or lights | length > 0) }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ lights_off_script != '' }}"
+                        sequence:
+                          - action: script.turn_on
+                            target:
+                              entity_id: "{{ lights_off_script }}"
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (lights_off_script == '') and (lights | length > 0) }}"
+                        sequence:
+                          - action: light.turn_off
+                            target:
+                              entity_id: !input lights
+                            data:
+                              transition: !input transition_off
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ auto_tag_lights }}"
+
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: >-
+                      {{ auto_tag_fan != '' and is_state(auto_tag_fan,'on')
+                         and fan_currently_on
+                         and not (fan_runon_t != '' and is_state(fan_runon_t, 'active')) }}
+                sequence:
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_entity != '' }}"
+                        sequence:
+                          - action: fan.turn_off
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                        sequence:
+                          - action: homeassistant.turn_off
+                            target:
+                              entity_id: !input fan_switches
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ auto_tag_fan }}"

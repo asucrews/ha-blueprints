@@ -18,6 +18,14 @@ Format: `[version] — date — summary`, followed by itemized changes.
   with `fan_on_delay_timer` started the timer, it finished, and nothing turned the fan on.
   The branch is restored unchanged from 3.0.5, in the same place (after the occupied
   branch, before VACANT).
+- **FIX — startup validation and cleanup restored.** 3.0.6 cut the STARTUP section off partway
+  through the `_issues` template. Restored from 3.0.5: the four missing config checks
+  (`lights_off_verify_enabled` without `lights_verify_timer`, retries without
+  `lights_verify_attempts_helper`, fan on-delay without `fan_on_delay_timer`, fan actions with
+  no fan configured), the `persistent_notification.create` config warning, and the restart
+  cleanup sequence (`startup_cleanup_delay`, override/blocking/vacancy gates, 15 s double-check,
+  auto-tagged lights off, auto-tagged fan off), plus the three STARTUP header comment lines.
+  The startup branch is identical to 3.0.5's.
 
 ## [3.0.5] — 2026-03-22 — Universal fan switch actions
 
