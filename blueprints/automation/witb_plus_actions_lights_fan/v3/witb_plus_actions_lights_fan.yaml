@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan.yaml
-  name: V3 WITB+ Actions - Lights + Fan (3.0.6)
+  name: V3 WITB+ Actions - Lights + Fan (3.0.7)
   description: |
-    Version: 3.0.6 — see CHANGELOG.md for full version history.
+    Version: 3.0.7 — see CHANGELOG.md for full version history.
 
     Action orchestrator for a WITB+ room. Responds to occupancy state changes
     from an occupied_effective sensor and controls lights and a fan accordingly.
@@ -1021,6 +1021,77 @@ actions:
                       entity_id: "{{ cooldown_t }}"
                     data:
                       duration: !input cooldown_duration
+
+      # ==========================================================================
+      # FAN ON DELAY DONE -> FAN ON
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id: fan_on_delay_done
+          - condition: template
+            value_template: "{{ fan_on_delay_t != '' and trigger.event.data.entity_id == fan_on_delay_t }}"
+          - condition: template
+            value_template: "{{ override_ok }}"
+          - condition: template
+            value_template: "{{ is_state(occ, 'on') }}"
+          - condition: template
+            value_template: "{{ fan_turn_on_on_occupy }}"
+          - condition: template
+            value_template: "{{ (not fan_disable_during_night) or (not is_night) }}"
+        sequence:
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ fan_entity != '' }}"
+                  - condition: template
+                    value_template: "{{ fan_claim_if_already_on or (not fan_is_on) }}"
+                sequence:
+                  - action: fan.turn_on
+                    target:
+                      entity_id: "{{ fan_entity }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_pct | int > 0 }}"
+                        sequence:
+                          - action: fan.set_percentage
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                            data:
+                              percentage: "{{ fan_pct | int }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ fan_preset is string and fan_preset | length > 0 }}"
+                        sequence:
+                          - action: fan.set_preset_mode
+                            target:
+                              entity_id: "{{ fan_entity }}"
+                            data:
+                              preset_mode: "{{ fan_preset }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_fan != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ auto_tag_fan }}"
+              - conditions:
+                  - condition: template
+                    value_template: "{{ (fan_entity == '') and (fan_switches | length > 0) }}"
+                sequence:
+                  - action: homeassistant.turn_on
+                    target:
+                      entity_id: !input fan_switches
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ auto_tag_fan != '' }}"
+                        sequence:
+                          - action: input_boolean.turn_on
+                            target:
+                              entity_id: "{{ auto_tag_fan }}"
 
       # ==========================================================================
       # VACANT -> IMMEDIATE VACANCY ACTIONS

@@ -9,6 +9,16 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 - source_url fixed (metadata only; no behaviour or version change).
 
+## [3.0.7] — 2026-10-22 — Restore fan on-delay branch
+
+### Fixed
+
+- **FIX — fan on-delay never turned the fan on.** The `fan_on_delay_done` action branch
+  ("FAN ON DELAY DONE -> FAN ON") was dropped in 3.0.6, while its trigger remained: a room
+  with `fan_on_delay_timer` started the timer, it finished, and nothing turned the fan on.
+  The branch is restored unchanged from 3.0.5, in the same place (after the occupied
+  branch, before VACANT).
+
 ## [3.0.5] — 2026-03-22 — Universal fan switch actions
 
 ### Fixed
