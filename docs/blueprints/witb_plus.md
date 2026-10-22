@@ -3,7 +3,7 @@
 ## Scope
 
 - Source blueprint: `blueprints/automation/witb_plus/v4/witb_plus.yaml`
-- Blueprint name: `WITB+ v4.0.3 (Modernized & Integrated)`
+- Blueprint name: `WITB+ (4.4.1)`
 - Home Assistant minimum: `2026.3.0`
 - Domain: `automation`
 
@@ -80,13 +80,13 @@ python blueprints/automation/witb_plus/v4/generate_witb_packages_templated.py \
 ### Entry Gating
 
 - `require_door_for_entry` (default: `false`): require recent door activity for motion-based entry.
-- `entry_window_seconds` (default: `15`): recent-door window used by entry gating.
+- `entry_window_seconds` (default: `15`): recent-door window used by entry gating. Fallback for `entry_window_helper`: the helper wins only when set and numeric (4.4.1).
 
 ### Failsafe
 
 - `enable_failsafe` (default: `true`): enable safe timer-based stuck-state recovery.
 - `failsafe_timer` (default: empty): timer entity used when failsafe enabled.
-- `failsafe_minutes` (default: `180`): failsafe duration loaded on occupancy assert/refresh.
+- `failsafe_minutes` (default: `180`): failsafe duration loaded on occupancy assert/refresh. Fallback for `failsafe_timeout_helper`: the helper wins only when set and numeric (4.4.1).
 
 ## Trigger/Action Summary
 
