@@ -156,7 +156,7 @@ independently of ambient conditions.
 | `witb_plus/v4` | Occupancy inference | One per room |
 | `witb_plus_actions_lights_fan` | Light + fan control | One per room |
 | `witb_plus_actions_lights` | Light-only control | One per room (no fan) |
-| `witb_plus_actions_cleanup` | Tag stuck-ON recovery (optional) | One per room |
+| `witb_plus_actions_cleanup` | Tag stuck-ON recovery (optional; 1.0.1 allows an empty fan or lights side) | One per room |
 
 ## v3 vs v2 Helper Differences
 

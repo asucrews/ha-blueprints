@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_cleanup/v1/witb_plus_actions_cleanup.yaml
-  name: WITB+ Actions Tag Cleanup (1.0.0)
+  name: WITB+ Actions Tag Cleanup (1.0.1)
   description: |
-    Version: 1.0.0 — see CHANGELOG.md for full version history.
+    Version: 1.0.1 — see CHANGELOG_witb_plus_actions_cleanup.md for full version history.
 
     Belt-and-suspenders cleanup for WITB+ Actions auto_tag_lights and
     auto_tag_fan helpers that can be left stuck ON when a mode:restart
@@ -41,6 +41,11 @@ blueprint:
       • Room still vacant at evaluation time (re-confirmed, not stale).
       • Automation override OFF (if configured).
       • The specific tag is actually ON (skip if already clean).
+
+    EMPTY OPTIONAL INPUTS
+      • Empty auto_tag_lights skips the whole lights branch; empty auto_tag_fan
+        skips the whole fan branch. A room without a fan can leave every fan
+        input empty (no dummy helper needed).
 
     SAFE BEHAVIORS
       • Never turns anything off — only clears boolean tags.
@@ -191,6 +196,11 @@ variables:
   fan_switches: !input fan_switches
   fan_runon_t: !input fan_runon_timer
 
+  # Empty-input guards: an optional entity input left empty is '' (or []),
+  # so test for a non-empty string before using it as an entity.
+  has_tag_lights: "{{ auto_tag_lights is string and auto_tag_lights | length > 0 }}"
+  has_tag_fan: "{{ auto_tag_fan is string and auto_tag_fan | length > 0 }}"
+
   override_ok: >-
     {{ override_b == '' or is_state(override_b, 'off') }}
 
@@ -251,11 +261,11 @@ actions:
             id: lights_tag_check
           # Skip if no lights tag is configured.
           - condition: template
-            value_template: "{{ auto_tag_lights != '' }}"
+            value_template: "{{ has_tag_lights }}"
           # Only act if the tag is actually stuck ON.
-          - condition: state
-            entity_id: !input auto_tag_lights
-            state: "on"
+          # (Template, not a state condition: an empty entity_id fails validation.)
+          - condition: template
+            value_template: "{{ is_state(auto_tag_lights, 'on') }}"
           # Confirm lights are all off — if any are on the tag is not stuck,
           # something else turned them on and we should leave the tag alone.
           - condition: template
@@ -272,11 +282,11 @@ actions:
             id: fan_tag_check
           # Skip if no fan tag is configured.
           - condition: template
-            value_template: "{{ auto_tag_fan != '' }}"
+            value_template: "{{ has_tag_fan }}"
           # Only act if the tag is actually stuck ON.
-          - condition: state
-            entity_id: !input auto_tag_fan
-            state: "on"
+          # (Template, not a state condition: an empty entity_id fails validation.)
+          - condition: template
+            value_template: "{{ is_state(auto_tag_fan, 'on') }}"
           # CRITICAL: Never clear while run-on timer is active.
           # timer_finished in the main automation owns that transition.
           - condition: template
