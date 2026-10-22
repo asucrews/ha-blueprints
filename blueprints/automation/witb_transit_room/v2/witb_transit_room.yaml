@@ -205,7 +205,7 @@ blueprint:
           name: Enable failsafe timer
           description: >
             If enabled, uses a timer to prevent permanently stuck occupied states.
-            NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below.
+            NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below (the slider is the fallback).
           default: true
           selector:
             boolean: {}
@@ -223,7 +223,7 @@ blueprint:
           description: >
             Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
             Stairs/hallway suggestion: 30-60 (max 5940 / 99h).
-            Used only if the Failsafe Timeout Helper below is not defined.
+            Fallback: used when the Failsafe Timeout Helper below is not set or has no numeric value.
           default: 180
           selector:
             number:
@@ -236,7 +236,7 @@ blueprint:
           name: Failsafe Timeout Helper (optional)
           description: >
             Link to input_number.room_slug_failsafe_timeout.
-            When set, this overrides the failsafe_minutes slider above.
+            When set, the helper overrides the failsafe_minutes slider above; the slider is the fallback.
           default: []
           selector:
             entity:
@@ -268,7 +268,14 @@ variables:
   failsafe_timeout_input: !input failsafe_timeout_helper
   enable_fs: !input enable_failsafe
   fs_timer: !input failsafe_timer
-  fs_min: "{{ states(failsafe_timeout_input) | int(180) }}"
+  fs_slider_min: !input failsafe_minutes
+  # Helper wins only when it is set and has a numeric value; the slider is the fallback.
+  fs_min: >-
+    {% if failsafe_timeout_input is string and failsafe_timeout_input | length > 0 %}
+      {{ states(failsafe_timeout_input) | int(fs_slider_min | int) }}
+    {% else %}
+      {{ fs_slider_min | int }}
+    {% endif %}
 
   # Helpers
   ov_on: >-

@@ -36,7 +36,7 @@ WITB+ 4.4.0 minus doors, for transit rooms (stairs, hallways, open connectors). 
 | `manual_occupied` | input_boolean (multiple) | none | ON: asserts occupancy, blocks clearing while ON |
 | `enable_failsafe` | boolean | `true` | Use the failsafe timer |
 | `failsafe_timer` | timer | none | Failsafe timer |
-| `failsafe_minutes` | number 5-5940 | 180 | Failsafe duration slider (see note) |
+| `failsafe_minutes` | number 5-5940 | 180 | Failsafe duration; fallback for the helper |
 | `failsafe_timeout_helper` | input_number | none | Failsafe duration helper (minutes) |
 
 ## Behavior
@@ -55,8 +55,8 @@ WITB+ 4.4.0 minus doors, for transit rooms (stairs, hallways, open connectors). 
 Turning force or manual OFF does not clear immediately; the next motion-off or failsafe evaluation does
 (same as WITB+).
 
-Note: as in WITB+ 4.4.0, the `failsafe_minutes` slider is declared but not read; the duration comes from
-`failsafe_timeout_helper`, falling back to 180 minutes.
+Failsafe duration: `failsafe_timeout_helper` wins only when it is set and has a numeric value; otherwise the
+`failsafe_minutes` slider is used.
 
 ## Removed from WITB+ 4.4.0, and why
 

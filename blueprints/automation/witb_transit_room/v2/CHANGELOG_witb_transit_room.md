@@ -24,6 +24,11 @@ Rewrite on the WITB+ 4.4.0 engine. v1 (hold-timer driver) stays in `../v1/` as t
   turning OFF does not clear immediately.
 - Failsafe timer, minutes, timeout helper and deadlock break.
 
+### Fixed (before first release)
+
+- `failsafe_minutes` was declared but never read (inherited from WITB+ 4.4.0). It is now the fallback for
+  `failsafe_timeout_helper`: the helper wins only when it is set and has a numeric value.
+
 ### Removed (vs WITB+ 4.4.0)
 
 - Inputs: `seal_door`, `transition_doors`, `last_door_helper`, `exit_eval_timer`,
