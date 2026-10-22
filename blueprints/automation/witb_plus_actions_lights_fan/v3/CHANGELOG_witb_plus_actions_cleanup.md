@@ -1,5 +1,9 @@
 # CHANGELOG — WITB+ Actions Tag Cleanup
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## [1.0.1] — 2026-10-22 — Optional tag inputs safe when empty
 
 ### Fixed

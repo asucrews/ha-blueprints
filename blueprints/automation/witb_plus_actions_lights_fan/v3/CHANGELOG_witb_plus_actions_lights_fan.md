@@ -5,6 +5,10 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## [3.0.5] — 2026-03-22 — Universal fan switch actions
 
 ### Fixed

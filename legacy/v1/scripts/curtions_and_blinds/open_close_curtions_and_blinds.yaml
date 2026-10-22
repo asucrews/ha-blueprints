@@ -11,7 +11,8 @@ blueprint:
 
 
     [Community link for this blueprint](https://community.home-assistant.io/t/script-blueprint-to-turn-my-tv-on-and-put-it-into-the-correct-mode-for-the-input-device-i-want/338755)
-  source_url: https://github.com/SirGoodenough/HA_Blueprints/blob/master/Scripts/Broadlink_ON_script.yaml
+  # upstream: https://github.com/SirGoodenough/HA_Blueprints/blob/master/Scripts/Broadlink_ON_script.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/scripts/curtions_and_blinds/open_close_curtions_and_blinds.yaml
   domain: script
   homeassistant:
     min_version: 2024.8.0

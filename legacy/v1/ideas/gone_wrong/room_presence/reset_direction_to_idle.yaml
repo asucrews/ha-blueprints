@@ -3,6 +3,7 @@ blueprint:
   description: >
     Resets an input_select to "Idle" if no motion has been detected for a specified amount of time.
   domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/ideas/gone_wrong/room_presence/reset_direction_to_idle.yaml
   input:
     motion_on_time:
       name: Motion ON Timestamp

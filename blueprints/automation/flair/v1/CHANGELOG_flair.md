@@ -5,6 +5,10 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## [1.0.5] — Unreleased
 
 ### Changed

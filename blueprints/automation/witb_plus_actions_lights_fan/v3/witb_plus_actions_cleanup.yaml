@@ -2,7 +2,7 @@ blueprint:
   homeassistant:
     min_version: 2026.3.0
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_cleanup/v1/witb_plus_actions_cleanup.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_cleanup.yaml
   name: WITB+ Actions Tag Cleanup (1.0.1)
   description: |
     Version: 1.0.1 — see CHANGELOG_witb_plus_actions_cleanup.md for full version history.

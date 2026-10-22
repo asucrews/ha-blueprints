@@ -5,6 +5,10 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## [1.0.0] — 2026-02-26 — Initial release
 
 ### Added

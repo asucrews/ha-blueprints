@@ -5,7 +5,7 @@ blueprint:
   description: >
     Motion+
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/derivatives//motion_plus.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/witb_plus/derivatives/motion_plus.yaml
   input:
     motion_sensor:
       name: Motion Sensor or Motion Sensor Group

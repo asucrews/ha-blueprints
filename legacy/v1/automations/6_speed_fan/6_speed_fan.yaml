@@ -10,7 +10,7 @@ blueprint:
 
     '
   domain: automation
-  source_url: https://raw.githubusercontent.com/asucrews/ha-blueprints/refs/heads/main/automations/witb_plus/dev/witb_plus_occupancy_v2.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/6_speed_fan/6_speed_fan.yaml
   input:
     sensor_entities:
       name: Sensor Entities

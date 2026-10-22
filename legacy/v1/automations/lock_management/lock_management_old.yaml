@@ -6,7 +6,7 @@ blueprint:
     Lock Management is an automation blueprint designed for managing door locks with additional auto-lock functionality based on specified conditions and triggers.<br/>
     Requeries Lock Code Manager https://github.com/raman325/lock_code_manager by Raman325.<br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/lock_management/lock_management.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/lock_management/lock_management_old.yaml
   input:
     required_entities:
       name: Required Entities

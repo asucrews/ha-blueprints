@@ -7,7 +7,7 @@ blueprint:
     Smart Dimmer FKA 2-1 Switch<br/> <br/> Note that the x2, x3, x4, x5 variants DO
     NOT work if you have put your switch in ''Instant On'' mode.<br/> <br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/inovelli/red/smart_dimmer/smart_dimmer.yaml
   author: Jeremy Crews
   input:
     required_entities:

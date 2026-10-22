@@ -6,6 +6,10 @@ Covers both hook scripts:
 
 ---
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## v2.1.1 *(current)*
 
 ### Lights ON Hook

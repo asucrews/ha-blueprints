@@ -22,7 +22,7 @@ blueprint:
     need to manually integrate call service actions into their automations or methods
     to control devices when bypassing occupancy detection is required.<br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_occupancy.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/witb_plus/dev/witb_plus_occupancy_v1.yaml
   input:
     sensor_entities:
       name: Sensor Entities

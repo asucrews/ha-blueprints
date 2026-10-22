@@ -4,7 +4,7 @@ blueprint:
     Advanced occupancy detection blueprint based on the Wasp-In-The-Box principle.
     Combines motion and door sensors with smart timestamp logic to detect and clear room presence accurately.
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/witb_plus/dev/witb_plus_merge.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/witb_plus/dev/witb_plus_merge.yaml
   homeassistant:
     min_version: 2025.6.0
   author: Jeremy Crews

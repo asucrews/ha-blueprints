@@ -5,7 +5,7 @@ blueprint:
   description: >
     <br/> <br/>
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/flair/flair.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/flair/flair.yaml
   author: Jeremy Crews
   input:
     required_entities:

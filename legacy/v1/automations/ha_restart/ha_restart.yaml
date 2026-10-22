@@ -4,7 +4,7 @@ blueprint:
     min_version: 2025.6.0
   description: Blueprint for triggering actions on Home Assistant start and stop
   domain: automation
-  source_url: https://github.com/asucrews/ha-blueprints/blob/main/automations/ha_restart/ha_restart.yaml
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/legacy/v1/automations/ha_restart/ha_restart.yaml
   author: Jeremy Crews
   input:
     start_actions:

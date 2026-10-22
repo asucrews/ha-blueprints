@@ -1,5 +1,9 @@
 # CHANGELOG — WITB Transit Room Driver
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## v1.0.0
 
 Initial release.

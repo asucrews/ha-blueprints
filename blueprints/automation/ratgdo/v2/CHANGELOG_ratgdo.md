@@ -5,6 +5,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
+## Unreleased
+
+- source_url fixed (metadata only; no behaviour or version change).
+
 ## [2.1.1] — 2026-03-09
 
 ### Fixed
