@@ -3,9 +3,9 @@ blueprint:
     min_version: 2026.3.0
   domain: automation
   source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_plus/v4/witb_plus.yaml
-  name: WITB+ (4.4.0)
+  name: WITB+ (4.4.1)
   description: |
-    Version: 4.4.0 — see CHANGELOG.md for full version history.
+    Version: 4.4.1 — see CHANGELOG.md for full version history.
 
     Occupancy inference for a single room using doors, PIR motion, and optional
     mmWave presence. Drives an input_boolean occupancy helper that downstream
@@ -365,7 +365,7 @@ blueprint:
           name: Entry window (seconds)
           description: >
             How recent a door change must be to accept motion as an entry when gating is enabled.
-            Used only if the Helper below is not defined.
+            Fallback: used when the Entry Window Helper below is not set or has no numeric value.
           default: 15
           selector:
             number:
@@ -388,7 +388,7 @@ blueprint:
           description: >
             If enabled, uses a timer to prevent permanently stuck occupied states.
             SAFE behavior: failsafe will never clear while door is CLOSED.
-            NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below.
+            NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below (the slider is the fallback).
           default: true
           selector:
             boolean: {}
@@ -406,7 +406,7 @@ blueprint:
           description: >
             Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
             Toilet suggestion: 90-180. Bedroom suggestion: 720-1440 (max 5940 / 99h).
-            Used only if the Failsafe Timeout Helper below is not defined.
+            Fallback: used when the Failsafe Timeout Helper below is not set or has no numeric value.
           default: 180
           selector:
             number:
@@ -419,7 +419,7 @@ blueprint:
           name: Failsafe Timeout Helper (optional)
           description: >
             Link to input_number.room_slug_failsafe_timeout.
-            When set, this overrides the failsafe_minutes slider above.
+            When set, the helper overrides the failsafe_minutes slider above; the slider is the fallback.
           default: []
           selector:
             entity:
@@ -429,7 +429,7 @@ blueprint:
           name: Entry Window Helper (optional)
           description: >
             Link to input_number.room_slug_entry_window_seconds.
-            When set, this overrides the entry_window_seconds slider above.
+            When set, the helper overrides the entry_window_seconds slider above; the slider is the fallback.
           default: []
           selector:
             entity:
@@ -472,13 +472,27 @@ variables:
   # Entry gating
   entry_window_input: !input entry_window_helper
   require_door: !input require_door_for_entry
-  entry_s: "{{ states(entry_window_input) | int(15) }}"
+  entry_window_slider: !input entry_window_seconds
+  # Helper wins only when it is set and has a numeric value; the slider is the fallback.
+  entry_s: >-
+    {% if entry_window_input is string and entry_window_input | length > 0 %}
+      {{ states(entry_window_input) | int(entry_window_slider | int) }}
+    {% else %}
+      {{ entry_window_slider | int }}
+    {% endif %}
 
   # Failsafe
   failsafe_timeout_input: !input failsafe_timeout_helper
   enable_fs: !input enable_failsafe
   fs_timer: !input failsafe_timer
-  fs_min: "{{ states(failsafe_timeout_input) | int(180) }}"
+  fs_slider_min: !input failsafe_minutes
+  # Helper wins only when it is set and has a numeric value; the slider is the fallback.
+  fs_min: >-
+    {% if failsafe_timeout_input is string and failsafe_timeout_input | length > 0 %}
+      {{ states(failsafe_timeout_input) | int(fs_slider_min | int) }}
+    {% else %}
+      {{ fs_slider_min | int }}
+    {% endif %}
 
   # Door semantics
   # v4.4.0: supports both binary_sensor (on/off) and sensor enum (Open/Tilted/Closed).

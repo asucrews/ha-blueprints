@@ -6,7 +6,7 @@ This folder contains implementation-focused documentation for the active bluepri
 
 | Blueprint | Type | Version | Min HA | Docs |
 | --- | --- | --- | --- | --- |
-| `witb_plus.yaml` | automation | `v4.2.4` | `2026.3.0` | `witb_plus.md` |
+| `witb_plus.yaml` | automation | `v4.4.1` | `2026.3.0` | `witb_plus.md` |
 | `witb_plus_actions_lights_fan.yaml` | automation | `v3.0.3` | `2026.3.0` | `witb_plus_actions_lights_fan.md` |
 | `humidity_controled_fan.yaml` | automation | `v1.1.0` | `2023.4.0` | `bathroom_fan_from_humidity_delta.md` |
 | `vacuum_job_manager.yaml` | automation | `v1.3` | `2026.3.0` | `vacuum_job_manager.md` |

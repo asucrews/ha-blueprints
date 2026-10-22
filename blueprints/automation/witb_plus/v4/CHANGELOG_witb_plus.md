@@ -5,6 +5,19 @@ Format: `[version] — date — summary`, followed by itemized changes.
 
 ---
 
+## [4.4.1] — 2026-10-22 — Sliders are the fallback for helpers
+
+### Fixed
+
+- `failsafe_minutes` and `entry_window_seconds` were declared but never read; the helper fallbacks were
+  the literals 180 and 15. They are now the fallback for `failsafe_timeout_helper` and
+  `entry_window_helper`. The helper still wins when it is set and has a numeric value, so rooms that set
+  the helper behave the same. Rooms that leave the helper unset now use their slider value instead of
+  180 / 15 (same as the defaults unless changed).
+- Input descriptions updated to say the helper overrides the slider and the slider is the fallback.
+
+---
+
 ## [4.4.0] — 2026-03-25 — Enum Door Sensor Support
 
 ### Added
