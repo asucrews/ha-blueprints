@@ -13,7 +13,7 @@ Copy-ready examples for the active blueprints in this repository.
 - `witb_lights/`
   - Script-hook instance examples and WITB actions binding snippet for VZW31-SN profiles.
 - `witb_transit_room/`
-  - Transit room (hallway) package and automation examples (WITB Transit Room Driver v1).
+  - Stairs (Transit Room v2) automation and generated packages; v1 hallway examples kept as legacy.
 - `witb_plus_bed_sensor/`
   - Bed sensor automation example (WITB+ Bed → Force Occupied v1; reuses existing WITB+ v4 helpers).
 - `humidity_controlled/`

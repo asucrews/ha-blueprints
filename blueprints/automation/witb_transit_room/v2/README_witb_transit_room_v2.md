@@ -8,7 +8,8 @@ depends on a door is removed.
 
 - `witb_transit_room.yaml` — automation blueprint.
 - `CHANGELOG_witb_transit_room.md` — version history.
-- Helper package template and generator support for v2 are added in a follow-up change.
+- `witb_transit_room_package_template.yaml` — helper package template (blocks: helpers, controls, failsafe).
+- `rooms.yaml` — generator config (Stairs entry), next to the template like WITB+ v4.
 
 ## What the Blueprint Does
 
@@ -53,7 +54,7 @@ Tag Cleanup consume like a WITB+ room.
 
 ## Setup
 
-1. Create the helpers above (package support follows in a later change).
+1. Generate the helper package: `python blueprints/generate_witb_packages_templated.py --config blueprints/automation/witb_transit_room/v2/rooms.yaml`, load it as a package and restart.
 2. Create an automation from `WITB Transit Room (2.0.0)` and bind motion, occupancy, last-motion and failsafe.
 3. Point WITB Actions V3 at `binary_sensor.<slug>_occupied_effective`.
 

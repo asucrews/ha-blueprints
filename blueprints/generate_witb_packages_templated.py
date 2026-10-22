@@ -7,13 +7,13 @@ Template-driven generator for Home Assistant merge_named packages for:
   WITB Actions Helpers  (Lights, Fan, Thresholds, Timers)
   Room Humidity Baseline + Delta
   Room Lux Baseline + Delta
-  Transit Room Helpers
+  Transit Room v2 Helpers (WITB+ minus doors) and legacy v1 Transit Room Helpers
   Vacuum Job Helpers
   … and any future template files.
 
 Supports per-room configuration overrides via config file.
 
-Current version: v4.1
+Current version: v4.2
 See CHANGELOG_generate_witb_packages_templated.md for full change history.
 """
 
@@ -57,7 +57,14 @@ from typing import Any
 # room_lux_baseline_delta_package_template.yaml blocks:
 #   tuning_helpers - input_boolean + input_number tuning entities
 #
-# transit_helpers_package_template.yaml blocks:
+# witb_transit_room v2 witb_transit_room_package_template.yaml blocks:
+#   helpers       - occupied (input_boolean) + last_motion (input_datetime) +
+#                   occupied_effective / override / clear_blocked binary_sensors
+#   controls      - automation_override, force_occupied, manual_occupied (input_boolean)
+#   failsafe      - failsafe (timer) + failsafe_timeout (input_number) + failsafe_active
+#   (these reuse the block names above, so no new --no-X flags are needed)
+#
+# legacy v1 Transit Room template (file name in v1/: witb_transit_room_package_template.yaml):
 #   (no feature blocks — flat template, no # --- BEGIN/END --- markers)
 #
 # vacuum_job_helpers.yaml:
@@ -711,7 +718,11 @@ Examples:
     --out ./packages/rooms \\
     --dry-run
 
-  # Transit template (flat, no feature blocks):
+  # Transit Room v2 template (helpers, controls, failsafe blocks):
+  python generate_witb_packages_templated.py \\
+    --config automation/witb_transit_room/v2/rooms.yaml
+
+  # Legacy v1 transit template (flat, no feature blocks):
   python generate_witb_packages_templated.py \\
     --template transit_helpers_package_template.yaml \\
     --rooms "Hallway" "Stairs" \\

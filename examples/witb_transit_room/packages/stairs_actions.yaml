@@ -1,0 +1,142 @@
+---
+stairs_witb_actions:
+  # WITB+ Actions Package Template — v3
+  # Tokens: stairs, Stairs
+  #
+  # v3.0.0: Added four new helpers required for the fully event-driven blueprint.
+  #   soft_off_timer        — replaces blocking soft-off 15 s delay
+  #   lights_verify_timer   — replaces verify/retry delays
+  #   fan_on_delay_timer    — replaces blocking fan on-delay
+  #   verify_attempts       — retry counter persisted across timer-fired runs
+  #
+  # Feature blocks:
+  #   lights    - auto_lights_on, keep_on (input_boolean) + brightness day/night
+  #               (input_number) + actions_cooldown, soft_off, lights_verify (timer)
+  #               + verify_attempts (input_number) + cooldown/soft_off/verify sensors
+  #   fan       - auto_fan_on (input_boolean) + fan_pct_day/night, fan_runon_minutes,
+  #               fan_on_delay (input_number) + fan_runon, fan_on_delay (timer)
+  #               + fan_runon/fan_on_delay_active sensors
+  #   night     - night_start/end (input_datetime) + in_night_window sensor
+
+  input_boolean:
+    stairs_auto_lights_on:
+      name: "Stairs auto lights on (tag)"
+      icon: mdi:lightbulb-auto
+
+    stairs_keep_on: 
+      name: "Stairs keep on (block off)"
+      icon: mdi:lock-open-variant-outline
+
+  input_datetime:
+    stairs_actions_night_start:
+      name: "Stairs night start"
+      icon: mdi:weather-night
+      has_date: false
+      has_time: true
+
+    stairs_actions_night_end:
+      name: "Stairs night end"
+      icon: mdi:weather-sunny
+      has_date: false
+      has_time: true
+
+  input_number:
+    # input_number: never set initial — omit it so HA restores prior state on restart.
+
+    stairs_actions_brightness_day_pct:
+      name: "Stairs brightness day %"
+      icon: mdi:brightness-6
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+
+    stairs_actions_brightness_night_pct:
+      name: "Stairs brightness night %"
+      icon: mdi:brightness-4
+      unit_of_measurement: "%"
+      min: 1
+      max: 100
+      step: 1
+      mode: box
+
+    # v3.0.0: Tracks retry count across timer-fired verify runs.
+    # Reset to 0 on occupied_on and after each successful/exhausted verify cycle.
+    stairs_actions_verify_attempts:
+      name: "Stairs verify attempts"
+      icon: mdi:counter
+      min: 0
+      max: 10
+      step: 1
+      mode: box
+
+  timer:
+    stairs_actions_cooldown:
+      name: "Stairs actions cooldown"
+      icon: mdi:timer-pause-outline
+      duration: "00:00:30"
+      restore: true
+
+    # v3.0.0: Drives the soft-off 15 s dim warning before full lights-off.
+    # Required when lights_soft_off_enabled is true.
+    stairs_actions_soft_off:
+      name: "Stairs soft off"
+      icon: mdi:lightbulb-off-outline
+      duration: "00:00:15"
+      restore: true
+
+    # v3.0.0: Drives the post-off verify delay and retry intervals.
+    # Required when lights_off_verify_enabled is true.
+    stairs_actions_lights_verify:
+      name: "Stairs lights verify"
+      icon: mdi:lightbulb-alert-outline
+      duration: "00:00:05"
+      restore: true
+
+  template:
+    - binary_sensor:
+        - name: "Stairs Actions Cooldown Active"
+          unique_id: "stairs_actions_cooldown_active"
+          icon: mdi:timer-pause-outline
+          state: >-
+            {{ is_state('timer.stairs_actions_cooldown', 'active') }}
+
+        # v3.0.0: ON while the 15 s soft-off dim warning is running.
+        - name: "Stairs Soft Off Active"
+          unique_id: "stairs_actions_soft_off_active"
+          icon: mdi:lightbulb-off-outline
+          state: >-
+            {{ is_state('timer.stairs_actions_soft_off', 'active') }}
+
+        # v3.0.0: ON while waiting for lights-off verify or retry.
+        - name: "Stairs Lights Verify Active"
+          unique_id: "stairs_actions_lights_verify_active"
+          icon: mdi:lightbulb-alert-outline
+          state: >-
+            {{ is_state('timer.stairs_actions_lights_verify', 'active') }}
+
+        # Uses timestamp arithmetic to avoid today_at()/now() timezone mismatch.
+        - name: "Stairs In Night Window"
+          unique_id: "stairs_actions_in_night_window"
+          icon: mdi:weather-night
+          state: >-
+            {% set sh = state_attr('input_datetime.stairs_actions_night_start','hour') | int(-1) %}
+            {% set sm = state_attr('input_datetime.stairs_actions_night_start','minute') | int(0) %}
+            {% set ss = state_attr('input_datetime.stairs_actions_night_start','second') | int(0) %}
+            {% set eh = state_attr('input_datetime.stairs_actions_night_end','hour') | int(-1) %}
+            {% set em = state_attr('input_datetime.stairs_actions_night_end','minute') | int(0) %}
+            {% set es = state_attr('input_datetime.stairs_actions_night_end','second') | int(0) %}
+            {% if sh < 0 or eh < 0 %}
+              false
+            {% else %}
+              {% set start_ts = sh*3600 + sm*60 + ss %}
+              {% set end_ts   = eh*3600 + em*60 + es %}
+              {% set n = now() %}
+              {% set cur_ts = n.hour*3600 + n.minute*60 + n.second %}
+              {% if start_ts <= end_ts %}
+                {{ start_ts <= cur_ts < end_ts }}
+              {% else %}
+                {{ cur_ts >= start_ts or cur_ts < end_ts }}
+              {% endif %}
+            {% endif %}

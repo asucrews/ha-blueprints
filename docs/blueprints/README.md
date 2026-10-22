@@ -40,7 +40,8 @@ This folder contains implementation-focused documentation for the active bluepri
 5. [WITB Transit Room](./witb_transit_room.md)
    - Source (current, v2): `blueprints/automation/witb_transit_room/v2/witb_transit_room.yaml`
    - Legacy v1: `blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`, helpers template `blueprints/automation/witb_transit_room/v1/witb_transit_room_package_template.yaml`
-   - v2 helper package template: added in a follow-up change.
+   - Companion helpers template (v2): `blueprints/automation/witb_transit_room/v2/witb_transit_room_package_template.yaml`
+   - Generator config (v2): `blueprints/automation/witb_transit_room/v2/rooms.yaml`
 
 6. [WITB+ Bed → Force Occupied](./witb_plus_bed_force_occupied.md)
    - Source: `blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml`

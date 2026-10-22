@@ -1,0 +1,26 @@
+- id: witb_transit_room_v2_stairs
+  alias: WITB Transit Room v2 - Stairs Occupancy
+  description: >
+    Example doorless occupancy for stairs. Drives input_boolean.stairs_occupied;
+    binary_sensor.stairs_occupied_effective (from the package) feeds WITB Actions V3.
+  use_blueprint:
+    # Replace with your installed blueprint path in Home Assistant.
+    path: YOUR_NAMESPACE/witb_transit_room/v2/witb_transit_room.yaml
+    input:
+      motion_sensor: binary_sensor.stairs_pir_motion
+
+      occupancy_helper: input_boolean.stairs_occupied
+      last_motion_helper: input_datetime.stairs_last_motion
+
+      exit_timeout_seconds: 60
+
+      automation_override: input_boolean.stairs_automation_override
+      force_occupied:
+        - input_boolean.stairs_force_occupied
+      manual_occupied:
+        - input_boolean.stairs_manual_occupied
+
+      enable_failsafe: true
+      failsafe_timer: timer.stairs_failsafe
+      failsafe_minutes: 30
+      failsafe_timeout_helper: input_number.stairs_failsafe_timeout

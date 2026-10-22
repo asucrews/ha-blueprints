@@ -242,13 +242,13 @@ If something doesn't fire as expected:
 
 ### Hallways and stairways (no door)
 
-Use the **WITB Transit Room Driver** instead of WITB+ Occupancy. It uses PIR-only occupancy with a hold-timer decay and produces the same `occupied_effective` output consumed by WITB+ Actions.
+Use **WITB Transit Room v2** instead of WITB+ Occupancy. It is WITB+ minus doors: motion, optional mmWave, override/force/manual controls and a failsafe. Its package produces `binary_sensor.<slug>_occupied_effective`, consumed by WITB Actions V3 like any WITB+ room.
 
 ```bash
 python blueprints/generate_witb_packages_templated.py \
   --rooms "Hallway" \
-  --template blueprints/automation/witb_transit_room/v1/transit_helpers_package_template.yaml \
-  --out blueprints/automation/witb_transit_room/v1/packages
+  --template blueprints/automation/witb_transit_room/v2/witb_transit_room_package_template.yaml \
+  --out blueprints/automation/witb_transit_room/v2/packages
 ```
 
 ### Bathroom fan from humidity

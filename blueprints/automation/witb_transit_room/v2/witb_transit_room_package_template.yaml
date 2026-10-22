@@ -1,0 +1,120 @@
+room_witb_transit:
+  # WITB Transit Room v2 Package Template
+  # Tokens: room_slug, Room Friendly Name
+  #
+  # Helpers for the WITB Transit Room v2 blueprint (WITB+ 4.4.0 minus doors).
+  # Mirrors witb_plus_package_template.yaml without the door blocks. It does NOT
+  # include lights/fan/night helpers; those come from the WITB Actions template.
+  #
+  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  #   helpers      - required core: occupied (input_boolean), last_motion
+  #                  (input_datetime), occupied_effective binary_sensor (the glue
+  #                  consumed by WITB Actions V3 as its trigger sensor)
+  #   controls     - optional: automation_override, force_occupied, manual_occupied (input_boolean)
+  #   failsafe     - optional: failsafe timer + failsafe_timeout input_number + Failsafe Active sensor
+  #
+  # The template sensors reference the controls helpers; if you strip `controls`,
+  # point the sensors at your own helpers or remove those lines.
+
+  input_boolean:
+    # input_boolean restores last known state from recorder on restart.
+
+    # --- BEGIN helpers ---
+    room_slug_occupied:
+      name: "Room Friendly Name occupied"
+      icon: mdi:home-account
+    # --- END helpers ---
+
+    # --- BEGIN controls ---
+    room_slug_automation_override:
+      name: "Room Friendly Name automation override"
+      icon: mdi:hand-back-right-outline
+
+    room_slug_force_occupied:
+      name: "Room Friendly Name force occupied"
+      icon: mdi:account-lock
+
+    room_slug_manual_occupied:
+      name: "Room Friendly Name manual occupied"
+      icon: mdi:account-edit
+    # --- END controls ---
+
+  input_datetime:
+    # input_datetime restores last value from recorder on restart.
+
+    # --- BEGIN helpers ---
+    room_slug_last_motion:
+      name: "Room Friendly Name last motion"
+      icon: mdi:motion-sensor
+      has_date: true
+      has_time: true
+    # --- END helpers ---
+
+  input_number:
+    # input_number restores last value from recorder on restart.
+    # Do NOT set `initial` — it resets the value on every HA restart.
+
+    # --- BEGIN failsafe ---
+    room_slug_failsafe_timeout:
+      name: "Room Friendly Name failsafe timeout (min)"
+      icon: mdi:timer-alert-outline
+      unit_of_measurement: "min"
+      min: 5
+      max: 5940
+      step: 5
+      mode: box
+    # --- END failsafe ---
+
+  timer:
+    # --- BEGIN failsafe ---
+    room_slug_failsafe:
+      name: "Room Friendly Name failsafe"
+      icon: mdi:timer-alert-outline
+      duration: "03:00:00"
+      restore: true
+    # --- END failsafe ---
+
+  # --- BEGIN helpers ---
+  template:
+    - binary_sensor:
+        # Effective occupancy — consumed by WITB Actions V3 and Tag Cleanup.
+        # ON when occupied OR force_occupied OR manual_occupied.
+        - name: "Room Friendly Name Occupied Effective"
+          unique_id: "room_slug_occupied_effective"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on')
+               or is_state('input_boolean.room_slug_force_occupied', 'on')
+               or is_state('input_boolean.room_slug_manual_occupied', 'on') }}
+
+        - name: "Room Friendly Name WITB Override Active"
+          unique_id: "room_slug_witb_override_active"
+          icon: mdi:hand-back-right-outline
+          state: >-
+            {{ is_state('input_boolean.room_slug_automation_override', 'on')
+              or is_state('input_boolean.room_slug_force_occupied', 'on') }}
+
+        # Troubleshooting: ON when occupied and a hard block is present
+        # (force, manual) or the failsafe is not running (stuck). A transit room
+        # has no door, so there is no sealed / exit-window state.
+        - name: "Room Friendly Name Clear Blocked"
+          unique_id: "room_slug_clear_blocked"
+          device_class: problem
+          state: >-
+            {{ is_state('input_boolean.room_slug_occupied', 'on')
+               and (
+                 is_state('input_boolean.room_slug_force_occupied', 'on')
+                 or is_state('input_boolean.room_slug_manual_occupied', 'on')
+                 # --- BEGIN failsafe ---
+                 or not is_state('timer.room_slug_failsafe', 'active')
+                 # --- END failsafe ---
+               ) }}
+
+        # --- BEGIN failsafe ---
+        - name: "Room Friendly Name Failsafe Active"
+          unique_id: "room_slug_failsafe_active"
+          icon: mdi:timer-alert-outline
+          state: >-
+            {{ is_state('timer.room_slug_failsafe', 'active') }}
+        # --- END failsafe ---
+  # --- END helpers ---

@@ -1,0 +1,17 @@
+# rooms.yaml — WITB Transit Room v2 Helper Packages
+# Template: witb_transit_room_package_template.yaml
+#
+# Generates helpers for doorless rooms (stairs, hallways, landings) driven by the
+# WITB Transit Room v2 blueprint. Output feeds WITB Actions V3 through
+# binary_sensor.<slug>_occupied_effective.
+#
+# Run with: python generate_witb_packages_templated.py --config rooms.yaml
+
+template: witb_transit_room_package_template.yaml
+out: ./packages/witb
+areas_script: ./assign_areas_witb_transit.py
+key_suffix: _witb
+
+rooms:
+  - name: "Stairs"
+    area: "Stairs"

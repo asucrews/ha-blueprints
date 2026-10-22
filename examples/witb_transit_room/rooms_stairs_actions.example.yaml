@@ -1,0 +1,17 @@
+# rooms_stairs_actions.example.yaml — WITB Actions V3 helper package for the Stairs
+# Template: blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan_package_template.yaml
+#
+# Lights only (no fan helpers). Pair with the Transit Room v2 core package
+# (blueprints/automation/witb_transit_room/v2/rooms.yaml).
+#
+# Run with:
+#   python blueprints/generate_witb_packages_templated.py --config examples/witb_transit_room/rooms_stairs_actions.example.yaml
+
+template: ../../blueprints/automation/witb_plus_actions_lights_fan/v3/witb_plus_actions_lights_fan_package_template.yaml
+out: ./packages/witb_actions
+key_suffix: _witb_actions
+
+rooms:
+  - name: "Stairs"
+    area: "Stairs"
+    no_fan: true

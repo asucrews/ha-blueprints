@@ -1,3 +1,4 @@
+# LEGACY (Transit Room v1) — see stairs_automation.yaml for v2.
 - id: witb_transit_room_v1_hallway
   alias: WITB Transit Room - Hallway
   description: >

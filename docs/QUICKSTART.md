@@ -106,7 +106,7 @@ Trigger motion or open/close the door — `input_boolean.office_occupied` should
 
 | Blueprint | Template | Notes |
 |---|---|---|
-| Transit Room (hallway) | `transit_helpers_package_template.yaml` | PIR-only, no door needed |
+| Transit Room v2 (hallway, stairs) | `witb_transit_room_package_template.yaml` | WITB+ minus doors; v1 template is legacy |
 | Bathroom Fan | `room_humidity_baseline_delta_package_template.yaml` | Requires a delta sensor |
 | Vacuum Job Manager | `vacuum_job_helpers.yaml` (copy directly) | No generator needed |
 | Bed Sensor | none | Reuses WITB+ v4 helpers |

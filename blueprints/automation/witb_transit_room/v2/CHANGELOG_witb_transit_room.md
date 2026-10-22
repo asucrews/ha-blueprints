@@ -37,6 +37,12 @@ Rewrite on the WITB+ 4.4.0 engine. v1 (hold-timer driver) stays in `../v1/` as t
   `require_door_for_entry`, `entry_window_seconds`, `entry_window_helper`.
 - Logic: door-change branches, exit evaluation timer branch, latch sync, entry gating.
 
+### Added
+
+- `witb_transit_room_package_template.yaml` (blocks `helpers`, `controls`, `failsafe`) and `rooms.yaml`
+  (Stairs). Produces `binary_sensor.<slug>_occupied_effective`, Override Active, Clear Blocked (force, manual
+  or failsafe not running) and Failsafe Active.
+
 ### Not carried over from v1
 
 Keepalive, instant-off/suppress, day/night hold, minimum-on, maintenance override and HA-start recovery.

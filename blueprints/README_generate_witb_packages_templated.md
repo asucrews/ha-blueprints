@@ -173,7 +173,7 @@ ha-packages/
   humidity_controled_fan_package_template.yaml
   rooms_witb_plus.yaml        ← one config per template
   rooms_witb_actions.yaml
-  rooms_transit.yaml
+  rooms_transit.yaml          ← Transit Room v2 keeps its own rooms.yaml next to its template
   rooms_humidity.yaml
   packages/
     rooms/
@@ -232,7 +232,8 @@ CLI --no-X  >  per-room no_X: true  >  config emit_X: false  >  default (on)
 | `witb_plus_package_template.yaml` | `_witb_plus` | helpers, controls, latched, exit_close, failsafe, entry_gating |
 | `witb_plus_actions_lights_fan_package_template.yaml` | `_witb_actions` | lights, fan, lux, humidity, night |
 | `humidity_controled_fan_package_template.yaml` | `_humidity` | tuning_helpers |
-| `witb_transit_room_package_template.yaml` | `_transit` | *(flat — no feature blocks)* |
+| `witb_transit_room/v2/witb_transit_room_package_template.yaml` | `_witb` | helpers, controls, failsafe |
+| `witb_transit_room/v1/witb_transit_room_package_template.yaml` (legacy) | `_transit` | *(flat — no feature blocks)* |
 | `vacuum_job_manager_package_template.yaml` | `_vacuum` | *(flat — no feature blocks)* |
 
 ---

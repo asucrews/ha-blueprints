@@ -1,5 +1,15 @@
 # CHANGELOG — generate_witb_packages_templated.py
 
+## v4.2 — Transit Room v2 template support
+
+- Documented the WITB Transit Room v2 template
+  (`blueprints/automation/witb_transit_room/v2/witb_transit_room_package_template.yaml`). It uses the existing
+  `helpers`, `controls` and `failsafe` block names, so no code change was needed: `--no-helpers`,
+  `--no-controls` and `--no-failsafe` work, and per-room `no_X: true` too.
+- Added `witb_transit_room/v2/rooms.yaml` with a Stairs entry and an example Actions config for the Stairs
+  (`examples/witb_transit_room/rooms_stairs_actions.example.yaml`, `no_fan: true`).
+- Generator output for all existing templates and configs is byte-identical to v4.1.
+
 ## v4.1 — Flat-template area extraction fix
 
 ### Bug fixes

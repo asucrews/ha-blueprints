@@ -1,0 +1,105 @@
+---
+stairs_witb:
+  # WITB Transit Room v2 Package Template
+  # Tokens: stairs, Stairs
+  #
+  # Helpers for the WITB Transit Room v2 blueprint (WITB+ 4.4.0 minus doors).
+  # Mirrors witb_plus_package_template.yaml without the door blocks. It does NOT
+  # include lights/fan/night helpers; those come from the WITB Actions template.
+  #
+  # Feature blocks (controlled by --no-X flags or per-room `no_X: true` in config):
+  #   helpers      - required core: occupied (input_boolean), last_motion
+  #                  (input_datetime), occupied_effective binary_sensor (the glue
+  #                  consumed by WITB Actions V3 as its trigger sensor)
+  #   controls     - optional: automation_override, force_occupied, manual_occupied (input_boolean)
+  #   failsafe     - optional: failsafe timer + failsafe_timeout input_number + Failsafe Active sensor
+  #
+  # The template sensors reference the controls helpers; if you strip `controls`,
+  # point the sensors at your own helpers or remove those lines.
+
+  input_boolean:
+    # input_boolean restores last known state from recorder on restart.
+
+    stairs_occupied:
+      name: "Stairs occupied"
+      icon: mdi:home-account
+
+    stairs_automation_override:
+      name: "Stairs automation override"
+      icon: mdi:hand-back-right-outline
+
+    stairs_force_occupied:
+      name: "Stairs force occupied"
+      icon: mdi:account-lock
+
+    stairs_manual_occupied:
+      name: "Stairs manual occupied"
+      icon: mdi:account-edit
+
+  input_datetime:
+    # input_datetime restores last value from recorder on restart.
+
+    stairs_last_motion:
+      name: "Stairs last motion"
+      icon: mdi:motion-sensor
+      has_date: true
+      has_time: true
+
+  input_number:
+    # input_number restores last value from recorder on restart.
+    # Do NOT set `initial` — it resets the value on every HA restart.
+
+    stairs_failsafe_timeout:
+      name: "Stairs failsafe timeout (min)"
+      icon: mdi:timer-alert-outline
+      unit_of_measurement: "min"
+      min: 5
+      max: 5940
+      step: 5
+      mode: box
+
+  timer:
+    stairs_failsafe:
+      name: "Stairs failsafe"
+      icon: mdi:timer-alert-outline
+      duration: "03:00:00"
+      restore: true
+
+  template:
+    - binary_sensor:
+        # Effective occupancy — consumed by WITB Actions V3 and Tag Cleanup.
+        # ON when occupied OR force_occupied OR manual_occupied.
+        - name: "Stairs Occupied Effective"
+          unique_id: "stairs_occupied_effective"
+          device_class: occupancy
+          state: >-
+            {{ is_state('input_boolean.stairs_occupied', 'on')
+               or is_state('input_boolean.stairs_force_occupied', 'on')
+               or is_state('input_boolean.stairs_manual_occupied', 'on') }}
+
+        - name: "Stairs WITB Override Active"
+          unique_id: "stairs_witb_override_active"
+          icon: mdi:hand-back-right-outline
+          state: >-
+            {{ is_state('input_boolean.stairs_automation_override', 'on')
+              or is_state('input_boolean.stairs_force_occupied', 'on') }}
+
+        # Troubleshooting: ON when occupied and a hard block is present
+        # (force, manual) or the failsafe is not running (stuck). A transit room
+        # has no door, so there is no sealed / exit-window state.
+        - name: "Stairs Clear Blocked"
+          unique_id: "stairs_clear_blocked"
+          device_class: problem
+          state: >-
+            {{ is_state('input_boolean.stairs_occupied', 'on')
+               and (
+                 is_state('input_boolean.stairs_force_occupied', 'on')
+                 or is_state('input_boolean.stairs_manual_occupied', 'on')
+                 or not is_state('timer.stairs_failsafe', 'active')
+               ) }}
+
+        - name: "Stairs Failsafe Active"
+          unique_id: "stairs_failsafe_active"
+          icon: mdi:timer-alert-outline
+          state: >-
+            {{ is_state('timer.stairs_failsafe', 'active') }}

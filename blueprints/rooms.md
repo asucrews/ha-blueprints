@@ -175,7 +175,7 @@ ha-packages/
   generate_witb_packages_templated.py
   witb_plus_package_template.yaml
   room_witb_actions_package_template.yaml
-  transit_helpers_package_template.yaml
+  witb_transit_room_package_template.yaml   (Transit Room v2: blocks helpers, controls, failsafe)
   rooms_witb_plus.yaml
   rooms_witb_actions.yaml
   rooms_transit.yaml
@@ -187,5 +187,5 @@ Run each one independently:
 ```bash
 python generate_witb_packages_templated.py --config rooms_witb_plus.yaml
 python generate_witb_packages_templated.py --config rooms_witb_actions.yaml
-python generate_witb_packages_templated.py --config rooms_transit.yaml
+python generate_witb_packages_templated.py --config rooms_transit.yaml   # v2: automation/witb_transit_room/v2/rooms.yaml
 ```
