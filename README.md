@@ -4,7 +4,7 @@ Home Assistant blueprints and helper package generators.
 
 This repository currently centers on a WITB+ occupancy/action workflow plus related automation and script blueprints:
 - Occupancy inference for enclosed rooms (`WITB+ v4`)
-- Occupancy inference for transit areas / hallways (`WITB Transit Room Driver v1`)
+- Occupancy inference for transit areas / hallways (`WITB Transit Room v2`, WITB+ minus doors; v1 legacy)
 - Bedroom sleep guard to prevent false vacancy while in bed (`WITB+ Bed → Force Occupied v1`)
 - Actions control for lights/fan (`WITB+ Actions - Lights + Fan`)
 - Bathroom fan control from humidity delta (`Bathroom Fan From Humidity Delta`)
@@ -40,9 +40,10 @@ This repository currently centers on a WITB+ occupancy/action workflow plus rela
    - Docs: [`blueprints/automation/vacuum_job_manager/v1/README_vacuum_job_manager_v1.md`](blueprints/automation/vacuum_job_manager/v1/README_vacuum_job_manager_v1.md)
    - Purpose: queued/scheduled vacuum job orchestration with mission-counter completion and optional WITB/light integration.
 
-5. [`blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`](blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml)
-   - Docs: [`blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md`](blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md)
-   - Purpose: PIR-only occupancy driver for hallways/stairs using hold-timer decay; outputs WITB-compatible `occupied_effective` signal.
+5. [`blueprints/automation/witb_transit_room/v2/witb_transit_room.yaml`](blueprints/automation/witb_transit_room/v2/witb_transit_room.yaml)
+   - Docs: [`blueprints/automation/witb_transit_room/v2/README_witb_transit_room_v2.md`](blueprints/automation/witb_transit_room/v2/README_witb_transit_room_v2.md)
+   - Purpose: WITB+ 4.4.0 minus doors for hallways/stairs; drives an occupancy helper that feeds `binary_sensor.<slug>_occupied_effective` for WITB Actions V3.
+   - Legacy: [`v1`](blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml) PIR hold-timer driver ([docs](blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md)).
 
 6. [`blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml`](blueprints/automation/witb_plus_bed_sensor/v1/witb_plus_bed_force_occupied.yaml)
    - Docs: [`blueprints/automation/witb_plus_bed_sensor/v1/README_witb_plus_bed_force_occupied_v1.md`](blueprints/automation/witb_plus_bed_sensor/v1/README_witb_plus_bed_force_occupied_v1.md)

@@ -1,0 +1,670 @@
+blueprint:
+  homeassistant:
+    min_version: 2026.3.0
+  domain: automation
+  source_url: https://github.com/asucrews/ha-blueprints/blob/main/blueprints/automation/witb_transit_room/v2/witb_transit_room.yaml
+  name: WITB Transit Room (2.0.0)
+  description: |
+    Version: 2.0.0 — see CHANGELOG_witb_transit_room.md for full version history.
+
+    WITB+ 4.4.0 minus doors, for transit rooms (stairs, hallways, open
+    connectors) that have no door to anchor state. Uses PIR motion and optional
+    mmWave presence. Drives an input_boolean occupancy helper. The per-room
+    helper package turns that helper plus the force/manual helpers into
+    binary_sensor.<slug>_occupied_effective, which WITB Actions V3 consumes
+    exactly like it does for a WITB+ room.
+
+    OCCUPANCY ASSERTION
+      • PIR motion ON → room asserts occupied.
+      • Optional mmWave ON → can assert occupied (disabled by default; only enable
+        if your sensor has clean room isolation).
+      • Force Occupied ON → pins occupancy ON, blocks all clearing paths.
+        Supports multiple helpers — any one ON is sufficient to pin the room.
+      • Manual Occupied ON → asserts occupied but still allows normal clearing
+        once it is turned OFF and motion has stopped.
+        Supports multiple helpers — any one ON is sufficient.
+
+    OCCUPANCY CLEARING
+      • PIR motion off for exit_timeout_seconds → clears occupancy.
+      • mmWave off for exit_timeout_seconds (and PIR off) → clears occupancy.
+      • mmWave ON → blocks clearing while ON (recommended mode).
+      • Manual Occupied ON → blocks clearing.
+      • Turning Force/Manual Occupied OFF does not clear immediately; the next
+        motion-off or failsafe evaluation does (same as WITB+).
+
+    FAILSAFE
+      • Long-running timer prevents permanently stuck occupied states.
+      • When it finishes it clears if motion is off, mmWave allows it and no manual
+        helper is ON; otherwise it restarts.
+      • Hard deadlock break: clears if motion has been off for 1.5× the failsafe
+        duration AND force_occupied is OFF.
+
+    CONTROLS (priority order)
+      1. Automation Override ON → automation does nothing (full manual handoff).
+      2. Force Occupied ON → pins ON, blocks all clearing including deadlock break.
+         Multiple entities supported — any one ON is sufficient.
+      3. Manual Occupied ON → asserts ON, blocks clearing while ON.
+         Multiple entities supported — any one ON is sufficient.
+
+    REMOVED FROM WITB+ 4.4.0 (no doors in a transit room)
+      • seal door, transition doors, last-door helper: nothing to open or close.
+      • exit evaluation timer: it was only started by a door opening; the motion
+        timeout alone now decides when to clear.
+      • "door closes behind you" path (last-exit helper and its windows): no door.
+      • latch helper and "allow idle when sealed": no seal state to protect.
+      • entry gating (require door for entry, entry window and its helper): motion
+        always asserts, since there is no door event to wait for.
+      Everything that was gated on "door open", "exit recent" or "sealed" may now
+      always clear.
+
+    REQUIRED HELPERS (create one set per room)
+      • input_boolean  — occupancy_helper
+      • input_datetime — last_motion_helper
+
+  input:
+    motion:
+      name: Motion (required)
+      icon: mdi:motion-sensor
+      description: >
+        Required sensor for the room:
+          - motion_sensor: PIR that asserts occupancy
+      input:
+        motion_sensor:
+          name: Motion Sensor (PIR)
+          selector:
+            entity:
+              domain: binary_sensor
+              device_class: motion
+
+    mmwave:
+      name: mmWave (optional)
+      icon: mdi:radar
+      collapsed: true
+      description: >
+        Optional presence/occupancy sensor (e.g., mmWave). Recommended usage:
+          - blocks clearing while ON (mmwave_blocks_clear: true)
+          - only allow asserting occupancy if you trust its room isolation
+      input:
+        mmwave_sensor:
+          name: mmWave Presence Sensor (optional)
+          description: >
+            Optional presence/occupancy binary_sensor (e.g., mmWave).
+            When configured, it can block clearing while ON (recommended), and can optionally
+            assert occupancy when ON (if enabled below).
+          default: []
+          selector:
+            entity:
+              domain: binary_sensor
+
+        mmwave_blocks_clear:
+          name: mmWave blocks clearing while ON
+          description: >
+            If enabled and mmWave is configured, occupancy will not clear while mmWave is ON.
+          default: true
+          selector:
+            boolean: {}
+
+        mmwave_asserts_occupied:
+          name: Allow mmWave to assert occupancy
+          description: >
+            If enabled and mmWave is configured, mmWave ON can assert occupied ON.
+            Leave disabled if your mmWave can see through walls or adjacent rooms.
+          default: false
+          selector:
+            boolean: {}
+
+    helpers_required:
+      name: Helpers (required)
+      icon: mdi:form-textbox
+      description: >
+        Required helpers per room. These are typically created in your per-room package.
+      input:
+        occupancy_helper:
+          name: Occupancy Helper (input_boolean)
+          selector:
+            entity:
+              domain: input_boolean
+
+        last_motion_helper:
+          name: Last Motion Helper (input_datetime)
+          description: Stores timestamp of last motion ON.
+          selector:
+            entity:
+              domain: input_datetime
+
+    clearing_and_timeouts:
+      name: Clearing & Timeouts
+      icon: mdi:timer-outline
+      description: >
+        Exit timeout controls how long we wait after motion stops to clear.
+      input:
+        exit_timeout_seconds:
+          name: Exit Timeout (seconds)
+          description: >
+            When occupied, if there is no motion (and no mmWave, if configured) for this
+            long -> clear occupancy.
+          default: 60
+          selector:
+            number:
+              min: 5
+              max: 600
+              unit_of_measurement: seconds
+              mode: slider
+
+    controls:
+      name: Controls (optional)
+      icon: mdi:shield
+      collapsed: true
+      description: >
+        Optional per-room control helpers.
+        If you do not use these, leave them empty and do not wire them in the automation instance.
+      input:
+        automation_override:
+          name: Automation Override (optional)
+          description: If ON, this automation does nothing (hands off).
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
+
+        force_occupied:
+          name: Force Occupied (optional)
+          description: >
+            If ON, pins occupancy ON and blocks clearing. Supports multiple helpers —
+            useful when multiple physical switches or virtual helpers (e.g. a wall switch
+            AND a guest mode boolean) should each independently be able to force the room
+            occupied. Any one ON is sufficient to pin.
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
+              multiple: true
+
+        manual_occupied:
+          name: Manual Occupied (optional)
+          description: >
+            If ON, asserts occupancy ON and blocks clearing while ON. Supports multiple
+            helpers — useful for rooms with adjoining spaces. Occupancy is asserted if ANY
+            of the selected helpers are ON.
+          default: []
+          selector:
+            entity:
+              domain: input_boolean
+              multiple: true
+
+    failsafe:
+      name: Failsafe (optional)
+      icon: mdi:timer-alert-outline
+      collapsed: true
+      description: >
+        SAFE failsafe timer (no polling):
+          - When timer finishes, clear if motion is OFF, mmWave allows it and no manual helper is ON.
+          - Otherwise restart the timer.
+      input:
+        enable_failsafe:
+          name: Enable failsafe timer
+          description: >
+            If enabled, uses a timer to prevent permanently stuck occupied states.
+            NOTE: If 'Failsafe Timeout Helper' is assigned, it OVERRIDES the slider below.
+          default: true
+          selector:
+            boolean: {}
+
+        failsafe_timer:
+          name: Failsafe Timer (required if failsafe is enabled)
+          description: Create one per room (e.g., timer.stairs_failsafe). Only used when failsafe is enabled.
+          default: []
+          selector:
+            entity:
+              domain: timer
+
+        failsafe_minutes:
+          name: Failsafe duration (minutes)
+          description: >
+            Duration loaded into the failsafe timer whenever occupancy is asserted/renewed.
+            Stairs/hallway suggestion: 30-60 (max 5940 / 99h).
+            Used only if the Failsafe Timeout Helper below is not defined.
+          default: 180
+          selector:
+            number:
+              min: 5
+              max: 5940
+              unit_of_measurement: minutes
+              mode: slider
+
+        failsafe_timeout_helper:
+          name: Failsafe Timeout Helper (optional)
+          description: >
+            Link to input_number.room_slug_failsafe_timeout.
+            When set, this overrides the failsafe_minutes slider above.
+          default: []
+          selector:
+            entity:
+              domain: input_number
+
+# mode: restart is correct here because ALL runs are non-blocking: every path
+# is an immediate check or a timer start, no run ever sleeps, so a new trigger
+# can safely replace an in-flight run.
+mode: restart
+max_exceeded: silent
+
+variables:
+  motion: !input motion_sensor
+  mm: !input mmwave_sensor
+  mm_block: !input mmwave_blocks_clear
+  mm_assert: !input mmwave_asserts_occupied
+  mm_enabled: "{{ mm is string and mm|length > 0 }}"
+  mm_on: "{{ mm_enabled and is_state(mm, 'on') }}"
+  mm_clear_ok: "{{ (not mm_enabled) or (not mm_block) or is_state(mm, 'off') }}"
+  occ: !input occupancy_helper
+  last_motion: !input last_motion_helper
+
+  # Controls
+  ov: !input automation_override
+  force: !input force_occupied
+  manual: !input manual_occupied
+
+  # Failsafe
+  failsafe_timeout_input: !input failsafe_timeout_helper
+  enable_fs: !input enable_failsafe
+  fs_timer: !input failsafe_timer
+  fs_min: "{{ states(failsafe_timeout_input) | int(180) }}"
+
+  # Helpers
+  ov_on: >-
+    {% if ov is string and ov|length > 0 %}
+      {{ is_state(ov, 'on') }}
+    {% else %}
+      false
+    {% endif %}
+  # force_occupied supports multiple helpers (list or single string).
+  # Any one of the selected helpers being ON is sufficient to pin occupancy ON
+  # and block all clearing paths including the deadlock break.
+  force_on: >-
+    {% if force is string and force|length > 0 %}
+      {{ is_state(force, 'on') }}
+    {% elif force is iterable and force|length > 0 %}
+      {% set ns = namespace(any_on=false) %}
+      {% for f in force %}
+        {% if is_state(f, 'on') %}
+          {% set ns.any_on = true %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.any_on }}
+    {% else %}
+      false
+    {% endif %}
+
+  # manual_occupied supports multiple helpers (list or single string).
+  # Any one of the selected helpers being ON is sufficient to assert occupancy.
+  # Typical use: wire adjoining room occupancy helpers here so the transit room
+  # stays occupied while a connected room is occupied.
+  manual_on: >-
+    {% if manual is string and manual|length > 0 %}
+      {{ is_state(manual, 'on') }}
+    {% elif manual is iterable and manual|length > 0 %}
+      {% set ns = namespace(any_on=false) %}
+      {% for m in manual %}
+        {% if is_state(m, 'on') %}
+          {% set ns.any_on = true %}
+        {% endif %}
+      {% endfor %}
+      {{ ns.any_on }}
+    {% else %}
+      false
+    {% endif %}
+
+  # Cap hours at 99 to prevent invalid timer strings (e.g. "100:00:00").
+  # Slider max of 5940 minutes (99h) makes this a safety net only.
+  fs_duration_hms: >-
+    {% set m = fs_min | int %}
+    {% set h = [m // 60, 99] | min %}
+    {% set mm = (m % 60) %}
+    {{ '%02d:%02d:00' | format(h, mm) }}
+
+trigger:
+  # ---- Presence signals ----
+  - id: motion_on
+    platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+
+  # Use platform: state for mmWave — template triggers without a watched
+  # entity_id are unreliable and can miss changes.
+  - id: mmwave_on
+    platform: state
+    entity_id: !input mmwave_sensor
+    to: "on"
+
+  - id: mmwave_off_for
+    platform: state
+    entity_id: !input mmwave_sensor
+    to: "off"
+    for:
+      seconds: !input exit_timeout_seconds
+
+  # ---- Timeout-based clear path (motion off for N seconds) ----
+  - id: motion_off_for
+    platform: state
+    entity_id: !input motion_sensor
+    to: "off"
+    for:
+      seconds: !input exit_timeout_seconds
+
+  # ---- Control triggers ----
+  # HA 2024.4+ silently ignores state triggers on empty [] entity lists.
+  - id: override_off
+    platform: state
+    entity_id: !input automation_override
+    to: "off"
+
+  # force_occupied supports multiple entities. HA automatically
+  # watches all entities in the list when a list is passed to entity_id.
+  - id: force_on
+    platform: state
+    entity_id: !input force_occupied
+    to: "on"
+
+  - id: force_off
+    platform: state
+    entity_id: !input force_occupied
+    to: "off"
+
+  # manual_occupied supports multiple entities. HA automatically
+  # watches all entities in the list when a list is passed to entity_id.
+  - id: manual_on
+    platform: state
+    entity_id: !input manual_occupied
+    to: "on"
+
+  - id: manual_off
+    platform: state
+    entity_id: !input manual_occupied
+    to: "off"
+
+  # ---- Failsafe timer completion ----
+  - id: failsafe_done
+    platform: event
+    event_type: timer.finished
+    event_data:
+      entity_id: !input failsafe_timer
+
+# If override is ON, do nothing at all
+condition:
+  - condition: template
+    value_template: "{{ not ov_on }}"
+
+action:
+  # ---------------------------------------------------------------------------
+  # 1. Force Occupied: pin ON and block all clearing
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ force_on }}"
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: "{{ occ }}"
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_motion }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                sequence:
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
+            default: []
+          - stop: "Force occupied active"
+    default: []
+
+  # ---------------------------------------------------------------------------
+  # 2. Manual Occupied: assert ON (soft); normal clearing still applies once OFF.
+  #    manual_on is true if ANY of the configured helpers is ON.
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ manual_on }}"
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: "{{ occ }}"
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_motion }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                sequence:
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
+            default: []
+    default: []
+
+  # ---------------------------------------------------------------------------
+  # 3. Motion ON: assert occupancy
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: motion_on
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: "{{ occ }}"
+          - action: input_datetime.set_datetime
+            target:
+              entity_id: "{{ last_motion }}"
+            data:
+              timestamp: "{{ now().timestamp() }}"
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                sequence:
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
+            default: []
+    default: []
+
+  # ---------------------------------------------------------------------------
+  # 3b. mmWave ON: refresh presence; optionally assert occupancy
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: mmwave_on
+        sequence:
+          # If allowed, mmWave can assert occupancy.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ mm_assert }}"
+                sequence:
+                  - action: input_boolean.turn_on
+                    target:
+                      entity_id: "{{ occ }}"
+            default: []
+
+          # Refresh timestamps and failsafe whenever occupied (including just after asserting).
+          - choose:
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                sequence:
+                  - action: input_datetime.set_datetime
+                    target:
+                      entity_id: "{{ last_motion }}"
+                    data:
+                      timestamp: "{{ now().timestamp() }}"
+                  - choose:
+                      - conditions:
+                          - condition: template
+                            value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+                        sequence:
+                          - action: timer.start
+                            target:
+                              entity_id: "{{ fs_timer }}"
+                            data:
+                              duration: "{{ fs_duration_hms }}"
+                    default: []
+            default: []
+    default: []
+
+  # ---------------------------------------------------------------------------
+  # 4. Motion OFF for exit timeout: attempt clear
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: motion_off_for
+        sequence:
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
+          # Do not clear if any manual_occupied helper is still ON.
+          - condition: template
+            value_template: "{{ not manual_on }}"
+          - condition: template
+            value_template: "{{ mm_clear_ok }}"
+          - action: input_boolean.turn_off
+            target:
+              entity_id: "{{ occ }}"
+          # Cancel fs_timer immediately after clearing occupancy.
+          # With mode:restart, any new trigger arriving later in the sequence would
+          # kill this run before the cancel executed, leaving the failsafe timer
+          # orphaned and running.
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
+    default: []
+
+  # ---------------------------------------------------------------------------
+  # 4b. mmWave OFF for exit timeout: attempt clear (requires PIR off too)
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: mmwave_off_for
+        sequence:
+          - condition: state
+            entity_id: !input occupancy_helper
+            state: "on"
+          # Do not clear if any manual_occupied helper is still ON.
+          - condition: template
+            value_template: "{{ not manual_on }}"
+          - condition: template
+            value_template: "{{ is_state(motion, 'off') }}"
+          - condition: template
+            value_template: "{{ mm_clear_ok }}"
+          - action: input_boolean.turn_off
+            target:
+              entity_id: "{{ occ }}"
+          # Cancel fs_timer immediately (same reason as block 4).
+          - choose:
+              - conditions:
+                  - condition: template
+                    value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer | length > 0) }}"
+                sequence:
+                  - action: timer.cancel
+                    target:
+                      entity_id: "{{ fs_timer }}"
+            default: []
+    default: []
+
+  # ---------------------------------------------------------------------------
+  # 5. SAFE failsafe: clears when motion is off, restarts otherwise.
+  #    Hard deadlock break if motion has been off for 1.5x the failsafe duration.
+  #    A forced room never reaches here: the force block above stops the run.
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: failsafe_done
+          - condition: template
+            value_template: "{{ enable_fs and (fs_timer is string) and (fs_timer|length > 0) }}"
+        sequence:
+          - choose:
+              # --- CONDITION A: Standard "Safe" Clear ---
+              # Clear if: motion is off AND mmWave clear AND no manual helper is ON.
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                  - condition: template
+                    value_template: "{{ not manual_on }}"
+                  - condition: template
+                    value_template: "{{ is_state(motion, 'off') }}"
+                  - condition: template
+                    value_template: "{{ mm_clear_ok }}"
+                sequence:
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ occ }}"
+
+              # --- CONDITION B: Hard Deadlock Break ---
+              # Clear if motion has been off for more than 1.5x the failsafe duration.
+              # Handles unmonitored exits and a stuck mmWave.
+              # Guarded against force_on (a forced-occupied room must not be cleared)
+              # and manual_on (a connected room is still occupied).
+              - conditions:
+                  - condition: template
+                    value_template: "{{ not force_on }}"
+                  - condition: template
+                    value_template: "{{ not manual_on }}"
+                  - condition: template
+                    value_template: >
+                      {% set last_m = states(last_motion) %}
+                      {% set seconds_idle = (now().timestamp() - as_timestamp(last_m, 0)) %}
+                      {{ seconds_idle > (fs_min * 60 * 1.5) }}
+                sequence:
+                  - action: input_boolean.turn_off
+                    target:
+                      entity_id: "{{ occ }}"
+
+              # --- CONDITION C: Still Occupied ---
+              # None of the above cleared — restart the failsafe timer.
+              - conditions:
+                  - condition: state
+                    entity_id: !input occupancy_helper
+                    state: "on"
+                sequence:
+                  - action: timer.start
+                    target:
+                      entity_id: "{{ fs_timer }}"
+                    data:
+                      duration: "{{ fs_duration_hms }}"
+
+  # ---------------------------------------------------------------------------
+  # 6. Override turned OFF: no immediate action; next motion event updates.
+  # ---------------------------------------------------------------------------
+  - choose:
+      - conditions:
+          - condition: trigger
+            id: override_off
+        sequence: []
+    default: []

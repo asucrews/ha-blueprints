@@ -1,18 +1,116 @@
-# WITB Transit Room Driver v1
+# WITB Transit Room
 
-Implementation documentation for `witb_transit_room.yaml`.
+Implementation documentation for `witb_transit_room.yaml`. v2 (2.0.0) is current; v1 is legacy.
 
 ## Source
+
+- Blueprint (current): `blueprints/automation/witb_transit_room/v2/witb_transit_room.yaml`
+- Blueprint README: `blueprints/automation/witb_transit_room/v2/README_witb_transit_room_v2.md`
+- Changelog: `blueprints/automation/witb_transit_room/v2/CHANGELOG_witb_transit_room.md`
+- Helper package template and generator support: added in a follow-up change.
+- Legacy v1: `blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml` (see "Legacy v1" below)
+
+## Purpose
+
+WITB+ 4.4.0 minus doors, for transit rooms (stairs, hallways, open connectors). The blueprint drives an
+`input_boolean` occupancy helper. The room package builds `binary_sensor.<slug>_occupied_effective`
+(occupied OR force OR manual) from it, which WITB Actions V3 and Tag Cleanup consume like a WITB+ room.
+
+## Min HA Version
+
+`2026.3.0`
+
+## Inputs
+
+| Input | Type | Default | Purpose |
+|---|---|---|---|
+| `motion_sensor` | binary_sensor (motion) | required | PIR that asserts occupancy |
+| `mmwave_sensor` | binary_sensor | none | Optional presence sensor |
+| `mmwave_blocks_clear` | boolean | `true` | Occupancy does not clear while mmWave is ON |
+| `mmwave_asserts_occupied` | boolean | `false` | mmWave ON can assert occupancy |
+| `occupancy_helper` | input_boolean | required | Occupancy output |
+| `last_motion_helper` | input_datetime | required | Last motion timestamp |
+| `exit_timeout_seconds` | number 5-600 | 60 | Motion (and mmWave) off for this long clears |
+| `automation_override` | input_boolean | none | ON: automation does nothing |
+| `force_occupied` | input_boolean (multiple) | none | ON: pins occupancy, blocks all clearing |
+| `manual_occupied` | input_boolean (multiple) | none | ON: asserts occupancy, blocks clearing while ON |
+| `enable_failsafe` | boolean | `true` | Use the failsafe timer |
+| `failsafe_timer` | timer | none | Failsafe timer |
+| `failsafe_minutes` | number 5-5940 | 180 | Failsafe duration slider (see note) |
+| `failsafe_timeout_helper` | input_number | none | Failsafe duration helper (minutes) |
+
+## Behavior
+
+| Trigger | Action |
+|---|---|
+| Force Occupied ON (any run while ON) | Occupancy ON, last_motion updated, failsafe started, run stops |
+| Manual Occupied ON (any run while ON) | Occupancy ON, last_motion updated, failsafe started |
+| `motion_on` | Occupancy ON, last_motion updated, failsafe started |
+| `mmwave_on` | Optionally assert; if occupied, refresh last_motion and failsafe |
+| `motion_off_for` | Clear if occupied, no manual helper ON, mmWave allows; cancel failsafe |
+| `mmwave_off_for` | Same, plus PIR must be off |
+| `failsafe_done` | Clear if motion off, mmWave allows, no manual ON; else deadlock break after 1.5x duration (force OFF, manual OFF); else restart timer |
+| `override_off` | No immediate action |
+
+Turning force or manual OFF does not clear immediately; the next motion-off or failsafe evaluation does
+(same as WITB+).
+
+Note: as in WITB+ 4.4.0, the `failsafe_minutes` slider is declared but not read; the duration comes from
+`failsafe_timeout_helper`, falling back to 180 minutes.
+
+## Removed from WITB+ 4.4.0, and why
+
+A transit room has no door, so everything that depends on one is gone:
+
+- `seal_door`, `transition_doors`, `last_door_helper`: nothing to open or close.
+- `exit_eval_timer`: only a door opening started it; the motion timeout alone decides when to clear.
+- "Door closes behind you" (`last_exit_door_helper`, `exit_recent_window_seconds`,
+  `exit_mark_requires_recent_motion`, `exit_mark_motion_window_seconds`): no door.
+- `latched_helper`, `allow_idle_when_sealed`: no seal state to protect.
+- Entry gating (`require_door_for_entry`, `entry_window_seconds`, `entry_window_helper`): motion always
+  asserts, there is no door event to wait for.
+- Door-open, exit-recent and sealed checks that gated clearing now always allow it, and the failsafe loses
+  its seal guard but keeps the deadlock break.
+
+Not carried over from v1: keepalive, instant-off/suppress, day/night hold, minimum-on, maintenance override
+and HA-start recovery.
+
+## Helper Package
+
+Required helpers per room (package template follows in a later change):
+
+| Entity | Pattern | Notes |
+|---|---|---|
+| `input_boolean` | `<slug>_occupied` | Occupancy helper |
+| `input_datetime` | `<slug>_last_motion` | Last motion timestamp |
+| `timer` | `<slug>_failsafe` | Failsafe timer |
+| `input_number` | `<slug>_failsafe_timeout` | Failsafe minutes (optional) |
+| `input_boolean` | `<slug>_automation_override`, `_force_occupied`, `_manual_occupied` | Optional controls |
+| `binary_sensor` | `<slug>_occupied_effective` | Template: occupied OR force OR manual; feeds WITB Actions V3 |
+
+## Setup Flow
+
+1. Create the helpers (package support follows in a later change) and reload so they exist.
+2. Create an automation from `WITB Transit Room (2.0.0)` in the HA UI and bind the inputs.
+3. Point WITB Actions V3 at `binary_sensor.<slug>_occupied_effective`.
+
+## Legacy v1
+
+v1 is kept unchanged at `blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`
+(helpers template `witb_transit_room_package_template.yaml`). It is not a drop-in replacement for v2 and its
+`input_boolean` output cannot feed WITB Actions V3. Original documentation:
+
+### Source
 
 - Blueprint: `blueprints/automation/witb_transit_room/v1/witb_transit_room.yaml`
 - Helpers template: `blueprints/automation/witb_transit_room/v1/transit_helpers_package_template.yaml`
 - Blueprint README: `blueprints/automation/witb_transit_room/v1/README_witb_transit_room_v1.md`
 
-## Purpose
+### Purpose
 
 Occupancy driver for transit areas (hallways, stairs, open connectors) that have no doors. Uses PIR sensors with a hold timer for decay-based presence. Outputs `input_boolean.<slug>_occupied_effective` — the same signal consumed by WITB+ Actions v2.
 
-## Design Overview
+### Design Overview
 
 The blueprint uses a sequential choose-block "case statement" with early `stop` exits. Cases are evaluated in priority order:
 
@@ -28,7 +126,7 @@ The blueprint uses a sequential choose-block "case statement" with early `stop` 
 | 8 | Hold timer finished | Clear if no motion AND no keepalive |
 | 9 | Maintenance toggle | Resume normal logic on override OFF |
 
-## Trigger Sources
+### Trigger Sources
 
 - `motion` — any configured PIR sensor goes `on`
 - `hold_finished` — `timer.finished` on the hold timer
@@ -38,20 +136,20 @@ The blueprint uses a sequential choose-block "case statement" with early `stop` 
 - `maintenance_change` — maintenance override entity state changes
 - `ha_start` — `homeassistant.start` event
 
-## Keepalive Behavior
+### Keepalive Behavior
 
 - **`extend_only`** (default): prevents clearing (timer idle while keepalive ON) but does not turn occupancy ON.
 - **`extend_and_turn_on`**: neighbor occupancy can also turn this transit room ON (useful for hallways adjacent to occupied rooms).
 
 Keepalive entities must always be provided. Use `<slug>_keepalive_dummy` if the feature is unused.
 
-## Instant OFF Behavior
+### Instant OFF Behavior
 
 - Forces `occupied_effective` OFF immediately, cancels hold timer.
 - Optional suppress/rearm: if `instant_off_rearm_timeout_seconds > 0`, a suppress timer blocks motion/keepalive re-enables for that duration. On expiry, motion is re-checked.
 - For repeatable triggering from scripts, set the instant_off boolean ON then immediately OFF.
 
-## Helper Package
+### Helper Package
 
 Copy and customize `transit_helpers_package_template.yaml` replacing `room_slug` → your slug and `Friendly Name` → display name.
 
@@ -74,7 +172,7 @@ homeassistant:
   packages: !include_dir_merge_named packages/
 ```
 
-## Setup Flow
+### Setup Flow
 
 1. Copy template → fill in slug and display name → save to `packages/`.
 2. Reload HA (or restart) so helpers exist.
@@ -82,6 +180,6 @@ homeassistant:
 4. Bind all required selectors; select dummies for unused features.
 5. Optionally pair with a WITB+ Actions v2 automation watching `binary_sensor.<slug>_occupied_effective`.
 
-## Minimum HA Version
+### Minimum HA Version
 
 `2026.3.0`
