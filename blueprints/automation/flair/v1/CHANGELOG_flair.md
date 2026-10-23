@@ -12,8 +12,9 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   How long `occupied_effective` must stay off before Flair is set Inactive.
   Applied as `for:` on the `Room Unoccupied` trigger, so returning inside the
   delay cancels it and the room stays Active, with no timer helper. Default 0
-  keeps the 1.0.5 behavior (immediate). Any positive delay is at least 60 s,
-  so it always ends after the 30 s startup sync.
+  keeps the 1.0.5 behavior (immediate). The selector step does not enforce
+  whole minutes (HA accepts 0.1); the consistency sweep below makes a
+  fractional delay harmless.
 
 ### Changed
 - Reconciliation respects `inactive_delay_minutes`: Active while the room is vacant is
@@ -29,6 +30,17 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   (`to: "off"` plus `for:`). An availability blip during the delay would
   otherwise cancel the `for:` timer and, since `unavailable → off` did not
   match, never restart it, leaving the room Active indefinitely.
+- Consistency Sweep: a `time_pattern` trigger every minute. A top-level
+  condition lets it start a run only when the room is out of step: both
+  `occupied_effective` and the Flair status are known and either the room is
+  occupied and not Active, or it has been vacant for at least
+  `inactive_delay_minutes` and is not Inactive. Inside the delay either status
+  is accepted. When nothing is wrong no run starts (the trace list shows
+  "condition not met" runs), so the sweep cannot cancel startup sync or a
+  pending reconciliation. It corrects a lost vacancy timer, a startup sync
+  cancelled by a real event, or Flair restoring from unavailable, within a
+  minute. At delay 0 the blueprint is 1.0.5 plus the sweep, which only fixes
+  a mismatch 1.0.5 would have left in place.
 - Top-level `conditions:` drops a Room Unoccupied trigger whose previous state
   was `unavailable`/`unknown` when `inactive_delay_minutes` is 0. Without it,
   `unavailable → off` at HA start would restart (and cancel) the 30 s startup

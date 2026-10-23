@@ -136,9 +136,10 @@ transitions to `off`).
   vacant-side check fails because the room has been off for less than 10 min,
   so no service call is made. Room Unoccupied fires at 10 min and sets
   `Inactive`.
-- `reconciliation_delay` is at most 60 s and any positive vacancy delay is at
-  least 60 s, so Room Unoccupied does not cancel the reconciliation run in
-  practice; it still sets `Inactive` when it fires.
+- With a vacancy delay longer than `reconciliation_delay` (the usual case),
+  Room Unoccupied does not cancel the reconciliation run; it still sets
+  `Inactive` when it fires. If the vacancy delay were shorter, Room Unoccupied
+  would fire first and cancel the reconciliation run, then set `Inactive`.
 
 ---
 
@@ -259,3 +260,44 @@ restores `unavailable` → `off` while `flair_activity_status` is still
   (`from_state` is `unavailable` and the delay is 0). No run starts.
 - The HA Started run is not cancelled by `mode: restart`.
 - After 30 s startup sync sets `Inactive` and presses clear hold, as in 1.0.5.
+
+---
+
+## UC-18 — Vacant at restart, Flair restores Active during the startup wait
+
+**Setup:** `inactive_delay_minutes` = 10. `occupied_effective` was already
+`off` at restart, so no Room Unoccupied transition arms. HA Started begins its
+30 s wait. Flair goes `Inactive` → `Active` during the wait, which triggers
+reconciliation; that run cancels startup sync, then exits because the room has
+been vacant for less than the delay.
+
+**Expected:**
+- No timer remains from startup sync or Room Unoccupied.
+- Once `occupied_effective` has been off for at least the delay, the next
+  Consistency Sweep (within a minute) passes the condition, sets `Inactive` and
+  presses clear hold.
+- Before that, the sweep finds `Active` acceptable and starts no run.
+
+---
+
+## UC-19 — Fractional delay
+
+**Setup:** `inactive_delay_minutes` set to `0.1` (6 s; the number box accepts
+fractions). Flair is `unavailable` while HA starts; the delay expires and
+cancels startup sync, then Flair restores to `Active`. That change is excluded
+from reconciliation.
+
+**Expected:**
+- Room is still `Active` after the restore with no run pending.
+- The next Consistency Sweep sees a vacant room, `Active`, and an age of at
+  least 6 s, so it sets `Inactive` and presses clear hold within a minute.
+
+---
+
+## UC-20 — Sweep with the room in step
+
+**Setup:** Room occupied and `Active`, or vacant and `Inactive`.
+
+**Expected:**
+- The sweep trigger fires every minute but the top-level condition fails; no
+  run starts and nothing is cancelled. Traces show "condition not met" runs.

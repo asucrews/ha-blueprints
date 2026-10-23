@@ -53,6 +53,19 @@ already matches at trigger time, the branch exits immediately.
 `unknown` and `unavailable` transitions on HA restart are filtered out and do
 not trigger reconciliation.
 
+### Consistency sweep
+
+Once a minute a `time_pattern` trigger checks whether the room is out of step.
+A top-level condition lets the sweep start a run only if both
+`occupied_effective` and the Flair status are known and either the room is
+occupied and not `Active`, or it has been vacant for at least
+`inactive_delay_minutes` and is not `Inactive`. Inside the delay either status
+is accepted. The run sets the desired status and presses clear hold. When the
+room is in step, no run starts, so the sweep never cancels startup sync or a
+pending reconciliation. Traces show these as "condition not met" runs. The
+sweep corrects a lost vacancy timer, a startup sync cancelled by a real event,
+or Flair restoring from `unavailable`, within a minute.
+
 ### Startup sync
 
 On every HA restart the blueprint waits 30 seconds for WITB+ and the Flair
@@ -94,8 +107,10 @@ after the 30 seconds, because the vacancy timer does not survive a restart.
 - **Startup delay is intentionally blocking** — the 30-second delay fires once
   per HA restart. Converting it to an event-driven timer helper is not justified
   for a one-time-per-restart path.
-- **No `variables` block needed** — `!input` values are consumed directly in
-  `state` conditions. No Jinja2 computation is required.
+- **Variables and a template condition** — a small `variables:` block holds
+  the delay (`inactive_delay_is_zero`) and the entity IDs, and a top-level
+  template condition gates the Room Unoccupied and Consistency Sweep triggers.
+  Rejected triggers do not start (or restart) the action script.
 
 ---
 
@@ -106,12 +121,15 @@ after the 30 seconds, because the vacancy timer does not survive a restart.
   `inactive_delay_minutes` 0), `mode: restart` cancels the startup sync and runs the
   occupancy branch instead. The new occupancy state is correctly applied but no
   startup reconciliation occurs. This is acceptable because the primary
-  control branch handles the transition correctly.
+  control branch handles the transition correctly. Startup sync can be
+  cancelled by a real event; the consistency sweep corrects any remaining
+  mismatch within a minute.
 - **Positive `inactive_delay_minutes` and startup** — an `on` → `off` change
   during the startup delay does not cancel startup sync, because Room
-  Unoccupied only fires after the delay. Any positive delay is at least 60 s,
-  so it always ends after the 30 s startup sync. Startup sync finishes at 30 s
-  and sets Inactive if the room is vacant (it ignores the delay).
+  Unoccupied only fires after the delay. Startup sync finishes at 30 s and
+  sets Inactive if the room is vacant (it ignores the delay). A delay shorter
+  than 30 s (the number box accepts fractions) could expire first and cancel
+  startup sync; use whole minutes.
 - **Availability blips** — with a positive delay, `unavailable`/`unknown` →
   `off` also starts the vacancy window, so a blip during the delay restarts it
   instead of losing it. At `inactive_delay_minutes` 0 a top-level condition

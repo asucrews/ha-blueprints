@@ -22,6 +22,8 @@ blueprint enforces regardless of which trigger fires.
    state restoration.
 4. **HA Started trigger** — fires once on `homeassistant: start`. Initiates
    startup sync sequence.
+4a. **Consistency Sweep trigger** — `time_pattern` every minute. It only starts
+   a run when the top-level condition finds the room out of step (see rule 20).
 
 ---
 
@@ -94,13 +96,27 @@ blueprint enforces regardless of which trigger fires.
     applied. With `inactive_delay_minutes` 0 an `on` → `off` change does the
     same for the Unoccupied branch. With a positive `inactive_delay_minutes`,
     an `on` → `off` change during the startup delay does not cancel startup
-    sync (Room Unoccupied has not fired yet). Any positive delay is at least
-    60 s, so it always ends after the 30 s startup sync: startup sync finishes
-    at 30 s and sets Inactive if the room is vacant, and Room Unoccupied later
-    sets Inactive again (harmless).
+    sync (Room Unoccupied has not fired yet). Startup sync finishes at 30 s
+    and sets Inactive if the room is vacant, and Room Unoccupied later sets
+    Inactive again (harmless). A fractional delay shorter than 30 s could
+    cancel startup sync. Startup sync can be cancelled by a real event, and
+    the consistency sweep (rule 20) corrects any remaining mismatch within a
+    minute.
 19. **Delay-0 restart guard** — a top-level condition drops a Room Unoccupied
     trigger whose `from_state` is `unavailable`/`unknown` when
     `inactive_delay_minutes` is 0. Such a trigger never starts a run, so
     `mode: restart` cannot cancel the startup sync when occupancy restores
     `unavailable → off` at HA start. With a positive delay the trigger is kept
     (it restarts the vacancy window after an availability blip).
+    Conditions are checked before the action script starts, so a rejected
+    trigger does not restart or cancel a run already in progress.
+20. **Consistency sweep** — once a minute, a top-level condition passes a
+    Consistency Sweep trigger only if `occupied_effective` is `on`/`off` and
+    the Flair status is `Active`/`Inactive` (anything unknown or unavailable
+    is dropped) AND either occupied is `on` and the status is not `Active`, or
+    occupied is `off`, the status is not `Inactive`, and (`inactive_delay_minutes`
+    is 0 or `occupied_effective` has been off for at least the delay). Inside
+    the delay either status is accepted. A passing sweep sets the desired
+    status and presses clear hold; otherwise no run starts, so it cannot
+    cancel startup sync or a reconciliation. All other triggers pass the
+    condition unconditionally (except the Room Unoccupied guard in rule 19).
