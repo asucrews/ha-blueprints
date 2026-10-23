@@ -10,8 +10,10 @@ blueprint enforces regardless of which trigger fires.
 1. **Room Occupied trigger** — fires on `occupied_effective` state change
    strictly from `off` → `on`. Does not fire on `unknown`/`unavailable`
    transitions.
-2. **Room Unoccupied trigger** — fires on `occupied_effective` state change
-   strictly from `on` → `off`. Does not fire on `unknown`/`unavailable`
+2. **Room Unoccupied trigger** — fires when `occupied_effective` changes
+   strictly from `on` → `off` and stays off for `inactive_delay` (`for:`;
+   default 0 = immediately). Going back `on` inside the delay cancels it.
+   Does not fire on `unknown`/`unavailable`
    transitions.
 3. **Flair Status Changed trigger** — fires on any state change to
    `flair_activity_status`, excluding `unknown` and `unavailable` in both
@@ -26,7 +28,7 @@ blueprint enforces regardless of which trigger fires.
 
 5. **Room Occupied** → call `select.select_option` with `Active` on
    `flair_activity_status`, then call `button.press` on `flair_clear_hold`.
-6. **Room Unoccupied** → call `select.select_option` with `Inactive` on
+6. **Room Unoccupied** (after `inactive_delay`) → call `select.select_option` with `Inactive` on
    `flair_activity_status`, then call `button.press` on `flair_clear_hold`.
 7. **Clear hold is always pressed** after every activity status change,
    in both primary control and reconciliation branches.
@@ -38,17 +40,22 @@ blueprint enforces regardless of which trigger fires.
 8. **Pre-delay mismatch check** — the `Flair Status Changed` branch only
    enters if a mismatch exists at trigger time:
    - `occupied_effective` is `on` AND `flair_activity_status` is not `Active`, OR
-   - `occupied_effective` is `off` AND `flair_activity_status` is not `Inactive`.
+   - `occupied_effective` has been `off` for at least `inactive_delay` AND
+     `flair_activity_status` is not `Inactive`.
+   While `occupied_effective` has been off for less than `inactive_delay`,
+   `Active` is correct and is not a mismatch.
    If the status already matches (e.g. this automation's own service call just
    set it correctly), the branch exits immediately — no delay, no restart cycle.
 9. **Reconciliation delay** — after the pre-delay check passes, wait
    `reconciliation_delay` seconds (default 5, range 0–60) before correcting.
    The delay absorbs intentional manual changes and brief cloud state churn.
 10. **Post-delay re-evaluation** — after the delay, re-check the mismatch
-    condition before correcting. If the mismatch has resolved on its own, no
-    service call is made.
+    condition (including the `inactive_delay` check) before correcting. If the
+    mismatch has resolved on its own, no service call is made.
 11. **Reconciliation is bidirectional** — corrects in both directions:
-    occupied + not-Active → set Active; unoccupied + not-Inactive → set Inactive.
+    occupied + not-Active → set Active; unoccupied for `inactive_delay` +
+    not-Inactive → set Inactive. `unknown`/`unavailable` is never treated as
+    vacant.
 12. **No `default` in reconciliation `choose`** — if neither branch matches
     after the delay (unexpected state), the sequence exits silently. Primary
     control handles normal occupancy transitions; reconciliation is a safety net.
@@ -62,7 +69,9 @@ blueprint enforces regardless of which trigger fires.
     before reconciling.
 14. **Startup reconciliation** — after 30 seconds, evaluate
     `occupied_effective` vs `flair_activity_status` and correct if mismatched.
-    Recovers from drift that occurred while HA was offline.
+    Recovers from drift that occurred while HA was offline. Ignores
+    `inactive_delay`: vacant = Inactive, because `last_changed` resets on
+    restart and a pending `for:` trigger is lost.
 15. **Startup delay is intentionally blocking** — the 30-second delay fires
     once per HA restart. Converting it to a timer helper is not justified for
     a one-time-per-restart path.

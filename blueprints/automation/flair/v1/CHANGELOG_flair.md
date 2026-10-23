@@ -5,6 +5,31 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] — Vacancy delay
+
+### Added
+- `inactive_delay` optional input (duration, default 0). How long
+  `occupied_effective` must stay off before Flair is set Inactive. Applied as
+  `for:` on the `Room Unoccupied` trigger, so returning inside the delay
+  cancels it and the room stays Active, with no timer helper. Default 0
+  keeps the 1.0.5 behavior (immediate).
+
+### Changed
+- Reconciliation respects `inactive_delay`: Active while the room is vacant is
+  correct until `occupied_effective` has been off for `inactive_delay`. Both
+  the pre-delay entry check and the post-delay check only correct to Inactive
+  once the room has been off for at least that long. The occupied → Active
+  side is unchanged. `unknown`/`unavailable` is not treated as vacant.
+- Startup sync ignores `inactive_delay` (vacant = Inactive after the 30 s
+  wait). `last_changed` resets on HA restart and a pending `for:` trigger is
+  lost, so the vacancy age cannot be known after a restart.
+
+### Fixed
+- `platform:` inside `triggers:` changed to `trigger:` (the 1.0.5 entry said
+  this was done; it was not).
+
+---
+
 ## Unreleased
 
 - source_url fixed (metadata only; no behaviour or version change).

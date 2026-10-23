@@ -1,7 +1,7 @@
 # README — flair v1
 
 **Blueprint:** `flair.yaml`
-**Version:** 1.0.4 (see `CHANGELOG_flair.md`)
+**Version:** 1.1.0 (see `CHANGELOG_flair.md`)
 **Domain:** automation
 **Path:** `blueprints/automation/flair/v1/flair.yaml`
 **Author:** Jeremy Crews
@@ -13,8 +13,9 @@
 
 Controls Flair smart vents for a single room based on the WITB+
 `occupied_effective` occupancy signal. When the room becomes occupied the vent
-is set to Active and any hold is cleared. When the room becomes unoccupied the
-vent is set to Inactive and any hold is cleared.
+is set to Active and any hold is cleared. When the room has stayed unoccupied
+for `inactive_delay` (default 0, immediate) the vent is set to Inactive and any
+hold is cleared.
 
 This blueprint is a thin translation layer between the WITB+ occupancy
 ecosystem and the Flair integration. All occupancy reasoning — door events,
@@ -30,7 +31,8 @@ blueprint. This blueprint reacts only to the final binary result.
 | `occupied_effective` | Flair action |
 |---|---|
 | `on` | Set activity status → `Active`, press clear hold |
-| `off` | Set activity status → `Inactive`, press clear hold |
+| `off` for `inactive_delay` | Set activity status → `Inactive`, press clear hold |
+| `off`, back `on` inside the delay | No change, stays `Active` |
 
 ### Reconciliation
 
@@ -39,6 +41,10 @@ cloud state reset, integration hiccup) and does not match `occupied_effective`,
 the blueprint corrects it after `reconciliation_delay` seconds (default 5 s).
 The short delay prevents fighting intentional manual changes or brief cloud
 state churn.
+
+While the room is vacant but has been off for less than `inactive_delay`,
+`Active` is correct and is not corrected. It is only corrected to `Inactive`
+once `occupied_effective` has been off for at least `inactive_delay`.
 
 A pre-delay mismatch check prevents unnecessary reconciliation cycles when this
 automation's own service calls trigger the reconciliation path — if the status
@@ -52,7 +58,8 @@ not trigger reconciliation.
 On every HA restart the blueprint waits 30 seconds for WITB+ and the Flair
 integration to fully restore, then reconciles vent state against the current
 `occupied_effective`. This recovers from any drift that occurred while HA was
-offline.
+offline. Startup sync ignores `inactive_delay`: a vacant room is set Inactive
+after the 30 seconds, because the vacancy timer does not survive a restart.
 
 ---
 
@@ -70,6 +77,7 @@ offline.
 
 | Input | Default | Range | Notes |
 |---|---|---|---|
+| `inactive_delay` | `0` (immediate) | duration | How long the room must be vacant before Flair is set Inactive; returning inside the delay keeps it Active |
 | `reconciliation_delay` | `5` seconds | `0–60` | Wait before correcting a mismatched Flair status |
 
 ---
