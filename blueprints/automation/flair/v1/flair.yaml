@@ -11,7 +11,7 @@ blueprint:
     OCCUPANCY → VENT CONTROL
       • occupied_effective ON  → Flair activity status Active + clear hold.
       • occupied_effective OFF → Flair activity status Inactive + clear hold,
-        after the room has stayed vacant for inactive_delay (default 0 =
+        after the room has stayed vacant for inactive_delay_minutes (default 0 =
         immediately). Returning inside the delay cancels it and the room stays
         Active.
       All occupancy debounce and exit evaluation is handled upstream by the
@@ -22,7 +22,7 @@ blueprint:
       • If flair_activity_status changes for any reason and does not match
         occupied_effective, it is corrected after reconciliation_delay seconds.
       • Active while the room is vacant is correct until occupied_effective has
-        been off for inactive_delay; it is only corrected to Inactive after that.
+        been off for inactive_delay_minutes; it is only corrected to Inactive after that.
       • Pre-delay mismatch check prevents unnecessary reconciliation cycles when
         this automation's own service calls trigger the reconciliation path.
       • unknown/unavailable transitions on HA restart are suppressed and do not
@@ -31,7 +31,7 @@ blueprint:
     STARTUP SYNC
       • On HA restart, waits 30 s for WITB+ and the Flair integration to restore,
         then reconciles vent state against current occupied_effective. Recovers
-        from drift that occurred while HA was offline. Ignores inactive_delay
+        from drift that occurred while HA was offline. Ignores inactive_delay_minutes
         (vacant = Inactive), because the vacancy timer does not survive a restart.
 
     REQUIRED ENTITIES (one set per room)
@@ -89,19 +89,21 @@ blueprint:
       description: Optional configuration for vacancy delay and reconciliation behavior.
       collapsed: true
       input:
-        inactive_delay:
+        inactive_delay_minutes:
           name: Inactive Delay
           description: >
-            How long the room must be vacant (occupied_effective off) before
-            Flair is set Inactive. If the room is occupied again within the
-            delay, Flair stays Active. Set to 0 for immediate (the 1.0.5
-            behavior).
-          default:
-            hours: 0
-            minutes: 0
-            seconds: 0
+            How long, in whole minutes, the room must be vacant
+            (occupied_effective off) before Flair is set Inactive. If the room
+            is occupied again within the delay, Flair stays Active. Set to 0
+            for immediate (the 1.0.5 behavior).
+          default: 0
           selector:
-            duration:
+            number:
+              mode: box
+              min: 0
+              max: 60
+              step: 1
+              unit_of_measurement: minutes
         reconciliation_delay:
           name: Flair Status Reconciliation Delay
           description: >
@@ -120,8 +122,8 @@ blueprint:
               unit_of_measurement: seconds
 
 variables:
-  inactive_delay_cfg: !input inactive_delay
-  inactive_delay_is_zero: "{{ inactive_delay_cfg.values() | map('float', 0) | sum == 0 }}"
+  inactive_delay_minutes_cfg: !input inactive_delay_minutes
+  inactive_delay_is_zero: "{{ (inactive_delay_minutes_cfg | float(0)) == 0 }}"
 
 triggers:
   - trigger: state
@@ -136,7 +138,8 @@ triggers:
       - unavailable
       - unknown
     to: "off"
-    for: !input inactive_delay
+    for:
+      minutes: !input inactive_delay_minutes
     id: Room Unoccupied
   - trigger: state
     entity_id: !input flair_activity_status
@@ -150,6 +153,18 @@ triggers:
   - trigger: homeassistant
     event: start
     id: HA Started
+
+conditions:
+  # At delay 0, an unavailable/unknown -> off must not start a run: mode: restart
+  # would cancel the 30 s startup sync while Flair is still unavailable. This
+  # keeps delay 0 identical to 1.0.5. Conditions are checked before the run
+  # starts, so a dropped trigger does not stop a run already in progress.
+  - condition: template
+    value_template: >-
+      {{ not (trigger.id == 'Room Unoccupied'
+              and inactive_delay_is_zero
+              and trigger.from_state is not none
+              and trigger.from_state.state in ['unavailable', 'unknown']) }}
 
 actions:
   - choose:
@@ -195,7 +210,7 @@ actions:
       # matches occupied_effective (e.g. our own service call just set it), this
       # branch exits immediately — no delay, no unnecessary restart cycle.
       # Vacant side: Active is only a mismatch once occupied_effective has been
-      # off for inactive_delay; before that the Room Unoccupied trigger owns it.
+      # off for inactive_delay_minutes; before that the Room Unoccupied trigger owns it.
       # ==========================================================================
       - conditions:
           - condition: trigger
@@ -227,7 +242,8 @@ actions:
                       - condition: state
                         entity_id: !input occupied_effective
                         state: "off"
-                        for: !input inactive_delay
+                        for:
+                          minutes: !input inactive_delay_minutes
                   - condition: not
                     conditions:
                       - condition: state
@@ -269,7 +285,8 @@ actions:
                       - condition: state
                         entity_id: !input occupied_effective
                         state: "off"
-                        for: !input inactive_delay
+                        for:
+                          minutes: !input inactive_delay_minutes
                   - condition: not
                     conditions:
                       - condition: state
