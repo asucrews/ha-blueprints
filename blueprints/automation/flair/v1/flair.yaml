@@ -28,6 +28,13 @@ blueprint:
       • unknown/unavailable transitions on HA restart are suppressed and do not
         trigger reconciliation.
 
+    CONSISTENCY SWEEP
+      • Once a minute, if occupied_effective and the Flair status are out of
+        step (occupied but not Active, or vacant for at least inactive_delay_minutes
+        but not Inactive; both entities known), the status is corrected. If
+        they agree, no run starts. Recovers from a lost vacancy timer, a
+        cancelled startup sync or Flair restoring from unavailable.
+
     STARTUP SYNC
       • On HA restart, waits 30 s for WITB+ and the Flair integration to restore,
         then reconciles vent state against current occupied_effective. Recovers
@@ -124,6 +131,8 @@ blueprint:
 variables:
   inactive_delay_minutes_cfg: !input inactive_delay_minutes
   inactive_delay_is_zero: "{{ (inactive_delay_minutes_cfg | float(0)) == 0 }}"
+  occ_entity: !input occupied_effective
+  status_entity: !input flair_activity_status
 
 triggers:
   - trigger: state
@@ -153,18 +162,39 @@ triggers:
   - trigger: homeassistant
     event: start
     id: HA Started
+  - trigger: time_pattern
+    minutes: "/1"
+    id: Consistency Sweep
 
 conditions:
-  # At delay 0, an unavailable/unknown -> off must not start a run: mode: restart
-  # would cancel the 30 s startup sync while Flair is still unavailable. This
-  # keeps delay 0 identical to 1.0.5. Conditions are checked before the run
-  # starts, so a dropped trigger does not stop a run already in progress.
+  # Conditions are checked before a run starts, so a rejected trigger never
+  # cancels a run already in progress under mode: restart.
+  # Room Unoccupied: at delay 0, an unavailable/unknown -> off must not start a
+  # run; it would cancel the 30 s startup sync while Flair is still unavailable.
+  # Consistency Sweep: once a minute, passes only if the room is out of step
+  # (both entities known, occupied but not Active, or vacant for at least the
+  # delay but not Inactive). Catches a lost vacancy timer, a cancelled startup
+  # sync or Flair restoring from unavailable. Inside the delay, either status
+  # is accepted. All other triggers pass.
   - condition: template
     value_template: >-
-      {{ not (trigger.id == 'Room Unoccupied'
-              and inactive_delay_is_zero
-              and trigger.from_state is not none
-              and trigger.from_state.state in ['unavailable', 'unknown']) }}
+      {%- if trigger.id == 'Room Unoccupied' -%}
+        {{ not (inactive_delay_is_zero
+                and trigger.from_state is not none
+                and trigger.from_state.state in ['unavailable', 'unknown']) }}
+      {%- elif trigger.id == 'Consistency Sweep' -%}
+        {%- set occ = states(occ_entity) -%}
+        {%- set sta = states(status_entity) -%}
+        {%- set occ_obj = expand(occ_entity) | first | default(none) -%}
+        {{ (occ == 'on' and sta == 'Inactive')
+           or (occ == 'off' and sta == 'Active'
+               and (inactive_delay_is_zero
+                    or (occ_obj is not none
+                        and (now() - occ_obj.last_changed).total_seconds()
+                            >= (inactive_delay_minutes_cfg | float(0)) * 60))) }}
+      {%- else -%}
+        true
+      {%- endif -%}
 
 actions:
   - choose:
@@ -302,6 +332,26 @@ actions:
                     data: {}
                     target:
                       entity_id: !input flair_clear_hold
+
+      # ==========================================================================
+      # CONSISTENCY SWEEP
+      # The top-level condition already established a mismatch between
+      # occupied_effective and the Flair status, so act directly.
+      # ==========================================================================
+      - conditions:
+          - condition: trigger
+            id:
+              - Consistency Sweep
+        sequence:
+          - action: select.select_option
+            data:
+              option: "{{ 'Active' if is_state(occ_entity, 'on') else 'Inactive' }}"
+            target:
+              entity_id: !input flair_activity_status
+          - action: button.press
+            data: {}
+            target:
+              entity_id: !input flair_clear_hold
 
       # ==========================================================================
       # HA RESTART → STARTUP SYNC
