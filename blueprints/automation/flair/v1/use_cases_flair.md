@@ -259,7 +259,8 @@ restores `unavailable` → `off` while `flair_activity_status` is still
 - Room Unoccupied fires, but the top-level condition drops it
   (`from_state` is `unavailable` and the delay is 0). No run starts.
 - The HA Started run is not cancelled by `mode: restart`.
-- After 30 s startup sync sets `Inactive` and presses clear hold, as in 1.0.5.
+- After 30 s startup sync sets `Inactive` and presses clear hold, as in 1.0.5
+  (an eligible sweep inside the wait could correct it earlier).
 
 ---
 
@@ -273,8 +274,9 @@ been vacant for less than the delay.
 
 **Expected:**
 - No timer remains from startup sync or Room Unoccupied.
-- Once `occupied_effective` has been off for at least the delay, the next
-  Consistency Sweep (within a minute) passes the condition, sets `Inactive` and
+- Once `occupied_effective` has been off for at least the delay and the
+  status has been unchanged for `reconciliation_delay`, the next Consistency
+  Sweep passes the condition, sets `Inactive` and
   presses clear hold.
 - Before that, the sweep finds `Active` acceptable and starts no run.
 
@@ -290,7 +292,7 @@ from reconciliation.
 **Expected:**
 - Room is still `Active` after the restore with no run pending.
 - The next Consistency Sweep sees a vacant room, `Active`, and an age of at
-  least 6 s, so it sets `Inactive` and presses clear hold within a minute.
+  least 6 s, so it sets `Inactive` and presses clear hold at that sweep.
 
 ---
 
@@ -301,3 +303,20 @@ from reconciliation.
 **Expected:**
 - The sweep trigger fires every minute but the top-level condition fails; no
   run starts and nothing is cancelled. Traces show "condition not met" runs.
+
+---
+
+## UC-21 — Occupied room goes Inactive just before a sweep
+
+**Setup:** Room occupied, `reconciliation_delay` = 5 s. The Flair app or cloud
+sets `flair_activity_status` to `Inactive` at 12:00:59; the sweep fires at
+12:01:00.
+
+**Expected:**
+- Flair Status Changed enters reconciliation and waits 5 s.
+- The 12:01:00 sweep is rejected: the status has been `Inactive` for only ~1 s,
+  less than `reconciliation_delay`. No run starts and the reconciliation wait
+  is not cut short.
+- At 12:01:04 reconciliation sets `Active` and presses clear hold.
+- If that correction failed, a later sweep (status unchanged for at least
+  `reconciliation_delay`) retries it.

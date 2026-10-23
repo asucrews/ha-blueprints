@@ -34,13 +34,19 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   condition lets it start a run only when the room is out of step: both
   `occupied_effective` and the Flair status are known and either the room is
   occupied and not Active, or it has been vacant for at least
-  `inactive_delay_minutes` and is not Inactive. Inside the delay either status
-  is accepted. When nothing is wrong no run starts (the trace list shows
+  `inactive_delay_minutes` and is not Inactive, and the Flair status has been
+  unchanged for at least `reconciliation_delay` (so the sweep never cuts a
+  reconciliation wait short or reacts to a brief cloud flicker). Inside the
+  delay either status is accepted. When nothing is wrong no run starts (the trace list shows
   "condition not met" runs), so the sweep cannot cancel startup sync or a
   pending reconciliation. It corrects a lost vacancy timer, a startup sync
-  cancelled by a real event, or Flair restoring from unavailable, within a
-  minute. At delay 0 the blueprint is 1.0.5 plus the sweep, which only fixes
-  a mismatch 1.0.5 would have left in place.
+  cancelled by a real event, or Flair restoring from unavailable, at the next
+  sweep once both entities are known, the vacancy delay has elapsed and the
+  status has been mismatched for `reconciliation_delay`. At delay 0 the
+  blueprint is 1.0.5 plus the sweep, which corrects mismatches 1.0.5 would
+  have left in place, and some it would have corrected later (for example
+  inside the 30 s startup wait). Failed-condition sweep runs appear in traces
+  every minute; see the README Traces note.
 - Top-level `conditions:` drops a Room Unoccupied trigger whose previous state
   was `unavailable`/`unknown` when `inactive_delay_minutes` is 0. Without it,
   `unavailable → off` at HA start would restart (and cancel) the 30 s startup

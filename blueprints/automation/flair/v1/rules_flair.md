@@ -100,8 +100,8 @@ blueprint enforces regardless of which trigger fires.
     and sets Inactive if the room is vacant, and Room Unoccupied later sets
     Inactive again (harmless). A fractional delay shorter than 30 s could
     cancel startup sync. Startup sync can be cancelled by a real event, and
-    the consistency sweep (rule 20) corrects any remaining mismatch within a
-    minute.
+    the consistency sweep (rule 20) corrects any remaining mismatch at the
+    next eligible sweep.
 19. **Delay-0 restart guard** — a top-level condition drops a Room Unoccupied
     trigger whose `from_state` is `unavailable`/`unknown` when
     `inactive_delay_minutes` is 0. Such a trigger never starts a run, so
@@ -113,10 +113,18 @@ blueprint enforces regardless of which trigger fires.
 20. **Consistency sweep** — once a minute, a top-level condition passes a
     Consistency Sweep trigger only if `occupied_effective` is `on`/`off` and
     the Flair status is `Active`/`Inactive` (anything unknown or unavailable
-    is dropped) AND either occupied is `on` and the status is not `Active`, or
+    is dropped), the status has been unchanged for at least
+    `reconciliation_delay` (so the sweep never cuts a reconciliation wait
+    short), AND either occupied is `on` and the status is not `Active`, or
     occupied is `off`, the status is not `Inactive`, and (`inactive_delay_minutes`
     is 0 or `occupied_effective` has been off for at least the delay). Inside
     the delay either status is accepted. A passing sweep sets the desired
     status and presses clear hold; otherwise no run starts, so it cannot
     cancel startup sync or a reconciliation. All other triggers pass the
     condition unconditionally (except the Room Unoccupied guard in rule 19).
+    Recovery happens at the next sweep after those conditions hold. At delay 0
+    an eligible sweep inside the 30 s startup wait can correct earlier and
+    replace the startup run.
+21. **Traces** — a sweep whose condition fails still creates a trace every
+    minute, which crowds out HA's default 5 stored traces. Raise
+    `stored_traces` on the automation for a longer history.

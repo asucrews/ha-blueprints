@@ -59,12 +59,23 @@ Once a minute a `time_pattern` trigger checks whether the room is out of step.
 A top-level condition lets the sweep start a run only if both
 `occupied_effective` and the Flair status are known and either the room is
 occupied and not `Active`, or it has been vacant for at least
-`inactive_delay_minutes` and is not `Inactive`. Inside the delay either status
-is accepted. The run sets the desired status and presses clear hold. When the
+`inactive_delay_minutes` and is not `Inactive`, and the Flair status has been
+unchanged for at least `reconciliation_delay`, so the sweep never cuts a
+reconciliation wait short. Inside the delay either status is accepted. The run sets the desired status and presses clear hold. When the
 room is in step, no run starts, so the sweep never cancels startup sync or a
 pending reconciliation. Traces show these as "condition not met" runs. The
 sweep corrects a lost vacancy timer, a startup sync cancelled by a real event,
-or Flair restoring from `unavailable`, within a minute.
+or Flair restoring from `unavailable`. Recovery happens at the next sweep after
+both entities are known, the vacancy delay has elapsed and the status has been
+mismatched for `reconciliation_delay`, subject to the service calls succeeding.
+An uninterrupted startup sync checks after 30 s; at delay 0 an eligible sweep
+inside the startup wait can correct earlier and replace the startup run.
+
+#### Traces
+
+A sweep whose condition fails still creates a trace every minute, which
+crowds out HA's default 5 stored traces. Raise `stored_traces` on the
+automation (in its YAML) for a longer history.
 
 ### Startup sync
 
@@ -72,7 +83,9 @@ On every HA restart the blueprint waits 30 seconds for WITB+ and the Flair
 integration to fully restore, then reconciles vent state against the current
 `occupied_effective`. This recovers from any drift that occurred while HA was
 offline. Startup sync ignores `inactive_delay_minutes`: a vacant room is set Inactive
-after the 30 seconds, because the vacancy timer does not survive a restart.
+after the 30 seconds if the run is uninterrupted, because the vacancy timer
+does not survive a restart. A real event can cancel the run, and an eligible
+consistency sweep can replace it earlier at delay 0.
 
 ---
 
@@ -122,8 +135,8 @@ after the 30 seconds, because the vacancy timer does not survive a restart.
   occupancy branch instead. The new occupancy state is correctly applied but no
   startup reconciliation occurs. This is acceptable because the primary
   control branch handles the transition correctly. Startup sync can be
-  cancelled by a real event; the consistency sweep corrects any remaining
-  mismatch within a minute.
+  cancelled by a real event; the consistency sweep then corrects any remaining
+  mismatch at the next eligible sweep (see Consistency sweep).
 - **Positive `inactive_delay_minutes` and startup** — an `on` → `off` change
   during the startup delay does not cancel startup sync, because Room
   Unoccupied only fires after the delay. Startup sync finishes at 30 s and
