@@ -1,16 +1,19 @@
 blueprint:
-  name: Smart Vents - Flair (1.0.5)
+  name: Smart Vents - Flair (1.1.0)
   homeassistant:
     min_version: 2026.3.0
   description: |
-    Version: 1.0.5 — see CHANGELOG_flair.md for full version history.
+    Version: 1.1.0 — see CHANGELOG_flair.md for full version history.
 
     Flair smart vent controller for a single room. Translates the WITB+
     occupied_effective occupancy signal into Flair activity status commands.
 
     OCCUPANCY → VENT CONTROL
       • occupied_effective ON  → Flair activity status Active + clear hold.
-      • occupied_effective OFF → Flair activity status Inactive + clear hold.
+      • occupied_effective OFF → Flair activity status Inactive + clear hold,
+        after the room has stayed vacant for inactive_delay (default 0 =
+        immediately). Returning inside the delay cancels it and the room stays
+        Active.
       All occupancy debounce and exit evaluation is handled upstream by the
       WITB+ occupancy blueprint. Do not wire a raw door/motion sensor or the
       input_boolean occupancy helper here.
@@ -18,6 +21,8 @@ blueprint:
     RECONCILIATION
       • If flair_activity_status changes for any reason and does not match
         occupied_effective, it is corrected after reconciliation_delay seconds.
+      • Active while the room is vacant is correct until occupied_effective has
+        been off for inactive_delay; it is only corrected to Inactive after that.
       • Pre-delay mismatch check prevents unnecessary reconciliation cycles when
         this automation's own service calls trigger the reconciliation path.
       • unknown/unavailable transitions on HA restart are suppressed and do not
@@ -26,7 +31,8 @@ blueprint:
     STARTUP SYNC
       • On HA restart, waits 30 s for WITB+ and the Flair integration to restore,
         then reconciles vent state against current occupied_effective. Recovers
-        from drift that occurred while HA was offline.
+        from drift that occurred while HA was offline. Ignores inactive_delay
+        (vacant = Inactive), because the vacancy timer does not survive a restart.
 
     REQUIRED ENTITIES (one set per room)
       • binary_sensor — room_slug_occupied_effective  (WITB+ output)
@@ -80,9 +86,22 @@ blueprint:
     optional_settings:
       name: Optional Settings
       icon: mdi:tune
-      description: Optional configuration for reconciliation behavior.
+      description: Optional configuration for vacancy delay and reconciliation behavior.
       collapsed: true
       input:
+        inactive_delay:
+          name: Inactive Delay
+          description: >
+            How long the room must be vacant (occupied_effective off) before
+            Flair is set Inactive. If the room is occupied again within the
+            delay, Flair stays Active. Set to 0 for immediate (the 1.0.5
+            behavior).
+          default:
+            hours: 0
+            minutes: 0
+            seconds: 0
+          selector:
+            duration:
         reconciliation_delay:
           name: Flair Status Reconciliation Delay
           description: >
@@ -101,17 +120,18 @@ blueprint:
               unit_of_measurement: seconds
 
 triggers:
-  - platform: state
+  - trigger: state
     entity_id: !input occupied_effective
     from: "off"
     to: "on"
     id: Room Occupied
-  - platform: state
+  - trigger: state
     entity_id: !input occupied_effective
     from: "on"
     to: "off"
+    for: !input inactive_delay
     id: Room Unoccupied
-  - platform: state
+  - trigger: state
     entity_id: !input flair_activity_status
     not_from:
       - unknown
@@ -120,7 +140,7 @@ triggers:
       - unknown
       - unavailable
     id: Flair Status Changed
-  - platform: homeassistant
+  - trigger: homeassistant
     event: start
     id: HA Started
 
@@ -167,6 +187,8 @@ actions:
       # Pre-delay mismatch check gates entry: if flair_activity_status already
       # matches occupied_effective (e.g. our own service call just set it), this
       # branch exits immediately — no delay, no unnecessary restart cycle.
+      # Vacant side: Active is only a mismatch once occupied_effective has been
+      # off for inactive_delay; before that the Room Unoccupied trigger owns it.
       # ==========================================================================
       - conditions:
           - condition: trigger
@@ -189,6 +211,7 @@ actions:
                   - condition: state
                     entity_id: !input occupied_effective
                     state: "off"
+                    for: !input inactive_delay
                   - condition: not
                     conditions:
                       - condition: state
@@ -221,6 +244,7 @@ actions:
                   - condition: state
                     entity_id: !input occupied_effective
                     state: "off"
+                    for: !input inactive_delay
                   - condition: not
                     conditions:
                       - condition: state
