@@ -31,9 +31,10 @@ blueprint:
     CONSISTENCY SWEEP
       • Once a minute, if occupied_effective and the Flair status are out of
         step (occupied but not Active, or vacant for at least inactive_delay_minutes
-        but not Inactive; both entities known), the status is corrected. If
-        they agree, no run starts. Recovers from a lost vacancy timer, a
-        cancelled startup sync or Flair restoring from unavailable.
+        but not Inactive; both entities known, and the Flair status unchanged
+        for at least reconciliation_delay), the status is corrected. If they
+        agree, no run starts. Recovers from a lost vacancy timer, a cancelled
+        startup sync or Flair restoring from unavailable.
 
     STARTUP SYNC
       • On HA restart, waits 30 s for WITB+ and the Flair integration to restore,

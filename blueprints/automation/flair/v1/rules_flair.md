@@ -122,7 +122,11 @@ blueprint enforces regardless of which trigger fires.
     status and presses clear hold; otherwise no run starts, so it cannot
     cancel startup sync or a reconciliation. All other triggers pass the
     condition unconditionally (except the Room Unoccupied guard in rule 19).
-    Recovery happens at the next sweep after those conditions hold. At delay 0
+    The status-unchanged requirement applies to both sides; the vacancy-delay
+    requirement applies to vacant rooms only. Recovery happens at the next
+    sweep after those conditions hold. Continuous Flair flapping can postpone
+    correction; recovery resumes once the status stays unchanged for
+    `reconciliation_delay`. At delay 0
     an eligible sweep inside the 30 s startup wait can correct earlier and
     replace the startup run.
 21. **Traces** — a sweep whose condition fails still creates a trace every

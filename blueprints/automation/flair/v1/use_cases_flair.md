@@ -291,8 +291,11 @@ from reconciliation.
 
 **Expected:**
 - Room is still `Active` after the restore with no run pending.
-- The next Consistency Sweep sees a vacant room, `Active`, and an age of at
-  least 6 s, so it sets `Inactive` and presses clear hold at that sweep.
+- The next Consistency Sweep that finds both the vacancy age (at least 6 s)
+  and the status stability (`Active` unchanged for at least
+  `reconciliation_delay`) satisfied sets `Inactive` and presses clear hold.
+  With the default 5 s, Flair restoring `Active` at 12:00:59 makes the
+  12:01:00 sweep fail (status only ~1 s old); the 12:02:00 sweep corrects it.
 
 ---
 

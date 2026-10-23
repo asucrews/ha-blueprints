@@ -41,8 +41,11 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   "condition not met" runs), so the sweep cannot cancel startup sync or a
   pending reconciliation. It corrects a lost vacancy timer, a startup sync
   cancelled by a real event, or Flair restoring from unavailable, at the next
-  sweep once both entities are known, the vacancy delay has elapsed and the
-  status has been mismatched for `reconciliation_delay`. At delay 0 the
+  sweep once both entities are known, the Flair status state has stayed
+  unchanged for at least `reconciliation_delay` and, for a vacant room only,
+  the vacancy delay has elapsed. Continuous Flair flapping can postpone
+  correction; recovery resumes once the status stays unchanged for
+  `reconciliation_delay`. At delay 0 the
   blueprint is 1.0.5 plus the sweep, which corrects mismatches 1.0.5 would
   have left in place, and some it would have corrected later (for example
   inside the 30 s startup wait). Failed-condition sweep runs appear in traces

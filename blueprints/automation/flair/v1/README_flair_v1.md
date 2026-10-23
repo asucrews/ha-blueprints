@@ -66,8 +66,13 @@ room is in step, no run starts, so the sweep never cancels startup sync or a
 pending reconciliation. Traces show these as "condition not met" runs. The
 sweep corrects a lost vacancy timer, a startup sync cancelled by a real event,
 or Flair restoring from `unavailable`. Recovery happens at the next sweep after
-both entities are known, the vacancy delay has elapsed and the status has been
-mismatched for `reconciliation_delay`, subject to the service calls succeeding.
+both entities are known, the Flair status state has stayed unchanged for at
+least `reconciliation_delay`, and (for a vacant room only) the vacancy delay
+has elapsed, subject to the service calls succeeding. Continuous Flair flapping
+can postpone correction; recovery resumes once the status stays unchanged for
+`reconciliation_delay`. For example, occupancy restoring `unavailable` → `on`
+against a long-standing `Inactive` status makes the next sweep eligible
+immediately.
 An uninterrupted startup sync checks after 30 s; at delay 0 an eligible sweep
 inside the startup wait can correct earlier and replace the startup run.
 
