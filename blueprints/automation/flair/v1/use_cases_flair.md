@@ -21,7 +21,7 @@ edge condition.
 ## UC-02 — Room becomes unoccupied
 
 **Setup:** `occupied_effective` transitions from `on` → `off` and stays off for
-`inactive_delay` (default 0, immediate). `flair_activity_status` is currently
+`inactive_delay_minutes` (default 0, immediate). `flair_activity_status` is currently
 `Active`.
 
 **Expected:**
@@ -126,18 +126,19 @@ starts. Before delay expires, room becomes unoccupied (`occupied_effective`
 transitions to `off`).
 
 **Expected:**
-- With `inactive_delay` 0: Room Unoccupied fires immediately →
+- With `inactive_delay_minutes` 0: Room Unoccupied fires immediately →
   `mode: restart` cancels the reconciliation run. New run hits the Room
   Unoccupied branch, calls `select.select_option` with `Inactive` and presses
   `flair_clear_hold`. Latest occupancy state wins.
-- With `inactive_delay` 10 min and `reconciliation_delay` 5 s: Room Unoccupied
+- With `inactive_delay_minutes` 10 min and `reconciliation_delay` 5 s: Room Unoccupied
   has not fired yet, so the reconciliation run is not cancelled. It finishes
   after 5 s; its occupied-side check no longer matches (room is off), and the
   vacant-side check fails because the room has been off for less than 10 min,
   so no service call is made. Room Unoccupied fires at 10 min and sets
   `Inactive`.
-- If `reconciliation_delay` were longer than `inactive_delay`, Room Unoccupied
-  would fire first and cancel the reconciliation run, then set `Inactive`.
+- `reconciliation_delay` is at most 60 s and any positive vacancy delay is at
+  least 60 s, so Room Unoccupied does not cancel the reconciliation run in
+  practice; it still sets `Inactive` when it fires.
 
 ---
 
@@ -187,7 +188,7 @@ and `occupied_effective` transitions to `on`.
 
 ## UC-13 — Leave and return within the delay — stays Active
 
-**Setup:** `inactive_delay` = 10 min. Room is occupied, status `Active`.
+**Setup:** `inactive_delay_minutes` = 10 min. Room is occupied, status `Active`.
 `occupied_effective` goes `off`, then back `on` after 4 minutes.
 
 **Expected:**
@@ -201,7 +202,7 @@ and `occupied_effective` transitions to `on`.
 
 ## UC-14 — Leave for longer than the delay — Inactive after the delay
 
-**Setup:** `inactive_delay` = 10 min. Room is occupied, status `Active`.
+**Setup:** `inactive_delay_minutes` = 10 min. Room is occupied, status `Active`.
 `occupied_effective` goes `off` and stays off.
 
 **Expected:**
@@ -214,7 +215,7 @@ and `occupied_effective` transitions to `on`.
 
 ## UC-15 — Flair app sets Active during the delay — no correction
 
-**Setup:** `inactive_delay` = 10 min. Room vacant for 3 minutes, status
+**Setup:** `inactive_delay_minutes` = 10 min. Room vacant for 3 minutes, status
 `Active`. Someone sets the room to `Inactive` in the Flair app, then back to
 `Active` (setting an already-Active select may not fire a state change, so
 the test needs a real `Inactive` → `Active` transition).
@@ -223,7 +224,7 @@ the test needs a real `Inactive` → `Active` transition).
 - Flair Status Changed fires on `Active` → `Inactive` and on `Inactive` →
   `Active`.
 - On the `Inactive` → `Active` change, the pre-delay check finds
-  `occupied_effective` off for less than `inactive_delay`, so `Active` is not
+  `occupied_effective` off for less than `inactive_delay_minutes`, so `Active` is not
   a mismatch; the branch exits. (The earlier change to `Inactive` is a
   matching state and also exits.)
 - No service call. The Room Unoccupied trigger still fires at 10 minutes and
@@ -233,14 +234,28 @@ the test needs a real `Inactive` → `Active` transition).
 
 ## UC-16 — HA restarts while the room is vacant — Inactive after about 30 s
 
-**Setup:** `inactive_delay` = 10 min. HA restarts while the room is vacant and
+**Setup:** `inactive_delay_minutes` = 10 min. HA restarts while the room is vacant and
 status is `Active`.
 
 **Expected:**
 - HA Started trigger fires; waits 30 seconds.
-- Startup sync ignores `inactive_delay`: `occupied_effective` = `off` AND
+- Startup sync ignores `inactive_delay_minutes`: `occupied_effective` = `off` AND
   status ≠ `Inactive` → mismatch.
 - `select.select_option` called with `Inactive`, then `button.press` on
   `flair_clear_hold`.
 - Reason: `last_changed` resets on restart and the pending `for:` trigger is
   lost, so the vacancy age is unknown.
+
+---
+
+## UC-17 — HA restarts with delay 0 and occupancy restores unavailable → off
+
+**Setup:** `inactive_delay_minutes` = 0. HA restarts; `occupied_effective`
+restores `unavailable` → `off` while `flair_activity_status` is still
+`unavailable`.
+
+**Expected:**
+- Room Unoccupied fires, but the top-level condition drops it
+  (`from_state` is `unavailable` and the delay is 0). No run starts.
+- The HA Started run is not cancelled by `mode: restart`.
+- After 30 s startup sync sets `Inactive` and presses clear hold, as in 1.0.5.

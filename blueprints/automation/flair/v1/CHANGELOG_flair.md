@@ -8,29 +8,32 @@ Versioning follows [Semantic Versioning](https://semver.org/).
 ## [1.1.0] — Vacancy delay
 
 ### Added
-- `inactive_delay` optional input (duration, default 0). How long
-  `occupied_effective` must stay off before Flair is set Inactive. Applied as
-  `for:` on the `Room Unoccupied` trigger, so returning inside the delay
-  cancels it and the room stays Active, with no timer helper. Default 0
-  keeps the 1.0.5 behavior (immediate).
+- `inactive_delay_minutes` optional input (whole minutes, 0–60, default 0).
+  How long `occupied_effective` must stay off before Flair is set Inactive.
+  Applied as `for:` on the `Room Unoccupied` trigger, so returning inside the
+  delay cancels it and the room stays Active, with no timer helper. Default 0
+  keeps the 1.0.5 behavior (immediate). Any positive delay is at least 60 s,
+  so it always ends after the 30 s startup sync.
 
 ### Changed
-- Reconciliation respects `inactive_delay`: Active while the room is vacant is
-  correct until `occupied_effective` has been off for `inactive_delay`. Both
+- Reconciliation respects `inactive_delay_minutes`: Active while the room is vacant is
+  correct until `occupied_effective` has been off for `inactive_delay_minutes`. Both
   the pre-delay entry check and the post-delay check only correct to Inactive
   once the room has been off for at least that long. The occupied → Active
   side is unchanged. `unknown`/`unavailable` is not treated as vacant.
-- Startup sync ignores `inactive_delay` (vacant = Inactive after the 30 s
+- Startup sync ignores `inactive_delay_minutes` (vacant = Inactive after the 30 s
   wait). `last_changed` resets on HA restart and a pending `for:` trigger is
   lost, so the vacancy age cannot be known after a restart.
 
 - Room Unoccupied trigger now starts from `on`, `unavailable` or `unknown`
   (`to: "off"` plus `for:`). An availability blip during the delay would
   otherwise cancel the `for:` timer and, since `unavailable → off` did not
-  match, never restart it, leaving the room Active indefinitely. Accepted
-  deviation from 1.0.5 at `inactive_delay` 0: an `unavailable → off` change
-  now re-sends Inactive and presses clear hold (harmless; 1.0.5 did nothing).
-- Reconciliation vacancy checks skip the `for:` age test when `inactive_delay`
+  match, never restart it, leaving the room Active indefinitely.
+- Top-level `conditions:` drops a Room Unoccupied trigger whose previous state
+  was `unavailable`/`unknown` when `inactive_delay_minutes` is 0. Without it,
+  `unavailable → off` at HA start would restart (and cancel) the 30 s startup
+  sync via `mode: restart`. With the guard, delay 0 behaves exactly like 1.0.5.
+- Reconciliation vacancy checks skip the `for:` age test when `inactive_delay_minutes`
   is 0, because HA's `for:` uses a strict greater-than and a zero `for:` is not
   identical to no `for:`. Keeps 1.0.5 behavior at the default.
 
