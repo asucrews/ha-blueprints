@@ -119,6 +119,10 @@ blueprint:
               step: 1
               unit_of_measurement: seconds
 
+variables:
+  inactive_delay_cfg: !input inactive_delay
+  inactive_delay_is_zero: "{{ inactive_delay_cfg.values() | map('float', 0) | sum == 0 }}"
+
 triggers:
   - trigger: state
     entity_id: !input occupied_effective
@@ -127,7 +131,10 @@ triggers:
     id: Room Occupied
   - trigger: state
     entity_id: !input occupied_effective
-    from: "on"
+    from:
+      - "on"
+      - unavailable
+      - unknown
     to: "off"
     for: !input inactive_delay
     id: Room Unoccupied
@@ -208,10 +215,19 @@ actions:
                         state: "Active"
               - condition: and
                 conditions:
+                  # Vacant long enough. A zero for: is not the same as no for: (HA tests
+                  # strictly greater-than), so at delay 0 the age test is skipped.
                   - condition: state
                     entity_id: !input occupied_effective
                     state: "off"
-                    for: !input inactive_delay
+                  - condition: or
+                    conditions:
+                      - condition: template
+                        value_template: "{{ inactive_delay_is_zero }}"
+                      - condition: state
+                        entity_id: !input occupied_effective
+                        state: "off"
+                        for: !input inactive_delay
                   - condition: not
                     conditions:
                       - condition: state
@@ -241,10 +257,19 @@ actions:
                     target:
                       entity_id: !input flair_clear_hold
               - conditions:
+                  # Vacant long enough. A zero for: is not the same as no for: (HA tests
+                  # strictly greater-than), so at delay 0 the age test is skipped.
                   - condition: state
                     entity_id: !input occupied_effective
                     state: "off"
-                    for: !input inactive_delay
+                  - condition: or
+                    conditions:
+                      - condition: template
+                        value_template: "{{ inactive_delay_is_zero }}"
+                      - condition: state
+                        entity_id: !input occupied_effective
+                        state: "off"
+                        for: !input inactive_delay
                   - condition: not
                     conditions:
                       - condition: state
