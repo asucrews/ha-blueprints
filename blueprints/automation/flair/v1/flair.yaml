@@ -133,6 +133,7 @@ variables:
   inactive_delay_is_zero: "{{ (inactive_delay_minutes_cfg | float(0)) == 0 }}"
   occ_entity: !input occupied_effective
   status_entity: !input flair_activity_status
+  reconciliation_delay_cfg: !input reconciliation_delay
 
 triggers:
   - trigger: state
@@ -175,7 +176,9 @@ conditions:
   # (both entities known, occupied but not Active, or vacant for at least the
   # delay but not Inactive). Catches a lost vacancy timer, a cancelled startup
   # sync or Flair restoring from unavailable. Inside the delay, either status
-  # is accepted. All other triggers pass.
+  # is accepted. The status must also have been unchanged for
+  # reconciliation_delay, so the sweep never cuts a reconciliation wait short.
+  # All other triggers pass.
   - condition: template
     value_template: >-
       {%- if trigger.id == 'Room Unoccupied' -%}
@@ -186,12 +189,17 @@ conditions:
         {%- set occ = states(occ_entity) -%}
         {%- set sta = states(status_entity) -%}
         {%- set occ_obj = expand(occ_entity) | first | default(none) -%}
-        {{ (occ == 'on' and sta == 'Inactive')
-           or (occ == 'off' and sta == 'Active'
-               and (inactive_delay_is_zero
-                    or (occ_obj is not none
-                        and (now() - occ_obj.last_changed).total_seconds()
-                            >= (inactive_delay_minutes_cfg | float(0)) * 60))) }}
+        {%- set sta_obj = expand(status_entity) | first | default(none) -%}
+        {%- set sta_settled = sta_obj is not none
+              and (now() - sta_obj.last_changed).total_seconds()
+                  >= (reconciliation_delay_cfg | float(0)) -%}
+        {{ sta_settled
+           and ((occ == 'on' and sta == 'Inactive')
+                or (occ == 'off' and sta == 'Active'
+                    and (inactive_delay_is_zero
+                         or (occ_obj is not none
+                             and (now() - occ_obj.last_changed).total_seconds()
+                                 >= (inactive_delay_minutes_cfg | float(0)) * 60)))) }}
       {%- else -%}
         true
       {%- endif -%}
