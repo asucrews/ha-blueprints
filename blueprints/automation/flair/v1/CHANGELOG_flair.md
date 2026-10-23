@@ -24,6 +24,16 @@ Versioning follows [Semantic Versioning](https://semver.org/).
   wait). `last_changed` resets on HA restart and a pending `for:` trigger is
   lost, so the vacancy age cannot be known after a restart.
 
+- Room Unoccupied trigger now starts from `on`, `unavailable` or `unknown`
+  (`to: "off"` plus `for:`). An availability blip during the delay would
+  otherwise cancel the `for:` timer and, since `unavailable → off` did not
+  match, never restart it, leaving the room Active indefinitely. Accepted
+  deviation from 1.0.5 at `inactive_delay` 0: an `unavailable → off` change
+  now re-sends Inactive and presses clear hold (harmless; 1.0.5 did nothing).
+- Reconciliation vacancy checks skip the `for:` age test when `inactive_delay`
+  is 0, because HA's `for:` uses a strict greater-than and a zero `for:` is not
+  identical to no `for:`. Keeps 1.0.5 behavior at the default.
+
 ### Fixed
 - `platform:` inside `triggers:` changed to `trigger:` (the 1.0.5 entry said
   this was done; it was not).

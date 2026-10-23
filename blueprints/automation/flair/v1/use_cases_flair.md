@@ -126,12 +126,18 @@ starts. Before delay expires, room becomes unoccupied (`occupied_effective`
 transitions to `off`).
 
 **Expected:**
-- Room Unoccupied trigger fires (after `inactive_delay`; immediately at the
-  default 0) → `mode: restart` cancels the reconciliation run.
-- New run hits Room Unoccupied branch.
-- `select.select_option` called with `Inactive`.
-- `button.press` called on `flair_clear_hold`.
-- Vent correctly set to Inactive — latest occupancy state wins.
+- With `inactive_delay` 0: Room Unoccupied fires immediately →
+  `mode: restart` cancels the reconciliation run. New run hits the Room
+  Unoccupied branch, calls `select.select_option` with `Inactive` and presses
+  `flair_clear_hold`. Latest occupancy state wins.
+- With `inactive_delay` 10 min and `reconciliation_delay` 5 s: Room Unoccupied
+  has not fired yet, so the reconciliation run is not cancelled. It finishes
+  after 5 s; its occupied-side check no longer matches (room is off), and the
+  vacant-side check fails because the room has been off for less than 10 min,
+  so no service call is made. Room Unoccupied fires at 10 min and sets
+  `Inactive`.
+- If `reconciliation_delay` were longer than `inactive_delay`, Room Unoccupied
+  would fire first and cancel the reconciliation run, then set `Inactive`.
 
 ---
 
@@ -209,13 +215,17 @@ and `occupied_effective` transitions to `on`.
 ## UC-15 — Flair app sets Active during the delay — no correction
 
 **Setup:** `inactive_delay` = 10 min. Room vacant for 3 minutes, status
-`Active`. Someone sets the room to `Active` in the Flair app (a status
-change event fires).
+`Active`. Someone sets the room to `Inactive` in the Flair app, then back to
+`Active` (setting an already-Active select may not fire a state change, so
+the test needs a real `Inactive` → `Active` transition).
 
 **Expected:**
-- Flair Status Changed trigger fires.
-- Pre-delay check: `occupied_effective` has been `off` for less than
-  `inactive_delay`, so `Active` is not a mismatch; the branch exits.
+- Flair Status Changed fires on `Active` → `Inactive` and on `Inactive` →
+  `Active`.
+- On the `Inactive` → `Active` change, the pre-delay check finds
+  `occupied_effective` off for less than `inactive_delay`, so `Active` is not
+  a mismatch; the branch exits. (The earlier change to `Inactive` is a
+  matching state and also exits.)
 - No service call. The Room Unoccupied trigger still fires at 10 minutes and
   sets `Inactive`.
 

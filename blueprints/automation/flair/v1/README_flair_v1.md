@@ -32,7 +32,7 @@ blueprint. This blueprint reacts only to the final binary result.
 |---|---|
 | `on` | Set activity status → `Active`, press clear hold |
 | `off` for `inactive_delay` | Set activity status → `Inactive`, press clear hold |
-| `off`, back `on` inside the delay | No change, stays `Active` |
+| `off`, back `on` inside the delay | Delay cancelled; Room Occupied fires: `select_option` → `Active` (already Active) and clear hold pressed |
 
 ### Reconciliation
 
@@ -102,10 +102,19 @@ after the 30 seconds, because the vacancy timer does not survive a restart.
 ## Known limitations
 
 - **Startup sync abandoned on early occupancy change** — if `occupied_effective`
-  changes during the 30-second startup delay, `mode: restart` cancels the
-  startup sync and runs the occupancy branch instead. The new occupancy state
-  is correctly applied but no startup reconciliation occurs. This is acceptable
-  because the primary control branch handles the transition correctly.
+  goes `on` during the 30-second startup delay (or goes `off` with
+  `inactive_delay` 0), `mode: restart` cancels the startup sync and runs the
+  occupancy branch instead. The new occupancy state is correctly applied but no
+  startup reconciliation occurs. This is acceptable because the primary
+  control branch handles the transition correctly.
+- **Positive `inactive_delay` and startup** — an `on` → `off` change during
+  the startup delay does not cancel startup sync, because Room Unoccupied only
+  fires after the delay. Startup sync finishes at 30 s and sets Inactive if the
+  room is vacant (it ignores `inactive_delay`).
+- **Availability blips** — `unavailable`/`unknown` → `off` also starts the
+  vacancy window, so a blip during the delay restarts it instead of losing it.
+  At `inactive_delay` 0 this means `unavailable` → `off` re-sends Inactive and
+  presses clear hold (1.0.5 did nothing).
 
 ---
 

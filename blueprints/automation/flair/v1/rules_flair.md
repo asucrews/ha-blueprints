@@ -11,9 +11,10 @@ blueprint enforces regardless of which trigger fires.
    strictly from `off` → `on`. Does not fire on `unknown`/`unavailable`
    transitions.
 2. **Room Unoccupied trigger** — fires when `occupied_effective` changes
-   strictly from `on` → `off` and stays off for `inactive_delay` (`for:`;
-   default 0 = immediately). Going back `on` inside the delay cancels it.
-   Does not fire on `unknown`/`unavailable`
+   to `off` from `on`, `unavailable` or `unknown` and stays off for `inactive_delay` (`for:`;
+   default 0 = immediately). Going back `on` inside the delay cancels it; an
+   `unavailable`/`unknown` blip also cancels it, and the next change to `off`
+   restarts the window. Does not fire on `unknown`/`unavailable`
    transitions.
 3. **Flair Status Changed trigger** — fires on any state change to
    `flair_activity_status`, excluding `unknown` and `unavailable` in both
@@ -40,7 +41,8 @@ blueprint enforces regardless of which trigger fires.
 8. **Pre-delay mismatch check** — the `Flair Status Changed` branch only
    enters if a mismatch exists at trigger time:
    - `occupied_effective` is `on` AND `flair_activity_status` is not `Active`, OR
-   - `occupied_effective` has been `off` for at least `inactive_delay` AND
+   - `occupied_effective` is `off` and has been for at least `inactive_delay`
+     (at `inactive_delay` 0 the age test is skipped) AND
      `flair_activity_status` is not `Inactive`.
    While `occupied_effective` has been off for less than `inactive_delay`,
    `Active` is correct and is not a mismatch.
@@ -86,7 +88,13 @@ blueprint enforces regardless of which trigger fires.
 17. Rapid Flair cloud state churn causes repeated restarts that keep resetting
     the reconciliation delay, preventing oscillation against a churning cloud
     state.
-18. If `occupied_effective` changes while a startup sync delay is in progress,
-    the automation restarts and the relevant occupancy branch (Occupied or
-    Unoccupied) runs instead. The startup sync is abandoned but the new
-    occupancy state is correctly applied.
+18. If `occupied_effective` goes `on` while a startup sync delay is in
+    progress, the automation restarts and the Occupied branch runs instead.
+    The startup sync is abandoned but the new occupancy state is correctly
+    applied. With `inactive_delay` 0 an `on` → `off` change does the same for
+    the Unoccupied branch. With a positive `inactive_delay`, an `on` → `off`
+    change during the startup delay does not cancel startup sync (Room
+    Unoccupied has not fired yet): startup sync finishes at 30 s and sets
+    Inactive if the room is vacant. If the room is still vacant when the
+    delay elapses, Room Unoccupied then fires, restarts the run and sets
+    Inactive again (harmless).
